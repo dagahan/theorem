@@ -1,0 +1,30 @@
+FROM vllm/vllm-openai:latest
+
+
+RUN apt-get update && \
+    apt-get install -y \
+    curl \
+    ca-certificates \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+
+RUN groupadd -r vllmuser && useradd -r -g vllmuser vllmuser
+
+
+RUN mkdir -p /root/.cache && \
+    chown -R vllmuser:vllmuser /root/.cache
+
+
+COPY . /app
+WORKDIR /app
+
+
+RUN chown -R vllmuser:vllmuser /app
+RUN chmod +x /app/entrypoint.sh
+USER vllmuser
+
+
+EXPOSE ${VLLM_PORT}
+ENTRYPOINT ["./entrypoint.sh"]
+
