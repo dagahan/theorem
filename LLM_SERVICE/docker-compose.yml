@@ -1,0 +1,59 @@
+name: theorem
+
+
+services:
+  # llm_gateway:
+  #   build:
+  #     context: ./llm_gateway
+  #     dockerfile: dockerfile
+  #   image: llm_gateway-${COMPOSE_PROJECT_NAME}
+  #   container_name: llm_gateway-${COMPOSE_PROJECT_NAME}
+  #   env_file: .env
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #   ports:
+  #     - "${LLM_GATEWAY_PORT}:${LLM_GATEWAY_PORT}"
+  #   networks: [theorem_net]
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./llm_gateway
+
+
+  vllm:
+    build:
+      context: ./vllm
+      dockerfile: dockerfile
+    image: vllm-${COMPOSE_PROJECT_NAME}
+    container_name: vllm-${COMPOSE_PROJECT_NAME}
+    env_file: ./vllm/.env  #local .env file      
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
+    ports:
+      - "${VLLM_PORT:-8000}:${VLLM_PORT:-8000}"
+    volumes:
+      - vllm_cache:/data/hf-cache   
+    gpus: all
+    networks: [theorem_net]
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./vllm
+
+
+networks:
+  theorem_net:
+    driver: bridge
+    name: theorem_net
+
+
+volumes:
+  vllm_cache:
+    driver: local
+
+
