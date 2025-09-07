@@ -1,59 +1,115 @@
-name: theorem
+name: llm-service
 
 
 services:
-  # llm_gateway:
-  #   build:
-  #     context: ./llm_gateway
-  #     dockerfile: dockerfile
-  #   image: llm_gateway-${COMPOSE_PROJECT_NAME}
-  #   container_name: llm_gateway-${COMPOSE_PROJECT_NAME}
-  #   env_file: .env
-  #   environment:
-  #     RUNNING_INSIDE_DOCKER: 1
-  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
-  #   ports:
-  #     - "${LLM_GATEWAY_PORT}:${LLM_GATEWAY_PORT}"
-  #   networks: [theorem_net]
-  #   restart: ${DOCKER_CONTAINERS_RESTART}
-  #   develop:
-  #     watch:
-  #       - action: rebuild
-  #         path: ./llm_gateway
-
-
-  vllm:
+  qdrant:
     build:
-      context: ./vllm
+      context: ./qdrant
       dockerfile: dockerfile
-    image: vllm-${COMPOSE_PROJECT_NAME}
-    container_name: vllm-${COMPOSE_PROJECT_NAME}
-    env_file: ./vllm/.env  #local .env file      
+    image: qdrant-${COMPOSE_PROJECT_NAME}
+    container_name: qdrant-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - ./qdrant/.conf
     environment:
       RUNNING_INSIDE_DOCKER: 1
       COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
-      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
     ports:
-      - "${VLLM_PORT:-8000}:${VLLM_PORT:-8000}"
+      - "${QDRANT_PORT}:${QDRANT_PORT}"
     volumes:
-      - vllm_cache:/data/hf-cache   
-    gpus: all
-    networks: [theorem_net]
+      - ./qdrant-data:/qdrant/storage
+    networks:
+      - llm_network
     restart: ${DOCKER_CONTAINERS_RESTART}
     develop:
       watch:
         - action: rebuild
-          path: ./vllm
+          path: ./qdrant
+
+
+  embedder:
+    build:
+      context: ./embedder
+      dockerfile: dockerfile
+    image: embedder-${COMPOSE_PROJECT_NAME}
+    container_name: embedder-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - ./embedder/.conf
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${EMBEDDER_PORT}:${EMBEDDER_PORT}"
+    networks:
+      - llm_network
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./embedder
+
+
+  # rag:
+  #   build:
+  #     context: ./rag
+  #     dockerfile: dockerfile
+  #   image: rag-${COMPOSE_PROJECT_NAME}
+  #   container_name: rag-${COMPOSE_PROJECT_NAME}
+  #   env_file: 
+  #     - .env
+  #     - ./rag/.conf
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #   ports:
+  #     - "${RAG_PORT}:${RAG_PORT}"
+  #   networks:
+  #     - llm_network
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./rag
+
+
+  # vllm_math:
+  #   build:
+  #     context: ./vllm_math
+  #     dockerfile: dockerfile
+  #   image: vllm_math-${COMPOSE_PROJECT_NAME}
+  #   container_name: vllm_math-${COMPOSE_PROJECT_NAME}
+  #   env_file: 
+  #     - .env
+  #     - ./vllm_math/.conf
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #     HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
+  #   ports:
+  #     - "${VLLM_MATH_PORT:-8000}:${VLLM_MATH_PORT:-8000}"
+  #   volumes:
+  #     - vllm_math_data:/data/hf-cache   
+  #   gpus: all
+  #   networks:
+  #     - llm_network
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./vllm_math
 
 
 networks:
-  theorem_net:
+  llm_network:
     driver: bridge
-    name: theorem_net
+    name: llm_network
 
 
 volumes:
-  vllm_cache:
+  vllm_math_data:
     driver: local
 
+  qdrant_data:
+    driver: local
 
