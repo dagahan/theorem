@@ -1,0 +1,60 @@
+syntax = "proto3";
+package rag.v1;
+
+import "buf/validate/validate.proto";
+
+
+service RagService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc SemanticSearch(SemanticSearchRequest) returns (SemanticSearchResponse);
+}
+
+
+message HealthRequest {}
+
+
+message HealthResponse {
+  string status = 1 [(buf.validate.field).string = {min_len: 1, max_len: 32}];
+  option (buf.validate.message).cel = {
+    id: "status_enum",
+    message: "status must be healthy or unhealthy",
+    expression: "status in ['healthy','unhealthy']"
+  };
+}
+
+
+message Chunk {
+  string id         = 1 [(buf.validate.field).string = {pattern: "^[0-9a-fA-F-]{36}$"}];
+  string doc_id     = 2 [(buf.validate.field).string = {pattern: "^[0-9a-fA-F-]{36}$"}];
+  int32  paragraph_id = 3 [(buf.validate.field).int32 = {gte: 1, lte: 100000000}];
+  int32  chunk_id     = 4 [(buf.validate.field).int32 = {gte: 1, lte: 100000000}];
+  string text       = 5 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
+}
+
+
+message SemanticSearchRequest {
+  string query = 1 [(buf.validate.field).string = {min_len: 1, max_len: 4096, pattern: ".*\\S.*"}];
+  int32  top_k = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
+  int32  neighbor_window = 3 [(buf.validate.field).int32 = {gte: 0, lte: 10}];
+  bool   include_whole_paragraph = 4;
+  repeated string filter_doc_ids = 10 [(buf.validate.field).repeated = {
+    min_items: 0,
+    max_items: 512,
+    unique: true,
+    items: { string: { pattern: "^[0-9a-fA-F-]{36}$" } }
+  }];
+}
+
+
+message SemanticSearchResponse {
+  repeated Chunk chunks = 1 [(buf.validate.field).repeated = {min_items: 0, max_items: 200, unique: true}];
+  string merged_text = 2 [(buf.validate.field).string = {max_len: 200000}];
+  option (buf.validate.message).cel = {
+    id: "merged_text_when_chunks",
+    message: "merged_text must be non-empty when chunks are present",
+    expression: "size(chunks) == 0 || (has(merged_text) && size(merged_text) > 0)"
+  };
+}
+
+
+

@@ -50,27 +50,56 @@ services:
           path: ./embedder
 
 
-  # rag:
-  #   build:
-  #     context: ./rag
-  #     dockerfile: dockerfile
-  #   image: rag-${COMPOSE_PROJECT_NAME}
-  #   container_name: rag-${COMPOSE_PROJECT_NAME}
-  #   env_file: 
-  #     - .env
-  #     - ./rag/.conf
-  #   environment:
-  #     RUNNING_INSIDE_DOCKER: 1
-  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
-  #   ports:
-  #     - "${RAG_PORT}:${RAG_PORT}"
-  #   networks:
-  #     - llm_network
-  #   restart: ${DOCKER_CONTAINERS_RESTART}
-  #   develop:
-  #     watch:
-  #       - action: rebuild
-  #         path: ./rag
+  rag:
+    build:
+      context: ./rag
+      dockerfile: dockerfile
+    image: rag-${COMPOSE_PROJECT_NAME}
+    container_name: rag-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - ./rag/.conf
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${RAG_PORT}:${RAG_PORT}"
+    networks:
+      - llm_network
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    depends_on:
+      - qdrant
+      - embedder
+    develop:
+      watch:
+        - action: rebuild
+          path: ./rag
+
+
+  ingestion:
+    build:
+      context: ./ingestion
+      dockerfile: dockerfile
+    image: ingestion-${COMPOSE_PROJECT_NAME}
+    container_name: ingestion-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - ./ingestion/.conf
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${INGESTION_PORT}:${INGESTION_PORT}"
+    networks:
+      - llm_network
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    depends_on:
+      - qdrant
+      - embedder
+    develop:
+      watch:
+        - action: rebuild
+          path: ./ingestion
 
 
   # vllm_math:
@@ -111,5 +140,8 @@ volumes:
     driver: local
 
   qdrant_data:
+    driver: local
+
+  redis_data:
     driver: local
 

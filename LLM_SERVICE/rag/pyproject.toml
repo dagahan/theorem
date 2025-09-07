@@ -1,0 +1,54 @@
+[project]
+name = "rag_service"
+version = "0.0.1"
+requires-python = "==3.12.6"
+dependencies = [
+    "loguru==0.7.3",
+    "colorama==0.4.6",
+    "python-dotenv==1.1.1",
+    "grpcio==1.74.0",
+    "protobuf==6.32.0",
+    "protovalidate==0.15.0",
+    "qdrant-client==1.15.1",
+    "numpy==2.3.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff==0.12.10",
+    "mypy>=1.17.1",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "UP", "I", "W", "N", "ANN", "TCH"]
+ignore = ["ANN401", "W293", "F403", "F405"]
+unfixable = ["ANN"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+show_error_codes = true
+pretty = true
+
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+no_implicit_optional = true
+warn_return_any = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+
+plugins = [
+  "pydantic.mypy",
+]
+
+[mypy-qdrant_client]
+ignore_missing_imports = true
+
+

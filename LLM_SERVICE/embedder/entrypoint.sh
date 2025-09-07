@@ -10,8 +10,7 @@ RUFF_RULES="${RUFF_RULES:-ANN,TCH}"
 RUFF_IGNORES="${RUFF_IGNORES:-ANN401}"
 RUFF_FIX="${RUFF_FIX:-0}"
 
-SYNC_CMD="${SYNC_CMD:-./sync_dependencies.sh}"
-APP_CMD="${APP_CMD:-uv run python src/services/embedder_service.py}"
+APP_CMD="${APP_CMD:-uv run main.py}"
 
 
 if [[ "${RUNNING_INSIDE_DOCKER:-0}" != "1" ]]; then
@@ -25,21 +24,12 @@ if [[ "${RUNNING_INSIDE_DOCKER:-0}" != "1" ]]; then
   uv run ruff "${ruff_args[@]}"
 
   echo "🔬 Mypy (strict)…"
-  uv run mypy "$CHECK_PATH"
+  uv run mypy "$CHECK_PATH" --ignore-missing-imports
 else
   echo "🐳 RUNNING_INSIDE_DOCKER=1 → skipping Ruff & Mypy."
 fi
 
 
-if [[ -n "${SYNC_CMD// }" ]]; then
-  echo "🔁 Running sync step: $SYNC_CMD"
-  if [[ -f "$SYNC_CMD" ]]; then
-    chmod +x "$SYNC_CMD"
-    "$SYNC_CMD"
-  else
-    bash -lc "$SYNC_CMD"
-  fi
-fi
-
-
 exec $APP_CMD
+
+

@@ -1,0 +1,4 @@
+version: v2
+
+modules:
+  - path: third_party/protovalidate
