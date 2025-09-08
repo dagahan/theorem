@@ -34,7 +34,7 @@ class Service:
                 pass
 
         server_task = asyncio.create_task(
-            self.fastapi_server.run_server(), name="FastAPI-Ingestion"
+            self.fastapi_server.run_server(), name="FastAPI-Ingestor"
         )
 
         pending: set[asyncio.Future] = {server_task, stop_future}
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     # loading env variables process for local run of microservice.
     try:
         EnvTools.bootstrap_env(
-            service_name="ingestion",
+            service_name="ingestor",
             conf_filename=".conf"
         )
 

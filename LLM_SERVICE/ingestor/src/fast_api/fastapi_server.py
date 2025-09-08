@@ -3,21 +3,21 @@ from fastapi import FastAPI
 from loguru import logger
 
 from src.core.utils import EnvTools
-from src.fast_api.routers.ingestion_router import get_ingestion_router
+from src.fast_api.routers.ingestor_router import get_ingestor_router
 
 
 class Server:
     def __init__(self) -> None:
         self.app = FastAPI(
-            title="ingestion",
+            title="ingestor",
             description="insert data to qdrant service.",
             version="0.0.1"
         )
 
         self.uvicorn_config = uvicorn.Config(
             app=self.app,
-            host = EnvTools.required_load_env_var("INGESTION_HOST"),
-            port = int(EnvTools.get_service_port("ingestion")),
+            host = EnvTools.required_load_env_var("INGESTOR_HOST"),
+            port = int(EnvTools.get_service_port("ingestor")),
             log_level="info"
         )
 
@@ -28,7 +28,7 @@ class Server:
         server = uvicorn.Server(self.uvicorn_config)
         await self._register_routes()
 
-        logger.info("Starting ingestion server")
+        logger.info("Starting ingestor server")
         
         await server.serve()
 
@@ -54,6 +54,6 @@ class Server:
         '''
         register all of endpoints.
         '''
-        self.app.include_router(get_ingestion_router())
+        self.app.include_router(get_ingestor_router())
             
 

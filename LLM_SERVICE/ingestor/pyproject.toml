@@ -1,5 +1,5 @@
 [project]
-name = "ingestion_service"
+name = "ingestor_service"
 version = "0.0.1"
 requires-python = "==3.12.6"
 dependencies = [
@@ -17,9 +17,10 @@ dependencies = [
   "uvicorn[standard]==0.32.0",
   "pydantic==2.10.0",
   "blingfire==0.1.7",
-  "pypdf==4.3.1",
+  "pdfplumber==0.11.7",
   "python-docx==1.1.2",
   "python-multipart==0.0.20",
+  "httpx[socks]",
 ]
 
 
@@ -68,6 +69,8 @@ plugins = [
 [mypy-qdrant_client]
 ignore_missing_imports = true
 [mypy-blingfire]
+ignore_missing_imports = true
+[mypy-grpc]
 ignore_missing_imports = true
 
 

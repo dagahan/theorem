@@ -98,13 +98,13 @@ class EnvTools:
         path: Path,
         override: bool = False
     ) -> None:
-         if not path.exists():
+        if path.exists():
             load_dotenv(
-            dotenv_path=path,
-            override=override,
-            interpolate=True,
-            encoding="utf-8",
-        )
+                dotenv_path=path,
+                override=override,
+                interpolate=True,
+                encoding="utf-8",
+            )
 
 
     @staticmethod

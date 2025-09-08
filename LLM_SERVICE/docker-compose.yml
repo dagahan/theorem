@@ -76,20 +76,20 @@ services:
           path: ./rag
 
 
-  ingestion:
+  ingestor:
     build:
-      context: ./ingestion
+      context: ./ingestor
       dockerfile: dockerfile
-    image: ingestion-${COMPOSE_PROJECT_NAME}
-    container_name: ingestion-${COMPOSE_PROJECT_NAME}
+    image: ingestor-${COMPOSE_PROJECT_NAME}
+    container_name: ingestor-${COMPOSE_PROJECT_NAME}
     env_file: 
       - .env
-      - ./ingestion/.conf
+      - ./ingestor/.conf
     environment:
       RUNNING_INSIDE_DOCKER: 1
       COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
     ports:
-      - "${INGESTION_PORT}:${INGESTION_PORT}"
+      - "${INGESTOR_PORT}:${INGESTOR_PORT}"
     networks:
       - llm_network
     restart: ${DOCKER_CONTAINERS_RESTART}
@@ -99,7 +99,7 @@ services:
     develop:
       watch:
         - action: rebuild
-          path: ./ingestion
+          path: ./ingestor
 
 
   # vllm_math:

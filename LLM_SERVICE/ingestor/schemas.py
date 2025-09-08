@@ -3,7 +3,7 @@ Pydantic models for all microservices.
 """
 
 from .common import HealthResponse, ErrorResponse, SuccessResponse
-from .document_ingestion import (
+from .document_ingestor import (
     IngestDocumentRequest,
     IngestDocumentResponse,
     JobStatusResponse,
@@ -29,7 +29,6 @@ from .collection_management import (
 )
 from .service_stats import (
     ServiceStats,
-    StatsResponse,
 )
 from .ingest_files import (
     IngestFilesItem,
@@ -63,7 +62,6 @@ __all__ = [
     "ListCollectionsResponse",
     # Service Stats
     "ServiceStats",
-    "StatsResponse",
     # File Ingestion
     "IngestFilesItem",
     "IngestFilesResponse",

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, TypeVar, Generic
 
-import grpc
+import grpc  # type: ignore
 from loguru import logger
 from protovalidate import Validator, ValidationError
 

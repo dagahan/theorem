@@ -6,8 +6,6 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks, status, UploadFil
 from loguru import logger
 
 from pydantic_schemas import (
-    IngestDocumentRequest,
-    IngestDocumentResponse,
     SearchRequest,
     SearchResult,
     SearchResponse,
@@ -18,51 +16,60 @@ from pydantic_schemas import (
     DocumentInfo,
     GetDocumentResponse,
     ServiceStats,
-    StatsResponse,
+    HealthResponse,
     IngestFilesItem,
     IngestFilesResponse,
 )
 
-from src.services.ingestion_service import IngestionService
+from src.services.ingestor_service import IngestorService
 from src.services.file_text_extractor import FileTextExtractor
 from src.grpc.client.registry_grpc_clients import RegistryGrpcClients
 
 
-def get_ingestion_router() -> APIRouter:
-    router = APIRouter(prefix="/ingestion", tags=["ingestion"])
+def get_ingestor_router() -> APIRouter:
+    router = APIRouter(prefix="/ingestor", tags=["ingestor"])
     extractor = FileTextExtractor()
     grpc_clients = RegistryGrpcClients()
-    ingestion_service = IngestionService(grpc_clients)
+    ingestor_service = IngestorService(grpc_clients)
 
 
-    @router.get("/health")  # type: ignore[misc]
-    async def health_check() -> Dict[str, str]:
-        return await ingestion_service.health_check()
+    @router.get("/health", response_model=HealthResponse)  # type: ignore[misc]
+    async def health_check() -> HealthResponse:
+        return await ingestor_service.health_check()
 
 
-    @router.post("/ingest", response_model=IngestDocumentResponse, status_code=202)  # type: ignore[misc]
-    async def ingest_document(
-        request: IngestDocumentRequest,  # noqa: F821
-        background_tasks: BackgroundTasks,
-    ) -> IngestDocumentResponse:
+    @router.get("/get_document_info/{doc_id}", response_model=GetDocumentResponse)  # type: ignore[misc]
+    async def get_document_info(
+        doc_id: str,
+        collection_name: Optional[str] = None
+    ) -> GetDocumentResponse:
 
-        try:
-            doc_id = request.doc_id or str(uuid.uuid4())
-            background_tasks.add_task(
-                ingestion_service._process_document,
-                doc_id,
-                request.text,
-                request.metadata
-            )
+        count = await ingestor_service.get_document_chunks_count(doc_id, collection_name)
+        final_collection_name = collection_name or ingestor_service.collection_name
 
-            return IngestDocumentResponse(job_id=doc_id, doc_id=doc_id, status="processing")
-
-        except Exception as e:
-            logger.error(f"Failed to queue document ingestion: {e}")
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to queue document ingestion: {str(e)}")
+        return GetDocumentResponse(document=DocumentInfo(
+            doc_id=doc_id, 
+            chunks_count=count,
+            collection_name=final_collection_name
+        ))
 
 
-    @router.post("/ingest-files", response_model=IngestFilesResponse, status_code=202)  # type: ignore[misc]
+    @router.get("/service_stats", response_model=ServiceStats)  # type: ignore[misc]
+    async def get_service_stats() -> ServiceStats:
+        return await ingestor_service.get_service_stats()
+
+
+    @router.get("/collections", response_model=ListCollectionsResponse)  # type: ignore[misc]
+    async def list_collections() -> ListCollectionsResponse:
+        cols = await ingestor_service.vector_store_service.get_collections()
+        infos = [CollectionInfo(name=c["name"], vectors_count=c["vectors_count"], config=c["config"]) for c in cols]
+
+        return ListCollectionsResponse(
+            collections=infos
+        )
+
+
+    @router.post("/ingest_files", response_model=IngestFilesResponse, status_code=202)  # type: ignore[misc]
     async def ingest_files(
         background_tasks: BackgroundTasks,            
         files: List[UploadFile] = File(...),
@@ -101,7 +108,7 @@ def get_ingestion_router() -> APIRouter:
                     }
 
                     background_tasks.add_task(
-                        ingestion_service._process_document,
+                        ingestor_service._process_document,
                         doc_id,
                         text,
                         meta_all,
@@ -112,7 +119,10 @@ def get_ingestion_router() -> APIRouter:
                 except Exception as ex:
                     logger.exception(f"file '{getattr(f, 'filename', '<unknown>')}' failed: {ex}")
 
-            return IngestFilesResponse(items=items, total=len(items))
+            return IngestFilesResponse(
+                items=items,
+                total=len(items)
+            )
 
         except HTTPException:
             raise
@@ -124,9 +134,9 @@ def get_ingestion_router() -> APIRouter:
 
     @router.post("/search", response_model=SearchResponse)  # type: ignore[misc]
     async def search_documents(request: SearchRequest) -> SearchResponse:
-        ctx = await ingestion_service.orchestrator.search_with_context(
+        ctx = await ingestor_service.search_with_context(
             query=request.query,
-            collection_name=request.collection_name or ingestion_service.collection_name,
+            collection_name=request.collection_name or ingestor_service.collection_name,
             top_k=request.limit,
             neighbor_window=request.neighbor_window if hasattr(request, "neighbor_window") else 2,
             include_whole_paragraph=request.include_whole_paragraph if hasattr(request, "include_whole_paragraph") else True,
@@ -146,46 +156,22 @@ def get_ingestion_router() -> APIRouter:
                 metadata=p.get("metadata", {}),
             ))
 
-        return SearchResponse(results=results, total=len(results), query=request.query, merged_text=ctx["merged_text"])
+        return SearchResponse(
+            results=results,
+            total=len(results),
+            query=request.query,
+            merged_text=ctx["merged_text"]
+        )
 
 
     @router.delete("/document", response_model=DeleteDocumentResponse)  # type: ignore[misc]
     async def delete_document(request: DeleteDocumentRequest) -> DeleteDocumentResponse:
-        await ingestion_service.delete_document(request.doc_id)
+        await ingestor_service.delete_document(request.doc_id)
 
-        return DeleteDocumentResponse(doc_id=request.doc_id, status="deleted")
-
-
-    @router.get("/document/{doc_id}", response_model=GetDocumentResponse)  # type: ignore[misc]
-    async def get_document_info(
-        doc_id: str,
-        collection_name: Optional[str] = None
-    ) -> GetDocumentResponse:
-
-        collection_name = collection_name or ingestion_service.collection_name
-        count = await ingestion_service.orchestrator.vector_store_service.get_document_chunks_count(collection_name, doc_id)
-
-        return GetDocumentResponse(document=DocumentInfo(doc_id=doc_id, chunks_count=count, collection_name=collection_name))
-
-
-    @router.get("/stats", response_model=StatsResponse)  # type: ignore[misc]
-    async def get_service_stats() -> StatsResponse:
-        stats = await ingestion_service.get_service_stats()
-
-        return StatsResponse(stats=ServiceStats(
-            total_collections=stats["total_collections"],
-            total_vectors=stats["total_vectors"],
-            embedder_status=stats["embedder_status"],
-            qdrant_status=stats["qdrant_status"],
-        ))
-
-
-    @router.get("/collections", response_model=ListCollectionsResponse)  # type: ignore[misc]
-    async def list_collections() -> ListCollectionsResponse:
-        cols = await ingestion_service.orchestrator.vector_store_service.get_collections()
-        infos = [CollectionInfo(name=c["name"], vectors_count=c["vectors_count"], config=c["config"]) for c in cols]
-
-        return ListCollectionsResponse(collections=infos)
+        return DeleteDocumentResponse(
+            doc_id=request.doc_id,
+            status="deleted"
+        )
 
 
 

@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 class HealthResponse(BaseModel):
     status: str
+    error: Optional[str] = None
 
 
 class ErrorResponse(BaseModel):
