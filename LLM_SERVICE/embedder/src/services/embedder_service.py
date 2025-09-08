@@ -1,4 +1,6 @@
 import os
+import time
+from functools import wraps
 from typing import Iterator, Optional
 
 import grpc
@@ -17,6 +19,56 @@ def _to_f32_list(x: np.ndarray) -> list[float]:
     if x.dtype != np.float32:
         x = x.astype(np.float32, copy=False)
     return x.tolist()  # type: ignore[no-any-return]
+
+
+def log_grpc_request(method_name: str):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, request, context):
+            start_time = time.time()
+            client_info = f"{context.peer()}" if hasattr(context, 'peer') else "unknown"
+            
+            logger.info(f"gRPC request started: {method_name} from {client_info}")
+            
+            try:
+                result = func(self, request, context)
+                duration = time.time() - start_time
+                logger.info(f"gRPC request completed: {method_name} from {client_info} in {duration:.3f}s")
+                
+                return result
+                
+            except Exception as e:
+                duration = time.time() - start_time
+                
+                logger.error(f"gRPC request failed: {method_name} from {client_info} in {duration:.3f}s - {str(e)}")
+                
+                raise
+        
+
+        @wraps(func)
+        def async_wrapper(self, request, context):
+            start_time = time.time()
+            client_info = f"{context.peer()}" if hasattr(context, 'peer') else "unknown"
+            
+            logger.info(f"gRPC stream request started: {method_name} from {client_info}")
+            
+            try:
+                for item in func(self, request, context):
+                    yield item
+                
+                duration = time.time() - start_time
+                logger.info(f"gRPC stream request completed: {method_name} from {client_info} in {duration:.3f}s")
+                
+            except Exception as e:
+                duration = time.time() - start_time
+                logger.error(f"gRPC stream request failed: {method_name} from {client_info} in {duration:.3f}s - {str(e)}")
+                raise
+
+        if method_name == "EmbedStream":
+            return async_wrapper
+        return wrapper
+
+    return decorator
 
 
 class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignore[misc]
@@ -76,6 +128,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
             ctx.abort(grpc.StatusCode.INTERNAL, "internal schema violation")
 
 
+    @log_grpc_request("Health")
     def Health(
         self,
         request: embedder_pb2.HealthRequest,
@@ -95,6 +148,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
             return embedder_pb2.HealthResponse(status="unhealthy", model_id="", dim=0)
 
 
+    @log_grpc_request("Embed")
     def Embed(
         self,
         request: embedder_pb2.EmbedRequest,
@@ -129,6 +183,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
             return embedder_pb2.EmbedResponse(success=False, error=str(e))
 
 
+    @log_grpc_request("EmbedBatch")
     def EmbedBatch(
         self,
         request: embedder_pb2.EmbedBatchRequest,
@@ -169,6 +224,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
             return response
     
 
+    @log_grpc_request("EmbedStream")
     def EmbedStream(
         self,
         request: embedder_pb2.EmbedStreamRequest,
