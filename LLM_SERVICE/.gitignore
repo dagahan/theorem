@@ -132,3 +132,6 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+
+# Qdrant data directory
+qdrant-data/

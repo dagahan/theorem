@@ -50,7 +50,7 @@ if [[ ! -f "${VALIDATE_OUT}/buf/validate/validate_pb2.py" ]]; then
   log "generating validate stubs"
   [[ -d "${VALIDATE_OUT}" ]] && { log "clean ${VALIDATE_OUT}"; rm -rf "${VALIDATE_OUT}"; }
   pushd "${BUF_DIR}" >/dev/null
-  buf generate --template buf.validate.gen.yaml third_party/protovalidate
+  buf generate --template buf.validate.gen.yaml third_party/protovalidate/buf/validate
   popd >/dev/null
   validate_cnt=$(find "${VALIDATE_OUT}" -type f -name "*.py" 2>/dev/null | wc -l | tr -d ' ')
   [[ "${validate_cnt}" -gt 0 ]] || fail "no validate python files generated"

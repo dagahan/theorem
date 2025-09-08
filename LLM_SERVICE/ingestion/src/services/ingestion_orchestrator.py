@@ -4,13 +4,14 @@ from loguru import logger
 from src.services.chunking_service import ChunkingService
 from src.services.embedding_service import EmbeddingService
 from src.services.vector_store_service import VectorStoreService
+from src.grpc.client.registry_grpc_clients import RegistryGrpcClients
 from src.core.utils import EnvTools
 
 
 class IngestionOrchestrator:
-    def __init__(self) -> None:
+    def __init__(self, grpc_clients: RegistryGrpcClients) -> None:
         self.chunking_service = ChunkingService()
-        self.embedding_service = EmbeddingService()
+        self.embedding_service = EmbeddingService(grpc_clients)
         self.vector_store_service = VectorStoreService()
         self.default_collection = EnvTools.required_load_env_var("QDRANT_COLLECTION_NAME")
 

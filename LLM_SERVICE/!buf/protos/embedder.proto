@@ -1,7 +1,7 @@
 syntax = "proto3";
 package embedder.v1;
 
-import "../third_party/protovalidate/buf/validate/validate.proto";
+import "third_party/protovalidate/buf/validate/validate.proto";
 
 
 service EmbedderService {
@@ -22,7 +22,7 @@ message HealthResponse {
   option (buf.validate.message).cel = {
     id: "status_enum",
     message: "status must be healthy or unhealthy",
-    expression: "status in ['healthy','unhealthy']"
+    expression: "this.status == 'healthy' || this.status == 'unhealthy'"
   };
 }
 

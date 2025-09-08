@@ -25,15 +25,19 @@ from pydantic_schemas import (
 
 from src.services.ingestion_service import IngestionService
 from src.services.file_text_extractor import FileTextExtractor
-
-
-def _get_ingestion_service() -> IngestionService:
-    return IngestionService()
+from src.grpc.client.registry_grpc_clients import RegistryGrpcClients
 
 
 def get_ingestion_router() -> APIRouter:
     router = APIRouter(prefix="/ingestion", tags=["ingestion"])
     extractor = FileTextExtractor()
+    grpc_clients = RegistryGrpcClients()
+    ingestion_service = IngestionService(grpc_clients)
+
+
+    @router.get("/health")  # type: ignore[misc]
+    async def health_check() -> Dict[str, str]:
+        return await ingestion_service.health_check()
 
 
     @router.post("/ingest", response_model=IngestDocumentResponse, status_code=202)  # type: ignore[misc]
@@ -43,7 +47,6 @@ def get_ingestion_router() -> APIRouter:
     ) -> IngestDocumentResponse:
 
         try:
-            ingestion_service = _get_ingestion_service()
             doc_id = request.doc_id or str(uuid.uuid4())
             background_tasks.add_task(
                 ingestion_service._process_document,
@@ -67,8 +70,6 @@ def get_ingestion_router() -> APIRouter:
         metadata: Optional[str] = Form(None),
     ) -> IngestFilesResponse:
         try:
-            ingestion_service = _get_ingestion_service()
-
             meta: Dict[str, Any] = {}
             if metadata:
                 try:
@@ -123,7 +124,6 @@ def get_ingestion_router() -> APIRouter:
 
     @router.post("/search", response_model=SearchResponse)  # type: ignore[misc]
     async def search_documents(request: SearchRequest) -> SearchResponse:
-        ingestion_service = _get_ingestion_service()
         ctx = await ingestion_service.orchestrator.search_with_context(
             query=request.query,
             collection_name=request.collection_name or ingestion_service.collection_name,
@@ -151,8 +151,6 @@ def get_ingestion_router() -> APIRouter:
 
     @router.delete("/document", response_model=DeleteDocumentResponse)  # type: ignore[misc]
     async def delete_document(request: DeleteDocumentRequest) -> DeleteDocumentResponse:
-        ingestion_service = _get_ingestion_service()
-
         await ingestion_service.delete_document(request.doc_id)
 
         return DeleteDocumentResponse(doc_id=request.doc_id, status="deleted")
@@ -164,7 +162,6 @@ def get_ingestion_router() -> APIRouter:
         collection_name: Optional[str] = None
     ) -> GetDocumentResponse:
 
-        ingestion_service = _get_ingestion_service()
         collection_name = collection_name or ingestion_service.collection_name
         count = await ingestion_service.orchestrator.vector_store_service.get_document_chunks_count(collection_name, doc_id)
 
@@ -173,7 +170,6 @@ def get_ingestion_router() -> APIRouter:
 
     @router.get("/stats", response_model=StatsResponse)  # type: ignore[misc]
     async def get_service_stats() -> StatsResponse:
-        ingestion_service = _get_ingestion_service()
         stats = await ingestion_service.get_service_stats()
 
         return StatsResponse(stats=ServiceStats(
@@ -184,16 +180,8 @@ def get_ingestion_router() -> APIRouter:
         ))
 
 
-    @router.get("/health")  # type: ignore[misc]
-    async def health_check() -> Dict[str, str]:
-        ingestion_service = _get_ingestion_service()
-
-        return await ingestion_service.health_check()
-
-
     @router.get("/collections", response_model=ListCollectionsResponse)  # type: ignore[misc]
     async def list_collections() -> ListCollectionsResponse:
-        ingestion_service = _get_ingestion_service()
         cols = await ingestion_service.orchestrator.vector_store_service.get_collections()
         infos = [CollectionInfo(name=c["name"], vectors_count=c["vectors_count"], config=c["config"]) for c in cols]
 

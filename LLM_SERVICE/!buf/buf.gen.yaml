@@ -1,13 +1,10 @@
 version: v2
 
 managed:
-  enabled: true
+  enabled: false
 
 plugins:
   - remote: buf.build/protocolbuffers/python:v28.3
-    out: gen
-
-  - remote: buf.build/grpc/python:v1.62.2
     out: gen
 
 
