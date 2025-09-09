@@ -135,6 +135,24 @@ class IngestorService:
         if collection_name is None:
             collection_name = self.collection_name
 
+        # Check embedder health before embedding
+        try:
+            embedder_health = await self.embedding_service.health_check()
+            if embedder_health["status"] != "healthy":
+                raise RuntimeError(f"Embedder service is not healthy: {embedder_health['status']}")
+        except Exception as e:
+            logger.error(f"Embedder health check failed: {e}")
+            raise RuntimeError(f"Embedder service is unavailable: {str(e)}")
+
+        # Check vector store health before search
+        try:
+            vector_store_health = await self.vector_store_service.health_check()
+            if vector_store_health["status"] != "healthy":
+                raise RuntimeError(f"Vector store service is not healthy: {vector_store_health['status']}")
+        except Exception as e:
+            logger.error(f"Vector store health check failed: {e}")
+            raise RuntimeError(f"Vector store service is unavailable: {str(e)}")
+
         emb = await self.embedding_service.embed_text(query, normalize=True)
 
         result = await self.vector_store_service.search(
@@ -232,18 +250,49 @@ class IngestorService:
 
 
     async def get_service_stats(self) -> ServiceStats:
-        collections = await self.vector_store_service.get_collections()
-        total_collections = len(collections)
-        total_vectors = sum(col["vectors_count"] for col in collections)
+        # Initialize with default values
+        total_collections = 0
+        total_vectors = 0
+        embedder_status = "unknown"
+        qdrant_status = "unknown"
+        error_messages = []
         
-        embedder_health = await self.embedding_service.health_check()
-        vector_store_health = await self.vector_store_service.health_check()
+        # Check embedder health first
+        try:
+            embedder_health = await self.embedding_service.health_check()
+            embedder_status = embedder_health["status"]
+        except Exception as e:
+            embedder_status = "unhealthy"
+            error_messages.append(f"Embedder health check failed: {str(e)}")
+            logger.warning(f"Embedder health check failed: {e}")
+        
+        # Check vector store health
+        try:
+            vector_store_health = await self.vector_store_service.health_check()
+            qdrant_status = vector_store_health["status"]
+        except Exception as e:
+            qdrant_status = "unhealthy"
+            error_messages.append(f"Vector store health check failed: {str(e)}")
+            logger.warning(f"Vector store health check failed: {e}")
+        
+        # Only try to get collections if vector store is healthy
+        if qdrant_status == "healthy":
+            try:
+                collections = await self.vector_store_service.get_collections()
+                total_collections = len(collections)
+                total_vectors = sum(col["vectors_count"] for col in collections)
+            except Exception as e:
+                error_messages.append(f"Failed to get collections: {str(e)}")
+                logger.warning(f"Failed to get collections: {e}")
+        else:
+            error_messages.append("Skipping collection stats due to unhealthy vector store")
         
         return ServiceStats(
             total_collections=total_collections,
             total_vectors=total_vectors,
-            embedder_status=embedder_health["status"],
-            qdrant_status=vector_store_health["status"]
+            embedder_status=embedder_status,
+            qdrant_status=qdrant_status,
+            error_message="; ".join(error_messages) if error_messages else ""
         )
 
 
