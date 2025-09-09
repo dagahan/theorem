@@ -11,15 +11,21 @@ from src.core.utils import EnvTools
 
 class ChunkingService:
     def __init__(self) -> None:
-        self.chunk_size = int(EnvTools.required_load_env_var("CHUNK_SIZE"))
-        self.chunk_overlap = int(EnvTools.required_load_env_var("CHUNK_OVERLAP"))
+        self.chunk_size: int = int(EnvTools.required_load_env_var("CHUNK_SIZE"))
+        self.chunk_overlap: int = int(EnvTools.required_load_env_var("CHUNK_OVERLAP"))
 
 
-    def split_paragraphs(self, text: str) -> List[str]:
+    def split_paragraphs(
+        self,
+        text: str
+    ) -> List[str]:
         return [p.strip() for p in re.split(r'\n\s*\n+', text) if p.strip()]
 
 
-    def split_sentences(self, paragraph: str) -> List[str]:
+    def split_sentences(
+        self,
+        paragraph: str
+    ) -> List[str]:
         try:
             sents = blingfire.text_to_sentences(paragraph).splitlines()
             return [s.strip() for s in sents if s.strip()]
@@ -35,6 +41,7 @@ class ChunkingService:
         text: str,
         metadata: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
+    
         chunks: List[Dict[str, Any]] = []
         paragraph_id = 0
         chunk_id = 0
@@ -77,24 +84,28 @@ class ChunkingService:
     }
 
 
-    def normalize_text(self, text: str) -> str:
-        t = text.strip()
-        if not t:
+    def normalize_text(
+        self,
+        text: str
+    ) -> str:
+        text = text.strip()
+        if not text:
             return ""
 
-        t = unicodedata.normalize("NFKC", t)
+        text = unicodedata.normalize("NFKC", text)
 
-        t = self._CONTROL_RE.sub("", t)
-        t = self._ZW_RE.sub("", t)
+        text = self._CONTROL_RE.sub("", text)
+        text = self._ZW_RE.sub("", text)
 
-        t = t.translate(self._TRANSLATE)
+        text = text.translate(self._TRANSLATE)
 
-        t = self._WS_RE.sub(" ", t)
+        text = self._WS_RE.sub(" ", text)
 
-        t = self._ALLOWED_RE.sub("", t)
+        text = self._ALLOWED_RE.sub("", text)
 
-        t = self._WS_RE.sub(" ", t).strip()
+        text = self._WS_RE.sub(" ", text).strip()
 
-        return t
+        return text
+
 
 

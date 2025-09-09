@@ -1,7 +1,6 @@
 import asyncio
 import signal
 import sys
-from pathlib import Path
 
 import colorama
 from loguru import logger
@@ -9,11 +8,6 @@ from loguru import logger
 from src.core.logging import InterceptHandler, LogSetup
 from src.core.utils import EnvTools
 from src.fast_api.fastapi_server import Server as FastAPIServer
-
-# Add buf directory to Python path for protobuf imports
-buf_path = Path(__file__).parent / "buf"
-if str(buf_path) not in sys.path:
-    sys.path.insert(0, str(buf_path))
 
 
 class Service:

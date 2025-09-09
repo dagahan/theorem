@@ -16,7 +16,8 @@ class EmbeddingService:
     ) -> Dict[str, Any]:
 
         embedder_grpc_client = await self.grpc_clients.get_embedder_client()
-        return await embedder_grpc_client.embed_text(text, normalize)
+        result = await embedder_grpc_client.embed_text(text, normalize)
+        return result
 
 
     async def embed_batch(
@@ -26,12 +27,13 @@ class EmbeddingService:
     ) -> List[Dict[str, Any]]:
 
         embedder_grpc_client = await self.grpc_clients.get_embedder_client()
-        return await embedder_grpc_client.embed_batch(texts, normalize)
+        result = await embedder_grpc_client.embed_batch(texts, normalize)
+        return result
 
 
     async def health_check(self) -> Dict[str, Any]: 
-        client = await self.grpc_clients.get_embedder_client()
         embedder_grpc_client = await self.grpc_clients.get_embedder_client()
-        return await embedder_grpc_client.health_check()
+        result = await embedder_grpc_client.health_check()
+        return result
 
 

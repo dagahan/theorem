@@ -15,8 +15,8 @@ _SLEEP = 0.5
 
 class VectorStoreService:
     def __init__(self) -> None:
-        host = EnvTools.get_service_ip("qdrant")
-        port = int(EnvTools.get_service_port("qdrant"))
+        host: str = EnvTools.get_service_ip("qdrant")
+        port: int = int(EnvTools.get_service_port("qdrant"))
         self.client = QdrantClient(host=host, port=port, timeout=30.0)
 
 

@@ -135,3 +135,7 @@ logs/
 
 # Qdrant data directory
 qdrant-data/
+
+# Debug directories
+debug/
+**/debug/

@@ -141,6 +141,7 @@ class FileTextExtractor:
     ) -> str:
         if not content:
             return ""
+            
         printable_ratio = sum(32 <= b <= 126 or b in (9, 10, 13) for b in content[:4096]) / min(len(content), 4096)
         if printable_ratio < 0.6:
             return ""

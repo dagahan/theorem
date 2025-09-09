@@ -8,7 +8,7 @@ from src.services.chunking_service import ChunkingService
 from src.services.embedding_service import EmbeddingService
 from src.services.vector_store_service import VectorStoreService
 from src.grpc.client.registry_grpc_clients import RegistryGrpcClients
-from src.core.utils import EnvTools
+from src.core.utils import EnvTools, FileSystemTools
 from pydantic_schemas.service_stats import ServiceStats
 from pydantic_schemas.common import HealthResponse
 
@@ -21,7 +21,7 @@ class IngestorService:
         self.collection_name = EnvTools.required_load_env_var("QDRANT_COLLECTION_NAME")
 
 
-    def _log_processing_results(
+    def _log_chuncking_results(
         self,
         doc_id: str,
         filename: str,
@@ -30,7 +30,7 @@ class IngestorService:
         metadata: Dict[str, Any]
     ) -> None:
         try:
-            log_entry = {
+            log_chuncking_entry = {
                 "timestamp": datetime.now().isoformat(),
                 "doc_id": doc_id,
                 "filename": filename,
@@ -49,15 +49,18 @@ class IngestorService:
                 ]
             }
             
-            os.makedirs("debug", exist_ok=True)
-            log_filename = f"debug/{filename}_{doc_id}.json"
-            with open(log_filename, "w", encoding="utf-8") as f:
-                f.write(json.dumps(log_entry, indent=2, ensure_ascii=False))
-                
-            logger.info(f"Processing results logged to {log_filename} for doc_id: {doc_id}")
+            debug_dir = "../../debug/chuncking"
+            FileSystemTools.ensure_directory_exists(debug_dir)
+            file_path = os.path.join(debug_dir, f"{filename}_{doc_id}.json")
             
-        except Exception as e:
-            logger.error(f"Failed to log processing results: {e}")
+            with open(file_path, "a", encoding="utf-8") as file:
+                file.write(json.dumps(log_chuncking_entry, indent=2, ensure_ascii=False))
+                file.write("\n\n")
+                
+            logger.debug(f"Processing results logged to debug log file: {file_path} for doc_id: {doc_id}")
+            
+        except Exception as ex:
+            logger.error(f"Failed to log processing results: {ex}")
 
 
     async def health_check(self) -> HealthResponse:
@@ -65,9 +68,9 @@ class IngestorService:
             result = await self.vector_store_service.health_check()
             return HealthResponse(status=result["status"])
             
-        except Exception as e:
-            logger.error(f"Health check failed: {e}")
-            return HealthResponse(status="unhealthy", error=str(e))
+        except Exception as ex:
+            logger.error(f"Health check failed: {ex}")
+            return HealthResponse(status="unhealthy", error=str(ex))
 
 
     async def ingest_document(
@@ -80,12 +83,12 @@ class IngestorService:
         if collection_name is None:
             collection_name = self.collection_name
 
-        # Log processing results BEFORE any embedding calls
         chunks = self.chunking_service.chunk_document(doc_id, text, metadata)
-        filename = metadata.get("filename", "unknown")
-        self._log_processing_results(doc_id, filename, text, chunks, metadata)
 
-        # Now try to connect to embedder service
+        filename = metadata.get("filename", "unknown")
+
+        self._log_chuncking_results(doc_id, filename, text, chunks, metadata)
+
         health = await self.embedding_service.health_check()
         dim = int(health["dim"])
         
@@ -134,12 +137,13 @@ class IngestorService:
 
         emb = await self.embedding_service.embed_text(query, normalize=True)
 
-        return await self.vector_store_service.search(
+        result = await self.vector_store_service.search(
             collection_name=collection_name,
             query_vector=emb["vector"],
             limit=limit,
             score_threshold=score_threshold
         )
+        return result
 
 
     async def search_with_context(
@@ -223,7 +227,8 @@ class IngestorService:
     async def get_document_chunks_count(self, doc_id: str, collection_name: Optional[str] = None) -> int:
         if collection_name is None:
             collection_name = self.collection_name
-        return await self.vector_store_service.get_document_chunks_count(collection_name, doc_id)
+        result = await self.vector_store_service.get_document_chunks_count(collection_name, doc_id)
+        return result
 
 
     async def get_service_stats(self) -> ServiceStats:
