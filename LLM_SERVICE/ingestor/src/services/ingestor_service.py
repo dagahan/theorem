@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Tuple, Optional
 from loguru import logger
 import json
+import os
 from datetime import datetime
 
 from src.services.chunking_service import ChunkingService
@@ -48,14 +49,12 @@ class IngestorService:
                 ]
             }
             
-            with open("test.txt", "a", encoding="utf-8") as f:
-                f.write("=" * 80 + "\n")
-                f.write(f"PROCESSING LOG - {log_entry['timestamp']}\n")
-                f.write("=" * 80 + "\n")
+            os.makedirs("debug", exist_ok=True)
+            log_filename = f"debug/{filename}_{doc_id}.json"
+            with open(log_filename, "w", encoding="utf-8") as f:
                 f.write(json.dumps(log_entry, indent=2, ensure_ascii=False))
-                f.write("\n\n")
                 
-            logger.info(f"Processing results logged to test.txt for doc_id: {doc_id}")
+            logger.info(f"Processing results logged to {log_filename} for doc_id: {doc_id}")
             
         except Exception as e:
             logger.error(f"Failed to log processing results: {e}")

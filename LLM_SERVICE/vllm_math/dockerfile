@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.8.0-devel-ubuntu22.04
+FROM nvidia/cuda:12.8.0-runtime-ubuntu22.04
 
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -6,12 +6,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates build-essential \
-    ninja-build python3 python3-venv python3-dev \
+    curl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
-
-
-ENV CC=gcc CXX=g++
 
 
 RUN useradd -m -s /bin/bash appuser && \
