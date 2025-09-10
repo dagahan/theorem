@@ -1,77 +1,68 @@
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Optional, Union
 from loguru import logger
 import json
 import os
-from datetime import datetime
+import asyncio
 
 from src.services.chunking_service import ChunkingService
-from src.services.embedding_service import EmbeddingService
+from src.grpc.client.embedder_grpc_client import EmbedderGrpcClient
+from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 from src.services.vector_store_service import VectorStoreService
-from src.grpc.client.registry_grpc_clients import RegistryGrpcClients
 from src.core.utils import EnvTools, FileSystemTools
 from pydantic_schemas.service_stats import ServiceStats
 from pydantic_schemas.common import HealthResponse
 
 
 class IngestorService:
-    def __init__(self, grpc_clients: RegistryGrpcClients) -> None:
+    def __init__(self) -> None:
         self.chunking_service = ChunkingService()
-        self.embedding_service = EmbeddingService(grpc_clients)
+        self.embedder_grpc_client = GrpcClientRegistry().register_client("embedder", EmbedderGrpcClient)
         self.vector_store_service = VectorStoreService()
         self.collection_name = EnvTools.required_load_env_var("QDRANT_COLLECTION_NAME")
+        self.dimensions: int = int(EnvTools.required_load_env_var("EMBEDDER_DIMENSIONS"))
 
 
-    def _log_chuncking_results(
+    async def health_check_service(
         self,
-        doc_id: str,
-        filename: str,
-        extracted_text: str,
-        chunks: List[Dict[str, Any]],
-        metadata: Dict[str, Any]
-    ) -> None:
-        try:
-            log_chuncking_entry = {
-                "timestamp": datetime.now().isoformat(),
-                "doc_id": doc_id,
-                "filename": filename,
-                "metadata": metadata,
-                "extracted_text_length": len(extracted_text),
-                "extracted_text_preview": extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text,
-                "chunks_count": len(chunks),
-                "chunks": [
-                    {
-                        "chunk_id": chunk["chunk_id"],
-                        "paragraph_id": chunk["paragraph_id"],
-                        "text_length": len(chunk["text"]),
-                        "text_preview": chunk["text"][:200] + "..." if len(chunk["text"]) > 200 else chunk["text"]
-                    }
-                    for chunk in chunks
-                ]
-            }
-            
-            debug_dir = "../../debug/chuncking"
-            FileSystemTools.ensure_directory_exists(debug_dir)
-            file_path = os.path.join(debug_dir, f"{filename}_{doc_id}.json")
-            
-            with open(file_path, "a", encoding="utf-8") as file:
-                file.write(json.dumps(log_chuncking_entry, indent=2, ensure_ascii=False))
-                file.write("\n\n")
+        service_name: str 
+    ) -> Union[str, tuple[Dict[str, Any], str]]:
+
+        async def _check_embedder_health() -> Dict[str, Any]:
+            try:
+                embedder_health = await self.embedder_grpc_client.health_check()
+                return embedder_health
+            except Exception as e:
+                logger.warning(f"Embedder health check failed: {e}")
+                return {"status": "unhealthy", "model_id": "", "dim": 0}
+        
+        async def _check_qdrant_health() -> str:
+            try:
+                vector_store_health = await self.vector_store_service.health_check()
+                status: str = vector_store_health.get("status", "unknown")
+                return status
+            except Exception as e:
+                logger.warning(f"Qdrant health check failed: {e}")
+                return "unhealthy"
+        
+        match service_name.lower():
+            case "embedder":
+                embedder_health = await _check_embedder_health()
+                return str(embedder_health.get("status", "unknown"))
                 
-            logger.debug(f"Processing results logged to debug log file: {file_path} for doc_id: {doc_id}")
-            
-        except Exception as ex:
-            logger.error(f"Failed to log processing results: {ex}")
-
-
-    async def health_check(self) -> HealthResponse:
-        try:
-            result = await self.vector_store_service.health_check()
-            return HealthResponse(status=result["status"])
-            
-        except Exception as ex:
-            logger.error(f"Health check failed: {ex}")
-            return HealthResponse(status="unhealthy", error=str(ex))
-
+            case "qdrant":
+                return await _check_qdrant_health()
+                
+            case "all":
+                embedder_health, qdrant_status = await asyncio.gather(
+                    _check_embedder_health(),
+                    _check_qdrant_health(),
+                    return_exceptions=False
+                )
+                return (embedder_health, qdrant_status)
+                
+            case _:
+                raise ValueError(f"Unknown service name: {service_name}")
+                    
 
     async def ingest_document(
         self,
@@ -85,18 +76,21 @@ class IngestorService:
 
         chunks = self.chunking_service.chunk_document(doc_id, text, metadata)
 
-        filename = metadata.get("filename", "unknown")
-
-        self._log_chuncking_results(doc_id, filename, text, chunks, metadata)
-
-        health = await self.embedding_service.health_check()
-        dim = int(health["dim"])
+        health_result = await self.health_check_service("all")
+        if isinstance(health_result, tuple) and len(health_result) == 2:
+            embedder_health, qdrant_status = health_result
+            embedder_status = embedder_health.get("status", "unknown")
+        else:
+            raise RuntimeError("Unexpected health check result format")
         
-        self.vector_store_service.ensure_collection(collection_name, vector_size=dim)
+        if embedder_status != "healthy" or qdrant_status != "healthy":
+            raise RuntimeError(f"Services unavailable. Embedder: {embedder_status}, Qdrant: {qdrant_status}")
+        
+        self.vector_store_service.ensure_collection(collection_name, vector_size=self.dimensions)
         
         texts = [c["text"] for c in chunks]
 
-        embeds = await self.embedding_service.embed_batch(texts, normalize=True)
+        embeds = await self.embedder_grpc_client.embed_batch(texts, normalize=True)
         if len(embeds) != len(chunks):
             raise RuntimeError("Embedding count mismatch")
 
@@ -116,15 +110,6 @@ class IngestorService:
         await self.vector_store_service.upsert_points(collection_name, points)
 
 
-    async def _process_document(
-        self,
-        doc_id: str,
-        text: str,
-        metadata: Dict[str, Any]
-    ) -> None:
-        await self.ingest_document(doc_id, text, metadata, self.collection_name)
-
-
     async def search_documents(
         self,
         query: str,
@@ -132,32 +117,29 @@ class IngestorService:
         limit: int = 25,
         score_threshold: float = 0.0
     ) -> List[Dict[str, Any]]:
+        if await self.health_check_service("qdrant") != "healthy":
+            return []
+    
         if collection_name is None:
             collection_name = self.collection_name
 
-        # Check embedder health before embedding
-        try:
-            embedder_health = await self.embedding_service.health_check()
-            if embedder_health["status"] != "healthy":
-                raise RuntimeError(f"Embedder service is not healthy: {embedder_health['status']}")
-        except Exception as e:
-            logger.error(f"Embedder health check failed: {e}")
-            raise RuntimeError(f"Embedder service is unavailable: {str(e)}")
+        health_result = await self.health_check_service("all")
+        if isinstance(health_result, tuple) and len(health_result) == 2:
+            embedder_health, qdrant_status = health_result
+            embedder_status = embedder_health.get("status", "unknown")
+        else:
+            raise RuntimeError("Unexpected health check result format")
+        
+        if embedder_status != "healthy":
+            raise RuntimeError(f"Embedder service unavailable: {embedder_status}")
+        if qdrant_status != "healthy":
+            raise RuntimeError(f"Vector store service unavailable: {qdrant_status}")
 
-        # Check vector store health before search
-        try:
-            vector_store_health = await self.vector_store_service.health_check()
-            if vector_store_health["status"] != "healthy":
-                raise RuntimeError(f"Vector store service is not healthy: {vector_store_health['status']}")
-        except Exception as e:
-            logger.error(f"Vector store health check failed: {e}")
-            raise RuntimeError(f"Vector store service is unavailable: {str(e)}")
-
-        emb = await self.embedding_service.embed_text(query, normalize=True)
+        embedding = await self.embedder_grpc_client.embed_text(query, normalize=True)
 
         result = await self.vector_store_service.search(
             collection_name=collection_name,
-            query_vector=emb["vector"],
+            query_vector=embedding["vector"],
             limit=limit,
             score_threshold=score_threshold
         )
@@ -172,6 +154,9 @@ class IngestorService:
         neighbor_window: int = 2,
         include_whole_paragraph: bool = True
     ) -> Dict[str, Any]:
+        if await self.health_check_service("qdrant") != "healthy":
+            return {"status": "unsuccessful"}
+
         if collection_name is None:
             collection_name = self.collection_name
 
@@ -210,7 +195,7 @@ class IngestorService:
         gathered.sort(key=lambda x: (x["payload"]["doc_id"], x["payload"]["paragraph_id"], x["payload"]["chunk_id"]))
 
         merged_lines: List[str] = []
-        last_para: Tuple[str, int] | None = None
+        last_para: tuple[str, int] | None = None
 
         for g in gathered:
             pid = (g["payload"]["doc_id"], g["payload"]["paragraph_id"])
@@ -230,6 +215,9 @@ class IngestorService:
         doc_id: str,
         collection_name: Optional[str] = None
     ) -> Dict[str, str]:
+        if await self.health_check_service("qdrant") != "healthy":
+            return {"status": "unsuccessful", "doc_id": doc_id}
+
         if collection_name is None:
             collection_name = self.collection_name
             
@@ -238,11 +226,21 @@ class IngestorService:
 
 
     async def list_collections(self) -> List[str]:
-        cols = await self.vector_store_service.get_collections()
-        return [c["name"] for c in cols]
+        if await self.health_check_service("qdrant") != "healthy":
+            return []
+
+        collections = await self.vector_store_service.get_collections()
+        return [c["name"] for c in collections]
 
 
-    async def get_document_chunks_count(self, doc_id: str, collection_name: Optional[str] = None) -> int:
+    async def get_document_chunks_count(
+        self,
+        doc_id: str,
+        collection_name: Optional[str] = None
+    ) -> int:
+        if await self.health_check_service("qdrant") != "healthy":
+            return 0
+
         if collection_name is None:
             collection_name = self.collection_name
         result = await self.vector_store_service.get_document_chunks_count(collection_name, doc_id)
@@ -250,37 +248,35 @@ class IngestorService:
 
 
     async def get_service_stats(self) -> ServiceStats:
-        # Initialize with default values
         total_collections = 0
         total_vectors = 0
-        embedder_status = "unknown"
-        qdrant_status = "unknown"
         error_messages = []
         
-        # Check embedder health first
         try:
-            embedder_health = await self.embedding_service.health_check()
-            embedder_status = embedder_health["status"]
-        except Exception as e:
-            embedder_status = "unhealthy"
-            error_messages.append(f"Embedder health check failed: {str(e)}")
-            logger.warning(f"Embedder health check failed: {e}")
+            health_result = await self.health_check_service("all")
+            if isinstance(health_result, tuple) and len(health_result) == 2:
+                embedder_health, qdrant_status = health_result
+                embedder_status = embedder_health.get("status", "unknown")
+                embedder_model_id = embedder_health.get("model_id", "")
+                embedder_dim = embedder_health.get("dim", 0)
+            else:
+                raise ValueError("Unexpected health check result format")
+                    
+        except Exception as ex:
+            logger.error(f"Health check failed: {ex}")
+            embedder_status = "unknown"
+            embedder_model_id = ""
+            embedder_dim = 0
+            qdrant_status = "unknown"
+            error_messages.append(f"Health check failed: {str(ex)}")
         
-        # Check vector store health
-        try:
-            vector_store_health = await self.vector_store_service.health_check()
-            qdrant_status = vector_store_health["status"]
-        except Exception as e:
-            qdrant_status = "unhealthy"
-            error_messages.append(f"Vector store health check failed: {str(e)}")
-            logger.warning(f"Vector store health check failed: {e}")
-        
-        # Only try to get collections if vector store is healthy
         if qdrant_status == "healthy":
             try:
                 collections = await self.vector_store_service.get_collections()
                 total_collections = len(collections)
-                total_vectors = sum(col["vectors_count"] for col in collections)
+                total_vectors = sum(col.get("vectors_count", 0) for col in collections)
+                logger.debug(f"Retrieved {total_collections} collections with {total_vectors} total vectors")
+                
             except Exception as e:
                 error_messages.append(f"Failed to get collections: {str(e)}")
                 logger.warning(f"Failed to get collections: {e}")
@@ -291,6 +287,8 @@ class IngestorService:
             total_collections=total_collections,
             total_vectors=total_vectors,
             embedder_status=embedder_status,
+            embedder_model_id=embedder_model_id,
+            embedder_dim=embedder_dim,
             qdrant_status=qdrant_status,
             error_message="; ".join(error_messages) if error_messages else ""
         )

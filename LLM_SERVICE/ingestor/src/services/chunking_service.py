@@ -1,18 +1,65 @@
 import re
 import uuid
 import unicodedata
+import os
+import json
 from typing import List, Dict, Any, Optional, Final
+from datetime import datetime
 
 import blingfire  # type: ignore
 from loguru import logger
 
-from src.core.utils import EnvTools
+from src.core.utils import EnvTools, FileSystemTools
 
 
 class ChunkingService:
     def __init__(self) -> None:
         self.chunk_size: int = int(EnvTools.required_load_env_var("CHUNK_SIZE"))
         self.chunk_overlap: int = int(EnvTools.required_load_env_var("CHUNK_OVERLAP"))
+
+
+    def _log_chuncking_results(
+        self,
+        doc_id: str,
+        filename: str,
+        extracted_text: str,
+        chunks: List[Dict[str, Any]],
+        metadata: Dict[str, Any],
+        paragraph_count: int
+    ) -> None:
+        try:
+            log_chuncking_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "doc_id": doc_id,
+                "filename": filename,
+                "metadata": metadata,
+                "extracted_text_length": len(extracted_text),
+                "extracted_text_preview": extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text,
+                "chunks_count": len(chunks),
+                "chunks": [
+                    {
+                        "chunk_id": chunk["chunk_id"],
+                        "paragraph_id": chunk["paragraph_id"],
+                        "text_length": len(chunk["text"]),
+                        "text_preview": chunk["text"][:200] + "..." if len(chunk["text"]) > 200 else chunk["text"]
+                    }
+                    for chunk in chunks
+                ]
+            }
+            
+            debug_dir = "debug/chuncking"
+            FileSystemTools.ensure_directory_exists(debug_dir)
+            file_path = os.path.join(debug_dir, f"{filename}_{doc_id}.json")
+            
+            with open(file_path, "a", encoding="utf-8") as file:
+                file.write(json.dumps(log_chuncking_entry, indent=2, ensure_ascii=False))
+                file.write("\n\n")
+            
+            logger.debug(f"Document {doc_id} chunked: {len(chunks)} chunks, {paragraph_count} paragraphs")
+            logger.debug(f"Processing results logged to debug log file: {file_path} for doc_id: {doc_id}")
+            
+        except Exception as ex:
+            logger.error(f"Failed to log processing results: {ex}")
 
 
     def split_paragraphs(
@@ -61,7 +108,9 @@ class ChunkingService:
                     "metadata": metadata or {},
                 })
 
-        logger.info(f"Document {doc_id} chunked: {len(chunks)} chunks, {paragraph_id} paragraphs")
+        filename = metadata.get("filename", "unknown") if metadata else "unknown"
+        self._log_chuncking_results(doc_id, filename, text, chunks, metadata or {}, paragraph_id)
+
         return chunks
 
 

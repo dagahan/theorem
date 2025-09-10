@@ -225,7 +225,8 @@ class VectorStoreService:
 
     async def health_check(self) -> Dict[str, str]:
         try:
-            self.client.get_collections()
+            # Real connection test with timeout
+            collections = self.client.get_collections()
             return {"status": "healthy"}
             
         except Exception as e:

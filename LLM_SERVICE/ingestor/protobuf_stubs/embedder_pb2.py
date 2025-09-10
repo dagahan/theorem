@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as third__party_dot_protovalidate_dot_buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x65mbedder.proto\x12\x0b\x65mbedder.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"\xd3\x01\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18 \x12\x1c\n\x08model_id\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02\x12\x17\n\x03\x64im\x18\x03 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\x80 (\x01:o\xbaHl\x1aj\n\x0bstatus_enum\x12#status must be healthy or unhealthy\x1a\x36this.status == \'healthy\' || this.status == \'unhealthy\'\"C\n\x0c\x45mbedRequest\x12 \n\x04text\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x11\n\tnormalize\x18\x02 \x01(\x08\"\xaf\x02\n\rEmbedResponse\x12\x1b\n\x06vector\x18\x01 \x03(\x02\x42\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80 \x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10:\xd6\x01\xbaH\xd2\x01\x1an\n\x11\x65rror_when_failed\x12-error must be non-empty when success is false\x1a*success || (has(error) && size(error) > 0)\x1a`\n\x13vector_when_success\x12+vector must be present when success is true\x1a\x1c!success || size(vector) > 0\"S\n\x11\x45mbedBatchRequest\x12+\n\x05texts\x18\x01 \x03(\tB\x1c\xbaH\x19\x92\x01\x16\x08\x01\x10\x80\x02\"\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x11\n\tnormalize\x18\x02 \x01(\x08\"\xac\x01\n\x12\x45mbedBatchResponse\x12\x36\n\x05items\x18\x01 \x03(\x0b\x32\x1a.embedder.v1.EmbedResponseB\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80\x02:^\xbaH[\x1aY\n\x14\x61t_least_one_success\x12$at least one item must be successful\x1a\x1b\x65xists(items, i, i.success)\"T\n\x12\x45mbedStreamRequest\x12+\n\x05texts\x18\x01 \x03(\tB\x1c\xbaH\x19\x92\x01\x16\x08\x01\x10\x80\x02\"\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x11\n\tnormalize\x18\x02 \x01(\x08\"\xc3\x02\n\x13\x45mbedStreamResponse\x12\x1b\n\x06vector\x18\x01 \x03(\x02\x42\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80 \x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10:\xe4\x01\xbaH\xe0\x01\x1au\n\x18\x65rror_when_failed_stream\x12-error must be non-empty when success is false\x1a*success || (has(error) && size(error) > 0)\x1ag\n\x1avector_when_success_stream\x12+vector must be present when success is true\x1a\x1c!success || size(vector) > 02\xb7\x02\n\x0f\x45mbedderService\x12\x41\n\x06Health\x12\x1a.embedder.v1.HealthRequest\x1a\x1b.embedder.v1.HealthResponse\x12>\n\x05\x45mbed\x12\x19.embedder.v1.EmbedRequest\x1a\x1a.embedder.v1.EmbedResponse\x12M\n\nEmbedBatch\x12\x1e.embedder.v1.EmbedBatchRequest\x1a\x1f.embedder.v1.EmbedBatchResponse\x12R\n\x0b\x45mbedStream\x12\x1f.embedder.v1.EmbedStreamRequest\x1a .embedder.v1.EmbedStreamResponse0\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x65mbedder.proto\x12\x0b\x65mbedder.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"\xdc\x01\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x1c\n\x08model_id\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x00\x18\x80\x02\x12 \n\x03\x64im\x18\x03 \x01(\x05\x42\x13\xbaH\x10\x1a\x0e\x18\x80 (\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01:o\xbaHl\x1aj\n\x0bstatus_enum\x12#status must be healthy or unhealthy\x1a\x36this.status == \'healthy\' || this.status == \'unhealthy\'\"C\n\x0c\x45mbedRequest\x12 \n\x04text\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x11\n\tnormalize\x18\x02 \x01(\x08\"\xaf\x02\n\rEmbedResponse\x12\x1b\n\x06vector\x18\x01 \x03(\x02\x42\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80 \x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10:\xd6\x01\xbaH\xd2\x01\x1an\n\x11\x65rror_when_failed\x12-error must be non-empty when success is false\x1a*success || (has(error) && size(error) > 0)\x1a`\n\x13vector_when_success\x12+vector must be present when success is true\x1a\x1c!success || size(vector) > 0\"S\n\x11\x45mbedBatchRequest\x12+\n\x05texts\x18\x01 \x03(\tB\x1c\xbaH\x19\x92\x01\x16\x08\x01\x10\x80\x02\"\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x11\n\tnormalize\x18\x02 \x01(\x08\"\xac\x01\n\x12\x45mbedBatchResponse\x12\x36\n\x05items\x18\x01 \x03(\x0b\x32\x1a.embedder.v1.EmbedResponseB\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80\x02:^\xbaH[\x1aY\n\x14\x61t_least_one_success\x12$at least one item must be successful\x1a\x1b\x65xists(items, i, i.success)2\xe3\x01\n\x0f\x45mbedderService\x12\x41\n\x06Health\x12\x1a.embedder.v1.HealthRequest\x1a\x1b.embedder.v1.HealthResponse\x12>\n\x05\x45mbed\x12\x19.embedder.v1.EmbedRequest\x1a\x1a.embedder.v1.EmbedResponse\x12M\n\nEmbedBatch\x12\x1e.embedder.v1.EmbedBatchRequest\x1a\x1f.embedder.v1.EmbedBatchResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,11 +33,11 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'embedder_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_HEALTHRESPONSE'].fields_by_name['status']._loaded_options = None
-  _globals['_HEALTHRESPONSE'].fields_by_name['status']._serialized_options = b'\272H\006r\004\020\001\030 '
+  _globals['_HEALTHRESPONSE'].fields_by_name['status']._serialized_options = b'\272H\006r\004\020\000\030 '
   _globals['_HEALTHRESPONSE'].fields_by_name['model_id']._loaded_options = None
-  _globals['_HEALTHRESPONSE'].fields_by_name['model_id']._serialized_options = b'\272H\007r\005\020\001\030\200\002'
+  _globals['_HEALTHRESPONSE'].fields_by_name['model_id']._serialized_options = b'\272H\007r\005\020\000\030\200\002'
   _globals['_HEALTHRESPONSE'].fields_by_name['dim']._loaded_options = None
-  _globals['_HEALTHRESPONSE'].fields_by_name['dim']._serialized_options = b'\272H\007\032\005\030\200 (\001'
+  _globals['_HEALTHRESPONSE'].fields_by_name['dim']._serialized_options = b'\272H\020\032\016\030\200 (\377\377\377\377\377\377\377\377\377\001'
   _globals['_HEALTHRESPONSE']._loaded_options = None
   _globals['_HEALTHRESPONSE']._serialized_options = b'\272Hl\032j\n\013status_enum\022#status must be healthy or unhealthy\0326this.status == \'healthy\' || this.status == \'unhealthy\''
   _globals['_EMBEDREQUEST'].fields_by_name['text']._loaded_options = None
@@ -54,30 +54,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EMBEDBATCHRESPONSE'].fields_by_name['items']._serialized_options = b'\272H\010\222\001\005\010\001\020\200\002'
   _globals['_EMBEDBATCHRESPONSE']._loaded_options = None
   _globals['_EMBEDBATCHRESPONSE']._serialized_options = b'\272H[\032Y\n\024at_least_one_success\022$at least one item must be successful\032\033exists(items, i, i.success)'
-  _globals['_EMBEDSTREAMREQUEST'].fields_by_name['texts']._loaded_options = None
-  _globals['_EMBEDSTREAMREQUEST'].fields_by_name['texts']._serialized_options = b'\272H\031\222\001\026\010\001\020\200\002\"\017r\r\020\001\030\200@2\006.*\\S.*'
-  _globals['_EMBEDSTREAMRESPONSE'].fields_by_name['vector']._loaded_options = None
-  _globals['_EMBEDSTREAMRESPONSE'].fields_by_name['vector']._serialized_options = b'\272H\010\222\001\005\010\001\020\200 '
-  _globals['_EMBEDSTREAMRESPONSE'].fields_by_name['error']._loaded_options = None
-  _globals['_EMBEDSTREAMRESPONSE'].fields_by_name['error']._serialized_options = b'\272H\005r\003\030\200\020'
-  _globals['_EMBEDSTREAMRESPONSE']._loaded_options = None
-  _globals['_EMBEDSTREAMRESPONSE']._serialized_options = b'\272H\340\001\032u\n\030error_when_failed_stream\022-error must be non-empty when success is false\032*success || (has(error) && size(error) > 0)\032g\n\032vector_when_success_stream\022+vector must be present when success is true\032\034!success || size(vector) > 0'
   _globals['_HEALTHREQUEST']._serialized_start=86
   _globals['_HEALTHREQUEST']._serialized_end=101
   _globals['_HEALTHRESPONSE']._serialized_start=104
-  _globals['_HEALTHRESPONSE']._serialized_end=315
-  _globals['_EMBEDREQUEST']._serialized_start=317
-  _globals['_EMBEDREQUEST']._serialized_end=384
-  _globals['_EMBEDRESPONSE']._serialized_start=387
-  _globals['_EMBEDRESPONSE']._serialized_end=690
-  _globals['_EMBEDBATCHREQUEST']._serialized_start=692
-  _globals['_EMBEDBATCHREQUEST']._serialized_end=775
-  _globals['_EMBEDBATCHRESPONSE']._serialized_start=778
-  _globals['_EMBEDBATCHRESPONSE']._serialized_end=950
-  _globals['_EMBEDSTREAMREQUEST']._serialized_start=952
-  _globals['_EMBEDSTREAMREQUEST']._serialized_end=1036
-  _globals['_EMBEDSTREAMRESPONSE']._serialized_start=1039
-  _globals['_EMBEDSTREAMRESPONSE']._serialized_end=1362
-  _globals['_EMBEDDERSERVICE']._serialized_start=1365
-  _globals['_EMBEDDERSERVICE']._serialized_end=1676
+  _globals['_HEALTHRESPONSE']._serialized_end=324
+  _globals['_EMBEDREQUEST']._serialized_start=326
+  _globals['_EMBEDREQUEST']._serialized_end=393
+  _globals['_EMBEDRESPONSE']._serialized_start=396
+  _globals['_EMBEDRESPONSE']._serialized_end=699
+  _globals['_EMBEDBATCHREQUEST']._serialized_start=701
+  _globals['_EMBEDBATCHREQUEST']._serialized_end=784
+  _globals['_EMBEDBATCHRESPONSE']._serialized_start=787
+  _globals['_EMBEDBATCHRESPONSE']._serialized_end=959
+  _globals['_EMBEDDERSERVICE']._serialized_start=962
+  _globals['_EMBEDDERSERVICE']._serialized_end=1189
 # @@protoc_insertion_point(module_scope)

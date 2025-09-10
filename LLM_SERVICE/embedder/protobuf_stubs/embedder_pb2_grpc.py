@@ -48,11 +48,6 @@ class EmbedderServiceStub(object):
                 request_serializer=embedder__pb2.EmbedBatchRequest.SerializeToString,
                 response_deserializer=embedder__pb2.EmbedBatchResponse.FromString,
                 _registered_method=True)
-        self.EmbedStream = channel.unary_stream(
-                '/embedder.v1.EmbedderService/EmbedStream',
-                request_serializer=embedder__pb2.EmbedStreamRequest.SerializeToString,
-                response_deserializer=embedder__pb2.EmbedStreamResponse.FromString,
-                _registered_method=True)
 
 
 class EmbedderServiceServicer(object):
@@ -76,12 +71,6 @@ class EmbedderServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def EmbedStream(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_EmbedderServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -99,11 +88,6 @@ def add_EmbedderServiceServicer_to_server(servicer, server):
                     servicer.EmbedBatch,
                     request_deserializer=embedder__pb2.EmbedBatchRequest.FromString,
                     response_serializer=embedder__pb2.EmbedBatchResponse.SerializeToString,
-            ),
-            'EmbedStream': grpc.unary_stream_rpc_method_handler(
-                    servicer.EmbedStream,
-                    request_deserializer=embedder__pb2.EmbedStreamRequest.FromString,
-                    response_serializer=embedder__pb2.EmbedStreamResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -187,33 +171,6 @@ class EmbedderService(object):
             '/embedder.v1.EmbedderService/EmbedBatch',
             embedder__pb2.EmbedBatchRequest.SerializeToString,
             embedder__pb2.EmbedBatchResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def EmbedStream(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/embedder.v1.EmbedderService/EmbedStream',
-            embedder__pb2.EmbedStreamRequest.SerializeToString,
-            embedder__pb2.EmbedStreamResponse.FromString,
             options,
             channel_credentials,
             insecure,

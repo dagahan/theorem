@@ -98,13 +98,13 @@ class EnvTools:
         path: Path,
         override: bool = False
     ) -> None:
-         if not path.exists():
+        if path.exists():
             load_dotenv(
-            dotenv_path=path,
-            override=override,
-            interpolate=True,
-            encoding="utf-8",
-        )
+                dotenv_path=path,
+                override=override,
+                interpolate=True,
+                encoding="utf-8",
+            )
 
 
     @staticmethod
@@ -112,7 +112,8 @@ class EnvTools:
         service_name: Optional[str] = None,
         conf_filename: str = ".conf"
     ) -> None:
-        if EnvTools.load_env_var("RUNNING_INSIDE_DOCKER") == "1":
+        # Check if already running inside Docker without loading env files
+        if os.getenv("RUNNING_INSIDE_DOCKER") == "1":
             return
 
         logger.warning(f"service is running localy, loaded env/conf files manualy..")
@@ -132,11 +133,19 @@ class EnvTools:
     @staticmethod
     def load_env_var(variable_name: str) -> str | None:
         try:
+            # First check if variable is already in environment
+            value = os.getenv(variable_name)
+            if value is not None:
+                return value
+            
+            # If not found, try to load from dotenv files
             dotenv_path = find_dotenv(usecwd=True)
             if dotenv_path:
-                load_dotenv(dotenv_path=dotenv_path)
+                load_dotenv(dotenv_path=dotenv_path, override=False)
             else:
-                load_dotenv()
+                load_dotenv(override=False)
+            
+            # Check again after loading dotenv
             value = os.getenv(variable_name)
             if not value:
                 logger.critical(f"Cannot load env var named '{variable_name}'. returning None.")
@@ -176,18 +185,15 @@ class EnvTools:
 
     @staticmethod
     def get_service_ip(service_name: str) -> str:
-        try:
-            if EnvTools.is_running_inside_docker_compose():
-                project: str = EnvTools.required_load_env_var("COMPOSE_PROJECT_NAME") or ""
-                return f"{service_name}-{project}"
-        except Exception:
-            pass
-        return EnvTools.required_load_env_var(f"{service_name.upper()}_HOST") or ""
+        if EnvTools.is_running_inside_docker_compose():
+            project: str = EnvTools.required_load_env_var("COMPOSE_PROJECT_NAME")
+            return f"{service_name}-{project}"
+        return EnvTools.required_load_env_var(f"{service_name.upper()}_HOST")
     
 
     @staticmethod
     def get_service_port(service_name: str) -> str:
-        return EnvTools.load_env_var(f"{service_name.upper()}_PORT") or ""
+        return EnvTools.required_load_env_var(f"{service_name.upper()}_PORT")
 
 
     @staticmethod
@@ -296,4 +302,5 @@ class ValidatingTools:
         if len(valid_models) == 1:
             return valid_models[0]
         return valid_models
+
 

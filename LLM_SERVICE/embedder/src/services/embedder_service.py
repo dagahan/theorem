@@ -1,18 +1,17 @@
-import os
-import time
-from functools import wraps
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Any
 
 import grpc
 import numpy as np
 import torch
 from loguru import logger
 from sentence_transformers import SentenceTransformer
-from protovalidate import Validator, ValidationError
-import google.protobuf.message
 
 from protobuf_stubs import embedder_pb2, embedder_pb2_grpc
 from src.core.utils import EnvTools
+from src.grpc.grpc_utils import GrpcTools
+
+
+grpc_tools = GrpcTools()
 
 
 def _to_f32_list(x: np.ndarray) -> list[float]:
@@ -21,69 +20,17 @@ def _to_f32_list(x: np.ndarray) -> list[float]:
     return x.tolist()  # type: ignore[no-any-return]
 
 
-def log_grpc_request(method_name: str):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(self, request, context):
-            start_time = time.time()
-            client_info = f"{context.peer()}" if hasattr(context, 'peer') else "unknown"
-            
-            logger.info(f"gRPC request started: {method_name} from {client_info}")
-            
-            try:
-                result = func(self, request, context)
-                duration = time.time() - start_time
-                logger.info(f"gRPC request completed: {method_name} from {client_info} in {duration:.3f}s")
-                
-                return result
-                
-            except Exception as e:
-                duration = time.time() - start_time
-                
-                logger.error(f"gRPC request failed: {method_name} from {client_info} in {duration:.3f}s - {str(e)}")
-                
-                raise
-        
-
-        @wraps(func)
-        def async_wrapper(self, request, context):
-            start_time = time.time()
-            client_info = f"{context.peer()}" if hasattr(context, 'peer') else "unknown"
-            
-            logger.info(f"gRPC stream request started: {method_name} from {client_info}")
-            
-            try:
-                for item in func(self, request, context):
-                    yield item
-                
-                duration = time.time() - start_time
-                logger.info(f"gRPC stream request completed: {method_name} from {client_info} in {duration:.3f}s")
-                
-            except Exception as e:
-                duration = time.time() - start_time
-                logger.error(f"gRPC stream request failed: {method_name} from {client_info} in {duration:.3f}s - {str(e)}")
-                raise
-
-        if method_name == "EmbedStream":
-            return async_wrapper
-        return wrapper
-
-    return decorator
-
-
 class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignore[misc]
     def __init__(self) -> None:
-        self.model_name: str = EnvTools.required_load_env_var("MODEL_NAME")
+        self.model_name: str = EnvTools.required_load_env_var("EMBEDDER_MODEL_NAME")
         self.batch_size: int = int(EnvTools.required_load_env_var("EMBEDDER_BATCH_SIZE"))
-        self.validator = Validator()
 
         torch.set_num_threads(int(EnvTools.required_load_env_var("TORCH_NUM_THREADS")))
         torch.set_num_interop_threads(1)
-        os.environ["OMP_NUM_THREADS"] = "1"
-        os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model: Optional[SentenceTransformer] = None
+        self.embedder_model: Optional[SentenceTransformer] = None
+        self.dimensions: Any = None
         self._load_model()
 
 
@@ -94,70 +41,65 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
 
             with torch.inference_mode():
                 _ = model.encode(["warmup"], batch_size=1, convert_to_numpy=True)
-            self.model = model
-            logger.info(f"Model ready. dim={self.model.get_sentence_embedding_dimension()}, "
-                        f"batch={self.batch_size}")
+
+            dim = model.get_sentence_embedding_dimension()
+            env_dimensions = int(EnvTools.required_load_env_var("EMBEDDER_DIMENSIONS"))
+            if dim != env_dimensions:
+                raise RuntimeError(
+                    f"Embedder model dimensions mismatch:\n"
+                    f"  model dim = {dim}\n"
+                    f"  env   dim = {env_dimensions}"
+                )
+
+            self.embedder_model = model
+            self.dimensions = dim
+
+            logger.info(f"Embedder model is ready. dim={self.dimensions}, "
+                        f"batch_size={self.batch_size}")
 
         except Exception as e:
             logger.exception(f"Failed to load model: {e}")
             raise
 
 
-    def _validate_in(
-        self,
-        msg: google.protobuf.message.Message,
-        ctx: grpc.ServicerContext
-    ) -> None:
-        try:
-            self.validator.validate(msg)
-        except ValidationError as e:
-            ctx.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
-
-
-    def _validate_out(
-        self,
-        msg: google.protobuf.message.Message,
-        ctx: grpc.ServicerContext
-    ) -> None:
-        if EnvTools.required_load_env_var("VALIDATE_OUTBOUND") != "1":
-            return
-        try:
-            self.validator.validate(msg)
-        except ValidationError as e:
-            logger.error(f"Response violates proto constraints: {e}")
-            ctx.abort(grpc.StatusCode.INTERNAL, "internal schema violation")
-
-
-    @log_grpc_request("Health")
+    @grpc_tools.log_grpc_request("Health")
     def Health(
         self,
         request: embedder_pb2.HealthRequest,
         context: grpc.ServicerContext,
     ) -> embedder_pb2.HealthResponse:
         try:
-            if not self.model:
-                return embedder_pb2.HealthResponse(status="unhealthy", model_id="", dim=0)
-            return embedder_pb2.HealthResponse(
-                status="healthy",
-                model_id=self.model_name,
-                dim=self.model.get_sentence_embedding_dimension(),
-            )
+            grpc_tools.validate_proto(request, context)
+
+            if self.embedder_model is None:
+                response = embedder_pb2.HealthResponse(status="unhealthy", model_id="", dim=0)
+                grpc_tools.validate_proto(response, context)
+                return response
+            else:
+                dim = self.embedder_model.get_sentence_embedding_dimension()
+                response = embedder_pb2.HealthResponse(
+                    status="healthy",
+                    model_id=self.model_name,
+                    dim=dim,
+                )
+                grpc_tools.validate_proto(response, context)
+                return response
 
         except Exception as e:
             logger.error(f"Health check failed: {e}")
             return embedder_pb2.HealthResponse(status="unhealthy", model_id="", dim=0)
 
 
-    @log_grpc_request("Embed")
+    @grpc_tools.log_grpc_request("Embed")
     def Embed(
         self,
         request: embedder_pb2.EmbedRequest,
         context: grpc.ServicerContext,
     ) -> embedder_pb2.EmbedResponse:
         try:
-            self._validate_in(request, context)
+            grpc_tools.validate_proto(request, context)
 
-            if not self.model:
+            if not self.embedder_model:
                 return embedder_pb2.EmbedResponse(success=False, error="Model not loaded")
 
             text = request.text.strip()
@@ -165,7 +107,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
                 return embedder_pb2.EmbedResponse(success=False, error="Empty text")
 
             with torch.inference_mode():
-                vec = self.model.encode(
+                vec = self.embedder_model.encode(
                     text,
                     batch_size=1,
                     convert_to_numpy=True,
@@ -174,7 +116,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
                 )
 
             response = embedder_pb2.EmbedResponse(vector=_to_f32_list(vec), success=True)
-            self._validate_out(response, context)
+            grpc_tools.validate_proto(response, context)
 
             return response
 
@@ -183,28 +125,28 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
             return embedder_pb2.EmbedResponse(success=False, error=str(e))
 
 
-    @log_grpc_request("EmbedBatch")
-    def EmbedBatch(
+    @grpc_tools.log_grpc_request("Embedbatch")
+    def Embedbatch(
         self,
         request: embedder_pb2.EmbedBatchRequest,
         context: grpc.ServicerContext,
     ) -> embedder_pb2.EmbedBatchResponse:
         try:
-            self._validate_in(request, context)
+            grpc_tools.validate_proto(request, context)
             
-            if not self.model:
+            if not self.embedder_model:
                 response = embedder_pb2.EmbedBatchResponse(items=[])
-                self._validate_out(response, context)
+                grpc_tools.validate_proto(response, context)
                 return response
 
             texts = [t.strip() for t in request.texts if t.strip()]
             if not texts:
                 response = embedder_pb2.EmbedBatchResponse(items=[])
-                self._validate_out(response, context)
+                grpc_tools.validate_proto(response, context)
                 return response
 
             with torch.inference_mode():
-                vecs = self.model.encode(
+                vecs = self.embedder_model.encode(
                     texts,
                     batch_size=self.batch_size,
                     convert_to_numpy=True,
@@ -214,54 +156,12 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
 
             items = [embedder_pb2.EmbedResponse(vector=_to_f32_list(v), success=True) for v in vecs]
             response = embedder_pb2.EmbedBatchResponse(items=items)
-            self._validate_out(response, context)
+            grpc_tools.validate_proto(response, context)
             return response
 
         except Exception as e:
             logger.exception("EmbedBatch failed")
             response = embedder_pb2.EmbedBatchResponse(items=[])
-            self._validate_out(response, context)
+            grpc_tools.validate_proto(response, context)
             return response
     
-
-    @log_grpc_request("EmbedStream")
-    def EmbedStream(
-        self,
-        request: embedder_pb2.EmbedStreamRequest,
-        context: grpc.ServicerContext,
-    ) -> Iterator[embedder_pb2.EmbedStreamResponse]:
-        try:
-            self._validate_in(request, context)
-            
-            if not self.model:
-                context.abort(grpc.StatusCode.UNAVAILABLE, "Model not loaded")
-
-            texts = [t.strip() for t in request.texts if t.strip()]
-            if not texts:
-                return
-
-            with torch.inference_mode():
-                for t in texts:
-                    try:
-                        if self.model is None:
-                            continue
-                        v = self.model.encode(
-                            t,
-                            batch_size=1,
-                            convert_to_numpy=True,
-                            normalize_embeddings=request.normalize,
-                            show_progress_bar=False,
-                        )
-                        response = embedder_pb2.EmbedStreamResponse(vector=_to_f32_list(v), success=True)
-                        self._validate_out(response, context)
-                        yield response
-
-                    except Exception as e:
-                        logger.error(f"Stream item failed: {e}")
-                        response = embedder_pb2.EmbedStreamResponse(success=False, error=str(e))
-                        self._validate_out(response, context)
-                        yield response
-
-        except Exception as e:
-            logger.exception("EmbedStream failed")
-            context.abort(grpc.StatusCode.INTERNAL, str(e))

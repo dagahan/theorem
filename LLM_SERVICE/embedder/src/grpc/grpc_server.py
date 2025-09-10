@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import threading
 from concurrent import futures
+from typing import TYPE_CHECKING, Any
 
 import colorama
 import grpc
@@ -13,26 +14,25 @@ from src.core.utils import EnvTools
 from src.services.embedder_service import EmbedderService
 
 
-_GRPC_OPTIONS = (
-    ("grpc.keepalive_time_ms", 60_000),
-    ("grpc.keepalive_timeout_ms", 20_000),
-    ("grpc.http2.max_pings_without_data", 0),
-    ("grpc.max_receive_message_length", 64 * 1024 * 1024),
-    ("grpc.max_send_message_length", 64 * 1024 * 1024),
-)
-
-
 class GRPCServerRunner:
     def __init__(self) -> None:
         self._servicer = EmbedderService()
         self._max_workers = int(EnvTools.required_load_env_var("EMBEDDER_MAX_CONCURRENCY"))
-        self._host: str = EnvTools.required_load_env_var("EMBEDDER_HOST")
-        self._port: int = EnvTools.get_service_port("embedder")
+        self._host: str = EnvTools.get_service_ip("embedder")
+        self._port: int = int(EnvTools.get_service_port("embedder"))
         self._addr = f"{self._host}:{self._port}"
+
+        self._GRPC_OPTIONS = (
+            ("grpc.keepalive_time_ms", 60_000),
+            ("grpc.keepalive_timeout_ms", 20_000),
+            ("grpc.http2.max_pings_without_data", 0),
+            ("grpc.max_receive_message_length", 64 * 1024 * 1024),
+            ("grpc.max_send_message_length", 64 * 1024 * 1024),
+        )
 
         self._server = grpc.server(
             futures.ThreadPoolExecutor(max_workers=self._max_workers),
-            options=_GRPC_OPTIONS,
+            options=self._GRPC_OPTIONS,
         )
 
         embedder_pb2_grpc.add_EmbedderServiceServicer_to_server(self._servicer, self._server)
@@ -60,7 +60,10 @@ class GRPCServerRunner:
         if self._thread and self._thread.is_alive():
             return
 
-        self._thread = threading.Thread(target=self._serve_blocking, name="gRPC-Embedder", daemon=True)
+        self._thread = threading.Thread(
+            target=self._serve_blocking,
+            name="gRPC-Embedder",
+            daemon=True)
         self._thread.start()
         loop = asyncio.get_running_loop()
 
@@ -76,7 +79,7 @@ class GRPCServerRunner:
         if not self._thread:
             return
 
-        logger.info(f"{colorama.Fore.YELLOW}Stopping gRPC embedder gracefully…{colorama.Style.RESET_ALL}")
+        logger.info(f"{colorama.Fore.YELLOW}Stopping gRPC embedder{colorama.Style.RESET_ALL}")
 
         fut = self._server.stop(grace=5.0)
         loop = asyncio.get_running_loop()

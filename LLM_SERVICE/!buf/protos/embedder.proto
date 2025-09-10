@@ -8,7 +8,6 @@ service EmbedderService {
   rpc Health(HealthRequest) returns (HealthResponse);
   rpc Embed(EmbedRequest) returns (EmbedResponse);
   rpc EmbedBatch(EmbedBatchRequest) returns (EmbedBatchResponse);
-  rpc EmbedStream(EmbedStreamRequest) returns (stream EmbedStreamResponse);
 }
 
 
@@ -16,9 +15,9 @@ message HealthRequest {}
 
 
 message HealthResponse {
-  string status   = 1 [(buf.validate.field).string = {min_len: 1, max_len: 32}];
-  string model_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
-  int32  dim      = 3 [(buf.validate.field).int32  = {gte: 1, lte: 4096}];
+  string status   = 1 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string model_id = 2 [(buf.validate.field).string = {min_len: 0, max_len: 256}];
+  int32  dim      = 3 [(buf.validate.field).int32  = {gte: -1, lte: 4096}];
   option (buf.validate.message).cel = {
     id: "status_enum",
     message: "status must be healthy or unhealthy",
@@ -68,32 +67,4 @@ message EmbedBatchResponse {
     expression: "exists(items, i, i.success)"
   };
 }
-
-
-message EmbedStreamRequest {
-  repeated string texts = 1 [(buf.validate.field).repeated = {
-    min_items: 1,
-    max_items: 256,
-    items: { string: { min_len: 1, max_len: 8192, pattern: ".*\\S.*" } }
-  }];
-  bool normalize = 2;
-}
-
-
-message EmbedStreamResponse {
-  repeated float vector = 1 [(buf.validate.field).repeated = {min_items: 1, max_items: 4096}];
-  bool          success = 2;
-  string        error   = 3 [(buf.validate.field).string = {max_len: 2048}];
-  option (buf.validate.message).cel = {
-    id: "error_when_failed_stream",
-    message: "error must be non-empty when success is false",
-    expression: "success || (has(error) && size(error) > 0)"
-  };
-  option (buf.validate.message).cel = {
-    id: "vector_when_success_stream",
-    message: "vector must be present when success is true",
-    expression: "!success || size(vector) > 0"
-  };
-}
-
 

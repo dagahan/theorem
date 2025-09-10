@@ -114,18 +114,15 @@ class EnvTools:
 
     @staticmethod
     def get_service_ip(service_name: str) -> str:
-        try:
-            if EnvTools.is_running_inside_docker_compose():
-                project: str = EnvTools.required_load_env_var("COMPOSE_PROJECT_NAME") or ""
-                return f"{service_name}-{project}"
-        except Exception:
-            pass
-        return EnvTools.required_load_env_var(f"{service_name.upper()}_HOST") or ""
+        if EnvTools.is_running_inside_docker_compose():
+            project: str = EnvTools.required_load_env_var("COMPOSE_PROJECT_NAME")
+            return f"{service_name}-{project}"
+        return EnvTools.required_load_env_var(f"{service_name.upper()}_HOST")
     
 
     @staticmethod
     def get_service_port(service_name: str) -> str:
-        return EnvTools.load_env_var(f"{service_name.upper()}_PORT") or ""
+        return EnvTools.required_load_env_var(f"{service_name.upper()}_PORT")
 
 
     @staticmethod
