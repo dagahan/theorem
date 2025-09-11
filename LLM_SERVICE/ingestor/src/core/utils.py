@@ -175,16 +175,21 @@ class EnvTools:
     
 
     @staticmethod
-    def get_service_ip(service_name: str) -> str:
+    def get_service_host(service_name: str) -> str:
         if EnvTools.is_running_inside_docker_compose():
             project: str = EnvTools.required_load_env_var("COMPOSE_PROJECT_NAME")
             return f"{service_name}-{project}"
         return EnvTools.required_load_env_var(f"{service_name.upper()}_HOST")
-    
+
 
     @staticmethod
-    def get_service_port(service_name: str) -> str:
-        return EnvTools.required_load_env_var(f"{service_name.upper()}_PORT")
+    def get_service_http_port(service_name: str) -> str:
+        return EnvTools.required_load_env_var(f"{service_name.upper()}_HTTP_PORT")
+
+
+    @staticmethod
+    def get_service_grpc_port(service_name: str) -> str:
+        return EnvTools.required_load_env_var(f"{service_name.upper()}_GRPC_PORT")
 
 
     @staticmethod

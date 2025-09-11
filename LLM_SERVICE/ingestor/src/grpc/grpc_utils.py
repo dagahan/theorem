@@ -52,6 +52,21 @@ class GrpcTools:
 
 
     @staticmethod
+    def qdrant_normalize(value: Any) -> Any:
+        def _norm(d: Dict[str, Any]) -> Dict[str, Any]:
+            if "id" in d and isinstance(d["id"], dict):
+                d["id"] = d["id"].get("uuid", d["id"].get("num", d["id"]))
+            return d
+
+        if isinstance(value, list):
+            return [GrpcTools.qdrant_normalize(v) for v in value]
+        if isinstance(value, dict):
+            value = {k: GrpcTools.qdrant_normalize(v) for k, v in value.items()}
+            return _norm(value)
+        return value
+
+
+    @staticmethod
     def log_grpc_request(method_name: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             @wraps(func)

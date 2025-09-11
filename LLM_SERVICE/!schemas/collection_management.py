@@ -12,7 +12,7 @@ class ReindexResponse(BaseModel):
 
 
 class SwitchAliasRequest(BaseModel):
-    alias_name: str = Field(default="docs_active")
+    alias_name: str = Field(default="fipi_collection")
     target_collection: str = Field(default="docs_vNext")
 
 
@@ -30,3 +30,6 @@ class CollectionInfo(BaseModel):
 
 class ListCollectionsResponse(BaseModel):
     collections: List[CollectionInfo] = Field(...)
+
+
+    

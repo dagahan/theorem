@@ -1,0 +1,279 @@
+{
+	"info": {
+		"_postman_id": "theorem-ingestor-api",
+		"name": "Theorem Ingestor API",
+		"description": "API collection for Theorem LLM Service Ingestor microservice",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/ingestor/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"ingestor",
+						"health"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Service Stats",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/ingestor/service_stats",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"ingestor",
+						"service_stats"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List Collections",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/ingestor/list_collections",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"ingestor",
+						"list_collections"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Document Info",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/ingestor/get_document_info/{{doc_id}}?collection_name={{collection_name}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"ingestor",
+						"get_document_info",
+						"{{doc_id}}"
+					],
+					"query": [
+						{
+							"key": "collection_name",
+							"value": "{{collection_name}}",
+							"description": "Optional collection name"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Document Embedded",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/ingestor/get_document_embedded/{{doc_id}}?collection_name={{collection_name}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"ingestor",
+						"get_document_embedded",
+						"{{doc_id}}"
+					],
+					"query": [
+						{
+							"key": "collection_name",
+							"value": "{{collection_name}}",
+							"description": "Optional collection name"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Document Text",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/ingestor/get_document_text/{{doc_id}}?collection_name={{collection_name}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"ingestor",
+						"get_document_text",
+						"{{doc_id}}"
+					],
+					"query": [
+						{
+							"key": "collection_name",
+							"value": "{{collection_name}}",
+							"description": "Optional collection name"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Search with Context",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"query\": \"{{search_query}}\",\n    \"collection_name\": \"{{collection_name}}\",\n    \"top_k\": 25,\n    \"neighbor_window\": 2,\n    \"include_whole_paragraph\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/ingestor/search_with_context",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"ingestor",
+						"search_with_context"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Document",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"doc_id\": \"{{doc_id}}\",\n    \"collection_name\": \"{{collection_name}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/ingestor/delete_document",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"ingestor",
+						"delete_document"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ingest Files",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "files",
+							"type": "file",
+							"src": [],
+							"description": "Files to ingest"
+						},
+						{
+							"key": "collection_name",
+							"value": "{{collection_name}}",
+							"type": "text",
+							"description": "Optional collection name"
+						},
+						{
+							"key": "metadata",
+							"value": "{\"source\": \"postman\", \"version\": \"1.0\"}",
+							"type": "text",
+							"description": "Optional metadata as JSON string"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/ingestor/ingest_files",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"ingestor",
+						"ingest_files"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "doc_id",
+			"value": "sample-document",
+			"type": "string"
+		},
+		{
+			"key": "collection_name",
+			"value": "default",
+			"type": "string"
+		},
+		{
+			"key": "search_query",
+			"value": "mathematics problem",
+			"type": "string"
+		}
+	]
+}

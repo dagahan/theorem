@@ -11,7 +11,7 @@ import pdfplumber
 
 
 class FileTextExtractor:
-    def extract(
+    def extract_file_to_text(
         self,
         filename: str,
         content: bytes,

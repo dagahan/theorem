@@ -16,8 +16,8 @@ class Server:
 
         self.uvicorn_config = uvicorn.Config(
             app=self.app,
-            host = EnvTools.required_load_env_var("INGESTOR_HOST"),
-            port = int(EnvTools.get_service_port("ingestor")),
+            host = EnvTools.get_service_host("ingestor"),
+            port = int(EnvTools.get_service_http_port("ingestor")),
             log_level="info"
         )
 
@@ -28,7 +28,7 @@ class Server:
         server = uvicorn.Server(self.uvicorn_config)
         await self._register_routes()
 
-        logger.info("Starting ingestor server")
+        logger.info(f"Starting {self.app.title} Fast API server.")
         
         await server.serve()
 

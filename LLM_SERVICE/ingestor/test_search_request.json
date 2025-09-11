@@ -1,0 +1,7 @@
+{
+    "query": "mathematics problem",
+    "collection_name": "fipi_documents",
+    "top_k": 25,
+    "neighbor_window": 2,
+    "include_whole_paragraph": true
+}

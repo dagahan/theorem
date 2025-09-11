@@ -4,9 +4,11 @@ from pydantic import BaseModel, Field
 
 class DeleteDocumentRequest(BaseModel):
     doc_id: str = Field(...)
+    collection_name: Optional[str] = Field(None)
 
 
 class DeleteDocumentResponse(BaseModel):
+    doc_id: str = Field(...)
     status: str = Field(...)
 
 
@@ -17,4 +19,6 @@ class DocumentInfo(BaseModel):
 
 
 class GetDocumentResponse(BaseModel):
-    document: DocumentInfo = Field(...)
+    doc_id: str = Field(...)
+    chunks_count: int = Field(...)
+    status: str = Field(...)

@@ -18,8 +18,8 @@ class GRPCServerRunner:
     def __init__(self) -> None:
         self._servicer = EmbedderService()
         self._max_workers = int(EnvTools.required_load_env_var("EMBEDDER_MAX_CONCURRENCY"))
-        self._host: str = EnvTools.get_service_ip("embedder")
-        self._port: int = int(EnvTools.get_service_port("embedder"))
+        self._host: str = EnvTools.get_service_host("embedder")
+        self._port: int = int(EnvTools.get_service_grpc_port("embedder"))
         self._addr = f"{self._host}:{self._port}"
 
         self._GRPC_OPTIONS = (

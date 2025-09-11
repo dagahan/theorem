@@ -27,7 +27,7 @@ message HealthResponse {
 
 
 message EmbedRequest {
-  string text = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
+  string text = 1 [(buf.validate.field).string = {min_len: 10, max_len: 8192, pattern: ".*\\S.*"}];
   bool   normalize = 2;
 }
 
@@ -36,16 +36,6 @@ message EmbedResponse {
   repeated float vector = 1 [(buf.validate.field).repeated = {min_items: 1, max_items: 4096}];
   bool          success = 2;
   string        error   = 3 [(buf.validate.field).string = {max_len: 2048}];
-  option (buf.validate.message).cel = {
-    id: "error_when_failed",
-    message: "error must be non-empty when success is false",
-    expression: "success || (has(error) && size(error) > 0)"
-  };
-  option (buf.validate.message).cel = {
-    id: "vector_when_success",
-    message: "vector must be present when success is true",
-    expression: "!success || size(vector) > 0"
-  };
 }
 
 
@@ -53,7 +43,7 @@ message EmbedBatchRequest {
   repeated string texts = 1 [(buf.validate.field).repeated = {
     min_items: 1,
     max_items: 256,
-    items: { string: { min_len: 1, max_len: 8192, pattern: ".*\\S.*" } }
+    items: { string: { min_len: 10, max_len: 8192, pattern: ".*\\S.*" } }
   }];
   bool normalize = 2;
 }
@@ -61,10 +51,6 @@ message EmbedBatchRequest {
 
 message EmbedBatchResponse {
   repeated EmbedResponse items = 1 [(buf.validate.field).repeated = {min_items: 1, max_items: 256}];
-  option (buf.validate.message).cel = {
-    id: "at_least_one_success",
-    message: "at least one item must be successful",
-    expression: "exists(items, i, i.success)"
-  };
 }
+
 

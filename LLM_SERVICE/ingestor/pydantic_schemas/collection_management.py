@@ -12,7 +12,7 @@ class ReindexResponse(BaseModel):
 
 
 class SwitchAliasRequest(BaseModel):
-    alias_name: str = Field(default="docs_active")
+    alias_name: str = Field(default="fipi_collection")
     target_collection: str = Field(default="docs_vNext")
 
 
@@ -24,8 +24,8 @@ class SwitchAliasResponse(BaseModel):
 
 class CollectionInfo(BaseModel):
     name: str = Field(...)
-    vectors_count: int = Field(...)
-    config: Dict[str, Any] = Field(...)
+    status: str = Field(...)
+    documents: List[str] = Field(default_factory=list)
 
 
 class ListCollectionsResponse(BaseModel):

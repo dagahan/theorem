@@ -20,15 +20,15 @@ class GrpcClientRegistry:
         if service_name in self._channels:
             return self._channels[service_name]
         
-        host = EnvTools.get_service_ip(service_name)
-        port = EnvTools.get_service_port(service_name)
+        host = EnvTools.get_service_host(service_name)
+        port = EnvTools.get_service_grpc_port(service_name)
         address = f"{host}:{port}"
         logger.info(f"Creating gRPC channel for {service_name} at {address}")
         
         options = [
-            ('grpc.keepalive_time_ms', 10000),
-            ('grpc.keepalive_timeout_ms', 5000),
-            ('grpc.keepalive_permit_without_calls', True),
+            ('grpc.keepalive_time_ms', 240000),
+            ('grpc.keepalive_timeout_ms', 10000),
+            ('grpc.keepalive_permit_without_calls', False),
             ('grpc.http2.max_pings_without_data', 0),
             ('grpc.max_receive_message_length', 4 * 1024 * 1024),
             ('grpc.max_send_message_length', 4 * 1024 * 1024),

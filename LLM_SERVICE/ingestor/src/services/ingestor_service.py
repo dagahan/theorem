@@ -1,113 +1,198 @@
-from typing import List, Dict, Any, Optional, Union
-from loguru import logger
-import json
+from __future__ import annotations
 import os
+import re
+import unicodedata
+from typing import List, Dict, Any, Optional, Union, Tuple
+from loguru import logger
 import asyncio
+from uuid import uuid5, NAMESPACE_URL
 
 from src.services.chunking_service import ChunkingService
 from src.grpc.client.embedder_grpc_client import EmbedderGrpcClient
+from src.grpc.client.qdrant_grpc_client import QdrantGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
-from src.services.vector_store_service import VectorStoreService
-from src.core.utils import EnvTools, FileSystemTools
+from src.core.utils import EnvTools
 from pydantic_schemas.service_stats import ServiceStats
-from pydantic_schemas.common import HealthResponse
+from qdrant_client.http import models as qm
 
 
 class IngestorService:
     def __init__(self) -> None:
         self.chunking_service = ChunkingService()
         self.embedder_grpc_client = GrpcClientRegistry().register_client("embedder", EmbedderGrpcClient)
-        self.vector_store_service = VectorStoreService()
+        self.qdrant_grpc_client = GrpcClientRegistry().register_client("qdrant", QdrantGrpcClient)
         self.collection_name = EnvTools.required_load_env_var("QDRANT_COLLECTION_NAME")
         self.dimensions: int = int(EnvTools.required_load_env_var("EMBEDDER_DIMENSIONS"))
+        self.qdrant_upsert_batch: int = int(EnvTools.required_load_env_var("QDRANT_UPSERT_BATCH"))
+
+
+    @staticmethod
+    def _slug_from_filename(meta: Dict[str, Any]) -> str:
+        name = str(meta.get("filename", "")).strip()
+        stem = os.path.splitext(os.path.basename(name))[0]
+        if not stem:
+            raise ValueError("Cannot determine doc_id from filename.")
+        norm = unicodedata.normalize("NFKC", stem).lower()
+        norm = re.sub(r"\s+", "_", norm)
+        norm = re.sub(r"[^a-z0-9\u0400-\u04FF_\-\.]", "-", norm).strip("-. _")
+        if not norm:
+            raise ValueError("Empty doc_id after filename normalization.")
+        return norm
 
 
     async def health_check_service(
-        self,
-        service_name: str 
-    ) -> Union[str, tuple[Dict[str, Any], str]]:
-
-        async def _check_embedder_health() -> Dict[str, Any]:
+        self, service_name: str
+    ) -> Union[str, Tuple[Dict[str, Any], str]]:
+        async def _check_embedder() -> Dict[str, Any]:
             try:
-                embedder_health = await self.embedder_grpc_client.health_check()
-                return embedder_health
-            except Exception as e:
-                logger.warning(f"Embedder health check failed: {e}")
+                return await self.embedder_grpc_client.health_check()
+            except Exception as ex:
+                logger.warning(f"Embedder health check failed: {ex}")
                 return {"status": "unhealthy", "model_id": "", "dim": 0}
-        
-        async def _check_qdrant_health() -> str:
+
+        async def _check_qdrant() -> str:
             try:
-                vector_store_health = await self.vector_store_service.health_check()
-                status: str = vector_store_health.get("status", "unknown")
-                return status
+                h = await self.qdrant_grpc_client.health_check()
+                return str(h.get("status", "unknown"))
             except Exception as e:
                 logger.warning(f"Qdrant health check failed: {e}")
                 return "unhealthy"
-        
-        match service_name.lower():
-            case "embedder":
-                embedder_health = await _check_embedder_health()
-                return str(embedder_health.get("status", "unknown"))
-                
-            case "qdrant":
-                return await _check_qdrant_health()
-                
-            case "all":
-                embedder_health, qdrant_status = await asyncio.gather(
-                    _check_embedder_health(),
-                    _check_qdrant_health(),
-                    return_exceptions=False
-                )
-                return (embedder_health, qdrant_status)
-                
-            case _:
-                raise ValueError(f"Unknown service name: {service_name}")
-                    
 
-    async def ingest_document(
+        name = service_name.lower()
+        if name == "embedder":
+            return str((await _check_embedder()).get("status", "unknown"))
+        if name == "qdrant":
+            return await _check_qdrant()
+        if name == "all":
+            emb, q = await asyncio.gather(_check_embedder(), _check_qdrant())
+            return emb, q
+        raise ValueError(f"Unknown service name: {service_name}")
+
+
+    async def _ensure_all_healthy(self) -> Dict[str, Any]:
+        health = await self.health_check_service("all")
+        assert isinstance(health, tuple)
+        embedder_health, qdrant_status = health
+
+        if embedder_health.get("status") != "healthy" or qdrant_status != "healthy":
+            raise RuntimeError(
+                f"Services unavailable. Embedder: {embedder_health.get('status')}, "
+                f"Qdrant: {qdrant_status}"
+            )
+        return embedder_health
+
+
+    async def _ensure_qdrant_collection(
         self,
-        doc_id: str,
-        text: str,
-        metadata: Dict[str, Any],
-        collection_name: Optional[str] = None
+        collection_name: str
     ) -> None:
-        if collection_name is None:
-            collection_name = self.collection_name
+        cols = await self.qdrant_grpc_client.get_collections()
+        exists = any(
+            (getattr(c, "name", None) or c.get("name")) == collection_name for c in cols
+        )
+        if not exists:
+            await self.qdrant_grpc_client.create_collection(collection_name, self.dimensions)
 
-        chunks = self.chunking_service.chunk_document(doc_id, text, metadata)
 
-        health_result = await self.health_check_service("all")
-        if isinstance(health_result, tuple) and len(health_result) == 2:
-            embedder_health, qdrant_status = health_result
-            embedder_status = embedder_health.get("status", "unknown")
-        else:
-            raise RuntimeError("Unexpected health check result format")
-        
-        if embedder_status != "healthy" or qdrant_status != "healthy":
-            raise RuntimeError(f"Services unavailable. Embedder: {embedder_status}, Qdrant: {qdrant_status}")
-        
-        self.vector_store_service.ensure_collection(collection_name, vector_size=self.dimensions)
-        
-        texts = [c["text"] for c in chunks]
+    def _filter_chunks(
+        self,
+        raw_chunks: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        return [
+            c
+            for c in raw_chunks
+            if (t := str(c.get("text", "")).strip()) and 30 <= len(t) <= 8192
+        ]
 
-        embeds = await self.embedder_grpc_client.embed_batch(texts, normalize=True)
-        if len(embeds) != len(chunks):
+
+    async def _embed_chunks(
+        self,
+        chunks: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        texts = [str(c["text"]) for c in chunks]
+        return await self.embedder_grpc_client.embed_batch(texts, normalize=True)
+
+
+    @staticmethod
+    def _build_points(
+        chunks: List[Dict[str, Any]],
+        embeds: List[Dict[str, Any]]
+    ) -> List[qm.PointStruct]:
+        points: List[qm.PointStruct] = []
+        for ch, em in zip(chunks, embeds):
+            pid = str(uuid5(NAMESPACE_URL, f"{ch['doc_id']}|{ch['paragraph_id']}|{ch['chunk_id']}"))
+            points.append(qm.PointStruct(
+                id=pid,
+                vector=em["vector"],
+                payload={
+                    "doc_id": ch["doc_id"],
+                    "paragraph_id": ch["paragraph_id"],
+                    "chunk_id": ch["chunk_id"],
+                    "text": ch["text"],
+                },
+            ))
+        return points
+
+
+    async def _upsert_batched(
+        self,
+        collection_name: str,
+        points: List[qm.PointStruct]
+    ) -> None:
+        b = max(1, self.qdrant_upsert_batch)
+        for i in range(0, len(points), b):
+            await self.qdrant_grpc_client.upsert_points(collection_name, points[i : i + b])
+
+
+    async def ingest_file(
+        self,
+        file_text: str,
+        file_metadata: Dict[str, Any],
+        collection_name: Optional[str] = None,
+    ) -> None:
+        col = collection_name or self.collection_name
+        doc_id = self._slug_from_filename(file_metadata)
+
+        await self._ensure_qdrant_collection(col)
+        if await self.qdrant_grpc_client.is_document_exists(col, doc_id):
+            raise ValueError(f"Document with id '{doc_id}' already exists in collection '{col}'. "
+                             f"File name (without extension) must be unique.")
+
+        await self._ensure_all_healthy()
+
+        chunks_raw = self.chunking_service.chunk_file(
+            doc_id,
+            file_text,
+            file_metadata
+        )
+        if not chunks_raw:
+            logger.warning(f"No chunks produced for {doc_id}")
+            return
+
+        embeds = await self._embed_chunks(chunks_raw)
+        if len(embeds) != len(chunks_raw):
             raise RuntimeError("Embedding count mismatch")
 
-        points = []
-        for c, e in zip(chunks, embeds):
-            points.append({
-                "vector": e["vector"],
-                "payload": {
-                    "doc_id": c["doc_id"],
-                    "paragraph_id": c["paragraph_id"],
-                    "chunk_id": c["chunk_id"],
-                    "text": c["text"],
-                    "metadata": c["metadata"],
-                }
-            })
+        points = self._build_points(chunks_raw, embeds)
+        await self._upsert_batched(col, points)
 
-        await self.vector_store_service.upsert_points(collection_name, points)
+
+    async def get_document_embedded(
+        self,
+        doc_id: str,
+        collection_name: Optional[str] = None
+    ) -> List[List[float]]:
+        col = collection_name or self.collection_name
+        return await self.qdrant_grpc_client.get_document_vectors(col, doc_id)
+
+
+    async def get_document_text(
+        self,
+        doc_id: str,
+        collection_name: Optional[str] = None
+    ) -> List[str]:
+        col = collection_name or self.collection_name
+        return await self.qdrant_grpc_client.get_document_texts(col, doc_id)
 
 
     async def search_documents(
@@ -136,14 +221,26 @@ class IngestorService:
             raise RuntimeError(f"Vector store service unavailable: {qdrant_status}")
 
         embedding = await self.embedder_grpc_client.embed_text(query, normalize=True)
+        logger.debug(f"Embedding created: vector_len={len(embedding.get('vector', []))}, success={embedding.get('success', False)}")
 
-        result = await self.vector_store_service.search(
+        result = await self.qdrant_grpc_client.search(
             collection_name=collection_name,
             query_vector=embedding["vector"],
             limit=limit,
             score_threshold=score_threshold
         )
+        logger.debug(f"Search result: found {len(result)} results for query '{query}' in collection '{collection_name}'")
         return result
+
+
+    async def get_collection_documents(
+        self,
+        collection_name: str
+    ) -> List[str]:
+        if await self.health_check_service("qdrant") != "healthy":
+            return []
+        
+        return await self.qdrant_grpc_client.get_collection_documents(collection_name)
 
 
     async def search_with_context(
@@ -175,7 +272,7 @@ class IngestorService:
                 continue
 
             if include_whole_paragraph:
-                para = await self.vector_store_service.get_paragraph_chunks(collection_name, doc_id, paragraph_id)
+                para = await self.qdrant_grpc_client.get_paragraph_chunks(collection_name, doc_id, paragraph_id)
                 for item in para:
                     key = (item["payload"]["doc_id"], item["payload"]["chunk_id"])
                     if key not in added:
@@ -184,7 +281,7 @@ class IngestorService:
 
             start_id = max(1, int(chunk_id) - neighbor_window)
             end_id = int(chunk_id) + neighbor_window
-            win = await self.vector_store_service.get_window_by_chunk_id(collection_name, doc_id, start_id, end_id)
+            win = await self.qdrant_grpc_client.get_window_by_chunk_id(collection_name, doc_id, start_id, end_id)
 
             for item in win:
                 key = (item["payload"]["doc_id"], item["payload"]["chunk_id"])
@@ -221,16 +318,31 @@ class IngestorService:
         if collection_name is None:
             collection_name = self.collection_name
             
-        await self.vector_store_service.delete_document(collection_name, doc_id)
+        await self.qdrant_grpc_client.delete_document(collection_name, doc_id)
         return {"status": "deleted", "doc_id": doc_id}
 
 
-    async def list_collections(self) -> List[str]:
+    async def list_collections(self) -> List[Dict[str, Any]]:
         if await self.health_check_service("qdrant") != "healthy":
             return []
 
-        collections = await self.vector_store_service.get_collections()
-        return [c["name"] for c in collections]
+        collections = await self.qdrant_grpc_client.get_collections()
+        result = []
+        for c in collections:
+            collection_name = None
+            if hasattr(c, "name"):
+                collection_name = c.name
+            elif isinstance(c, dict) and "name" in c:
+                collection_name = c["name"]
+            
+            if collection_name:
+                documents = await self.get_collection_documents(collection_name)
+                result.append({
+                    "name": collection_name,
+                    "status": "active",
+                    "documents": documents
+                })
+        return result
 
 
     async def get_document_chunks_count(
@@ -243,7 +355,7 @@ class IngestorService:
 
         if collection_name is None:
             collection_name = self.collection_name
-        result = await self.vector_store_service.get_document_chunks_count(collection_name, doc_id)
+        result = await self.qdrant_grpc_client.get_document_chunks_count(collection_name, doc_id)
         return result
 
 
@@ -272,7 +384,7 @@ class IngestorService:
         
         if qdrant_status == "healthy":
             try:
-                collections = await self.vector_store_service.get_collections()
+                collections = await self.qdrant_grpc_client.get_collections()
                 total_collections = len(collections)
                 total_vectors = sum(col.get("vectors_count", 0) for col in collections)
                 logger.debug(f"Retrieved {total_collections} collections with {total_vectors} total vectors")
