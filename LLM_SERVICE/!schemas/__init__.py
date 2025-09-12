@@ -1,58 +1,22 @@
-"""
-Pydantic models for all microservices.
-"""
-
-from .common import HealthResponse, ErrorResponse, SuccessResponse
-from .document_ingestor import (
-    IngestDocumentRequest,
-    IngestDocumentResponse,
-    JobStatusResponse,
-)
-from .document_management import (
-    DeleteDocumentRequest,
-    DeleteDocumentResponse,
-    DocumentInfo,
-    GetDocumentResponse,
-)
-from .search import (
-    SearchRequest,
-    SearchResult,
-    SearchResponse,
-)
-from .collection_management import (
-    ReindexRequest,
-    ReindexResponse,
-    SwitchAliasRequest,
-    SwitchAliasResponse,
-    CollectionInfo,
-    ListCollectionsResponse,
-)
-from .service_stats import (
-    ServiceStats,
-)
-from .ingest_files import (
-    IngestFilesItem,
-    IngestFilesResponse,
-)
+from .base_model import *
+from .common import *
+from .collection_management import *
+from .document_management import *
+from .search import *
+from .service_stats import *
+from .ingest import *
+from .postgres import *
 
 __all__ = [
+    # Base Model
+    "UUIDpk",
+    "created_at", 
+    "updated_at",
+    "Base",
     # Common
     "HealthResponse",
     "ErrorResponse", 
     "SuccessResponse",
-    # Document Ingestion
-    "IngestDocumentRequest",
-    "IngestDocumentResponse",
-    "JobStatusResponse",
-    # Document Management
-    "DeleteDocumentRequest",
-    "DeleteDocumentResponse",
-    "DocumentInfo",
-    "GetDocumentResponse",
-    # Search
-    "SearchRequest",
-    "SearchResult",
-    "SearchResponse",
     # Collection Management
     "ReindexRequest",
     "ReindexResponse",
@@ -60,9 +24,21 @@ __all__ = [
     "SwitchAliasResponse",
     "CollectionInfo",
     "ListCollectionsResponse",
+    # Document Management
+    "DeleteDocumentRequest",
+    "DeleteDocumentResponse",
+    "DocumentInfo",
+    "GetDocumentResponse",
+    # Search
+    "SearchRequest",
+    "SearchWithContextRequest",
+    "SearchResult",
+    "SearchResponse",
     # Service Stats
     "ServiceStats",
     # File Ingestion
     "IngestFilesItem",
     "IngestFilesResponse",
+    # PostgreSQL Models
+    "Document",
 ]

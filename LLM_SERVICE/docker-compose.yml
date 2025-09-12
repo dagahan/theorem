@@ -20,7 +20,7 @@ services:
     volumes:
       - ./qdrant-data:/qdrant/storage
     networks:
-      - llm_network
+      - llm_service_network
     restart: ${DOCKER_CONTAINERS_RESTART}
     develop:
       watch:
@@ -28,28 +28,56 @@ services:
           path: ./qdrant
 
 
-  embedder:
-   build:
-     context: ./embedder
-     dockerfile: dockerfile
-   image: embedder-${COMPOSE_PROJECT_NAME}
-   container_name: embedder-${COMPOSE_PROJECT_NAME}
-   env_file: 
-     - .env
-     - .common-env.conf
-     - ./embedder/.conf
-   environment:
-     RUNNING_INSIDE_DOCKER: 1
-     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
-   ports:
-     - "${EMBEDDER_GRPC_PORT}:${EMBEDDER_GRPC_PORT}"
-   networks:
-     - llm_network
-   restart: ${DOCKER_CONTAINERS_RESTART}
-   develop:
-     watch:
-       - action: rebuild
-         path: ./embedder
+  postgres:
+    build:
+      context: ./postgres
+      dockerfile: dockerfile
+    image: postgres-${COMPOSE_PROJECT_NAME}
+    container_name: postgres-${COMPOSE_PROJECT_NAME}
+    env_file: .env
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${POSTGRES_HTTP_PORT}:${POSTGRES_HTTP_PORT}"
+    networks:
+      - llm_service_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./
+
+
+  # embedder:
+  #  build:
+  #    context: ./embedder
+  #    dockerfile: dockerfile
+  #  image: embedder-${COMPOSE_PROJECT_NAME}
+  #  container_name: embedder-${COMPOSE_PROJECT_NAME}
+  #  env_file: 
+  #    - .env
+  #    - .common-env.conf
+  #    - ./embedder/.conf
+  #  environment:
+  #    RUNNING_INSIDE_DOCKER: 1
+  #    COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #  ports:
+  #    - "${EMBEDDER_GRPC_PORT}:${EMBEDDER_GRPC_PORT}"
+  #  networks:
+  #    - llm_service_network
+  #  restart: ${DOCKER_CONTAINERS_RESTART}
+  #  develop:
+  #    watch:
+  #      - action: rebuild
+  #        path: ./embedder
 
 
  # rag:
@@ -68,7 +96,7 @@ services:
  #   ports:
  #     - "${RAG_PORT}:${RAG_PORT}"
  #   networks:
- #     - llm_network
+ #     - llm_service_network
  #   restart: ${DOCKER_CONTAINERS_RESTART}
  #   depends_on:
  #     - qdrant
@@ -79,31 +107,31 @@ services:
  #         path: ./rag
 
 
-  ingestor:
-   build:
-     context: ./ingestor
-     dockerfile: dockerfile
-   image: ingestor-${COMPOSE_PROJECT_NAME}
-   container_name: ingestor-${COMPOSE_PROJECT_NAME}
-   env_file: 
-     - .env
-     - .common-env.conf
-     - ./ingestor/.conf
-   environment:
-     RUNNING_INSIDE_DOCKER: 1
-     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
-   ports:
-     - "${INGESTOR_HTTP_PORT}:${INGESTOR_HTTP_PORT}"
-   networks:
-     - llm_network
-   restart: ${DOCKER_CONTAINERS_RESTART}
-   depends_on:
-     - qdrant
-     - embedder
-   develop:
-     watch:
-       - action: rebuild
-         path: ./ingestor
+  # ingestor:
+  #  build:
+  #    context: ./ingestor
+  #    dockerfile: dockerfile
+  #  image: ingestor-${COMPOSE_PROJECT_NAME}
+  #  container_name: ingestor-${COMPOSE_PROJECT_NAME}
+  #  env_file: 
+  #    - .env
+  #    - .common-env.conf
+  #    - ./ingestor/.conf
+  #  environment:
+  #    RUNNING_INSIDE_DOCKER: 1
+  #    COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #  ports:
+  #    - "${INGESTOR_HTTP_PORT}:${INGESTOR_HTTP_PORT}"
+  #  networks:
+  #    - llm_service_network
+  #  restart: ${DOCKER_CONTAINERS_RESTART}
+  #  depends_on:
+  #    - qdrant
+  #    - embedder
+  #  develop:
+  #    watch:
+  #      - action: rebuild
+  #        path: ./ingestor
 
 
   # vllm_math:
@@ -132,7 +160,7 @@ services:
   #            count: all
   #            capabilities: [gpu]
   #   networks:
-  #     - llm_network
+  #     - llm_service_network
   #   restart: ${DOCKER_CONTAINERS_RESTART}
   #   develop:
   #     watch:
@@ -141,9 +169,8 @@ services:
 
 
 networks:
-  llm_network:
+  llm_service_network:
     driver: bridge
-    name: llm_network
 
 
 volumes:
@@ -153,6 +180,7 @@ volumes:
   qdrant_data:
     driver: local
 
-  redis_data:
+  postgres_data:
     driver: local
+
 

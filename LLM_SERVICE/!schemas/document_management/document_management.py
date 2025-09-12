@@ -4,11 +4,10 @@ from pydantic import BaseModel, Field
 
 class DeleteDocumentRequest(BaseModel):
     doc_id: str = Field(...)
-    collection_name: Optional[str] = Field(None)
+    collection_name: Optional[str] = Field(default=None)
 
 
 class DeleteDocumentResponse(BaseModel):
-    doc_id: str = Field(...)
     status: str = Field(...)
 
 

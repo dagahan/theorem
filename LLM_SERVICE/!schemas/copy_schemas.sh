@@ -53,52 +53,74 @@ for service_dir in "${ROOT_DIR}"/*/pydantic_schemas; do
     log "  Cleaning ${service_dir}/"
     rm -rf "${service_dir:?}/"* 2>/dev/null || true
     
-    log "  Copying from ${SCHEMAS_DIR}/ to ${service_dir}/"
-    find "${SCHEMAS_DIR}" -name "*.py" -not -name "__init__.py" -exec cp {} "${service_dir}/" \;
+    # Copy base_model.py to root of pydantic_schemas
+    log "  Copying base_model.py to ${service_dir}/"
+    cp "${SCHEMAS_DIR}/base_model.py" "${service_dir}/"
+    
+    # Copy category directories
+    log "  Copying category directories from ${SCHEMAS_DIR}/ to ${service_dir}/"
+    for category_dir in "${SCHEMAS_DIR}"/*/; do
+      if [[ -d "$category_dir" ]]; then
+        category_name=$(basename "$category_dir")
+        log "    Copying category: ${category_name}"
+        cp -r "$category_dir" "${service_dir}/"
+      fi
+    done
     
     log "  Creating dynamic __init__.py for ${service_name} schemas..."
     
-    schema_files=$(find "${service_dir}" -name "*.py" -not -name "__init__.py" | sort)
-    
     cat > "${service_dir}/__init__.py" << EOF
-"""
-Auto-generated Pydantic schemas for easy import.
-All schemas are imported dynamically from individual files.
-Generated on $(date)
-"""
+from .base_model import *
+from .common import *
+from .collection_management import *
+from .document_management import *
+from .search import *
+from .service_stats import *
+from .ingest import *
+from .postgres import *
 
-# Import all schema modules
+__all__ = [
+    # Base Model
+    "UUIDpk",
+    "created_at", 
+    "updated_at",
+    "Base",
+    # Common
+    "HealthResponse",
+    "ErrorResponse", 
+    "SuccessResponse",
+    # Collection Management
+    "ReindexRequest",
+    "ReindexResponse",
+    "SwitchAliasRequest",
+    "SwitchAliasResponse",
+    "CollectionInfo",
+    "ListCollectionsResponse",
+    # Document Management
+    "DeleteDocumentRequest",
+    "DeleteDocumentResponse",
+    "DocumentInfo",
+    "GetDocumentResponse",
+    # Search
+    "SearchRequest",
+    "SearchWithContextRequest",
+    "SearchResult",
+    "SearchResponse",
+    # Service Stats
+    "ServiceStats",
+    # File Ingestion
+    "IngestFilesItem",
+    "IngestFilesResponse",
+    # PostgreSQL Models
+    "Document",
+]
 EOF
     
-    for file in $schema_files; do
-        basename_file=$(basename "$file" .py)
-        echo "from .${basename_file} import *" >> "${service_dir}/__init__.py"
-    done
-    
-
-    cat >> "${service_dir}/__init__.py" << EOF
-
-
-# Auto-generated __all__ list
-__all__ = []
-EOF
-    
-    for file in $schema_files; do
-        basename_file=$(basename "$file" .py)
-        log "    Analyzing ${basename_file}..."
-        
-        classes=$(grep -E "^class [A-Za-z][A-Za-z0-9]*.*BaseModel" "$file" | sed 's/class \([A-Za-z][A-Za-z0-9]*\).*/\1/' | tr '\n' ' ')
-        
-        if [[ -n "$classes" ]]; then
-            echo "# Classes from ${basename_file}" >> "${service_dir}/__init__.py"
-            for class_name in $classes; do
-                echo "__all__.append('${class_name}')" >> "${service_dir}/__init__.py"
-            done
-        fi
-    done
-    
-    log "  Copying schemas __init__.py to $(dirname "$service_dir")/schemas.py"
-    cp "${SCHEMAS_DIR}/__init__.py" "$(dirname "$service_dir")/schemas.py"
+    # Remove schemas.py if it exists
+    if [[ -f "$(dirname "$service_dir")/schemas.py" ]]; then
+      log "  Removing old schemas.py from $(dirname "$service_dir")/"
+      rm "$(dirname "$service_dir")/schemas.py"
+    fi
     
     ((copied_count++))
   fi

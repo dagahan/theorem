@@ -24,12 +24,14 @@ class SwitchAliasResponse(BaseModel):
 
 class CollectionInfo(BaseModel):
     name: str = Field(...)
-    vectors_count: int = Field(...)
-    config: Dict[str, Any] = Field(...)
+    status: str = Field(...)
+    documents: List[str] = Field(...)
 
 
 class ListCollectionsResponse(BaseModel):
     collections: List[CollectionInfo] = Field(...)
+    total_collections: int = Field(...)
+    status: str = Field(...)
 
 
     

@@ -139,3 +139,19 @@ qdrant-data/
 # Debug directories
 debug/
 **/debug/
+
+
+# PostgreSQL data
+postgres-data/
+
+# UV lock files
+uv.lock
+
+# Debug log files
+debug.json
+debug.*.json.zip
+
+# Temporary test files
+test_*.json
+
+

@@ -25,8 +25,13 @@ class SwitchAliasResponse(BaseModel):
 class CollectionInfo(BaseModel):
     name: str = Field(...)
     status: str = Field(...)
-    documents: List[str] = Field(default_factory=list)
+    documents: List[str] = Field(...)
 
 
 class ListCollectionsResponse(BaseModel):
     collections: List[CollectionInfo] = Field(...)
+    total_collections: int = Field(...)
+    status: str = Field(...)
+
+
+    

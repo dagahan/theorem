@@ -20,7 +20,11 @@ dependencies = [
   "pdfplumber==0.11.7",
   "python-docx==1.1.2",
   "python-multipart==0.0.20",
-  "httpx[socks]",
+  "httpx[socks]==0.28.1",
+  "SQLAlchemy==2.0.41",
+  "psycopg[binary]==3.2.9",
+  "asyncpg==0.30.0",
+  "aiobotocore==2.24.1",
 ]
 
 

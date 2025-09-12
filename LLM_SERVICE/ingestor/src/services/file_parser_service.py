@@ -2,33 +2,63 @@ from __future__ import annotations
 
 import io
 import os
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import chardet
 from docx import Document
 from loguru import logger
 import pdfplumber
 
+from src.core.logging import FileParserLogger
 
-class FileTextExtractor:
+
+class FileParserService:
     def extract_file_to_text(
         self,
         filename: str,
         content: bytes,
-        content_type: Optional[str]
+        content_type: Optional[str],
+        doc_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> str:
         name = filename.lower().strip()
+        extracted_text = ""
+        parsing_method = ""
+        success = True
+        error_message = ""
 
-        if name.endswith(".pdf") or (content_type or "").startswith("application/pdf"):
-            return self._from_pdf(content)
+        try:
+            if name.endswith(".pdf") or (content_type or "").startswith("application/pdf"):
+                extracted_text = self._from_pdf(content)
+                parsing_method = "pdf_plumber"
+            elif name.endswith(".docx") or (content_type or "") in {"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}:
+                extracted_text = self._from_docx(content)
+                parsing_method = "docx_python_docx"
+            elif name.endswith(".txt") or (content_type or "").startswith("text/"):
+                extracted_text = self._from_text(content)
+                parsing_method = "text_chardet"
+            else:
+                extracted_text = self._from_text_or_binary(content)
+                parsing_method = "text_or_binary_chardet"
+        except Exception as e:
+            success = False
+            error_message = str(e)
+            logger.error(f"Failed to parse file {filename}: {e}")
+            extracted_text = ""
 
-        if name.endswith(".docx") or (content_type or "") in {"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}:
-            return self._from_docx(content)
+        if doc_id and metadata:
+            FileParserLogger.log_parsing_results(
+                doc_id=doc_id,
+                filename=filename,
+                content_type=content_type or "unknown",
+                extracted_text=extracted_text,
+                metadata=metadata,
+                parsing_method=parsing_method,
+                success=success,
+                error_message=error_message
+            )
 
-        if name.endswith(".txt") or (content_type or "").startswith("text/"):
-            return self._from_text(content)
-            
-        return self._from_text_or_binary(content)
+        return extracted_text
 
 
     def _from_pdf(

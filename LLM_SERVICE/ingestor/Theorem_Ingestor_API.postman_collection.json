@@ -12,12 +12,11 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{base_url}}/ingestor/health",
+							"raw": "{{base_url}}/health",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
-						"ingestor",
 						"health"
 					]
 				}
@@ -30,12 +29,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{base_url}}/ingestor/service_stats",
+							"raw": "{{base_url}}/statistics/service_stats",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
-						"ingestor",
+						"statistics",
 						"service_stats"
 					]
 				}
@@ -48,12 +47,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{base_url}}/ingestor/list_collections",
+							"raw": "{{base_url}}/vector-store/list_collections",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
-						"ingestor",
+						"vector-store",
 						"list_collections"
 					]
 				}
@@ -66,12 +65,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{base_url}}/ingestor/get_document_info/{{doc_id}}?collection_name={{collection_name}}",
+					"raw": "{{base_url}}/vector-store/get_document_info/{{doc_id}}?collection_name={{collection_name}}",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
-						"ingestor",
+						"vector-store",
 						"get_document_info",
 						"{{doc_id}}"
 					],
@@ -92,12 +91,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{base_url}}/ingestor/get_document_embedded/{{doc_id}}?collection_name={{collection_name}}",
+					"raw": "{{base_url}}/vector-store/get_document_embedded/{{doc_id}}?collection_name={{collection_name}}",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
-						"ingestor",
+						"vector-store",
 						"get_document_embedded",
 						"{{doc_id}}"
 					],
@@ -118,12 +117,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{base_url}}/ingestor/get_document_text/{{doc_id}}?collection_name={{collection_name}}",
+					"raw": "{{base_url}}/vector-store/get_document_text/{{doc_id}}?collection_name={{collection_name}}",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
-						"ingestor",
+						"vector-store",
 						"get_document_text",
 						"{{doc_id}}"
 					],
@@ -153,12 +152,12 @@
 					"raw": "{\n    \"query\": \"{{search_query}}\",\n    \"collection_name\": \"{{collection_name}}\",\n    \"top_k\": 25,\n    \"neighbor_window\": 2,\n    \"include_whole_paragraph\": true\n}"
 				},
 				"url": {
-					"raw": "{{base_url}}/ingestor/search_with_context",
+					"raw": "{{base_url}}/search/search_with_context",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
-						"ingestor",
+						"search",
 						"search_with_context"
 					]
 				}

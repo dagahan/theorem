@@ -8,9 +8,16 @@ T = TypeVar('T')
 
 
 class GrpcClientRegistry:
-    def __init__(self) -> None:
-        self._clients: Dict[str, Any] = {}
-        self._channels: Dict[str, grpc.Channel] = {}
+    _instance: "GrpcClientRegistry | None" = None
+    _clients: Dict[str, Any]
+    _channels: Dict[str, grpc.Channel]
+    
+    def __new__(cls) -> "GrpcClientRegistry":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._clients = {}
+            cls._instance._channels = {}
+        return cls._instance
 
 
     def _get_channel(
@@ -53,7 +60,7 @@ class GrpcClientRegistry:
         channel = self._get_channel(service_name)
         client = client_class(channel, service_name)
         self._clients[service_name] = client
-        logger.success(f"gRPC client registered: {service_name}")
+        logger.debug(f"gRPC client registered for {service_name}")
         return client
 
 

@@ -23,7 +23,7 @@ def _to_f32_list(x: np.ndarray) -> list[float]:
 class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignore[misc]
     def __init__(self) -> None:
         self.model_name: str = EnvTools.required_load_env_var("EMBEDDER_MODEL_NAME")
-        self.batch_size: int = int(EnvTools.required_load_env_var("EMBEDDER_EMBED_BATCH_MAX_SIZE"))
+        self.embed_batch_size: int = int(EnvTools.required_load_env_var("EMBEDDER_EMBED_BATCH_MAX_SIZE"))
 
         torch.set_num_threads(int(EnvTools.required_load_env_var("TORCH_NUM_THREADS")))
         torch.set_num_interop_threads(1)
@@ -55,7 +55,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
 
             self.embedder_model = model
             self.dimensions = dim
-            logger.info(f"Embedder model is ready. dim={self.dimensions}, batch_size={self.batch_size}")
+            logger.info(f"Embedder model is ready. dim={self.dimensions}, embed_batch_size={self.embed_batch_size}")
 
         except Exception as ex:
             logger.exception(f"Failed to load model: {ex}")
@@ -144,7 +144,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
 
             assert self.embedder_model is not None
             model: SentenceTransformer = self.embedder_model
-            bs = max(1, min(self.batch_size, len(texts)))
+            bs = max(1, min(self.embed_batch_size, len(texts)))
             use_amp = torch.cuda.is_available()
 
             while True:
