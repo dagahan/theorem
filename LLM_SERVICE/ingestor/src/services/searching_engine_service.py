@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from loguru import logger
 
 from src.services.health_service import HealthService
@@ -23,15 +23,12 @@ class SearchingEngineService:
     async def search_documents(
         self,
         query: str,
-        collection_name: Optional[str] = None,
+        collection_name: str,
         limit_k: int = 25,
         score_threshold: float = 0.0
     ) -> List[Dict[str, Any]]:
         if await self.health_service.health_check_service("qdrant") != "healthy":
             return []
-    
-        if collection_name is None:
-            collection_name = self.vector_store_service.collection_name
 
         health_result = await self.health_service.health_check_service("all")
 
@@ -68,16 +65,13 @@ class SearchingEngineService:
     async def search_with_context(
         self,
         query: str,
-        collection_name: Optional[str] = None,
+        collection_name: str,
         top_k: int = 25,
         neighbor_window: int = 2,
         include_whole_paragraph: bool = True
     ) -> Dict[str, Any]:
         if await self.health_service.health_check_service("qdrant") != "healthy":
             return {"status": "unsuccessful"}
-
-        if collection_name is None:
-            collection_name = self.vector_store_service.collection_name
 
         hits = await self.search_documents(
             query,
@@ -129,7 +123,6 @@ class SearchingEngineService:
             last_para = pid
 
         return {
-            "chunks": gathered,
             "merged_text": "\n".join(merged_lines)
         }
 

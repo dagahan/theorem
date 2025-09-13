@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from uuid import uuid5, NAMESPACE_URL
 from loguru import logger
 
@@ -13,7 +13,6 @@ from qdrant_client.http import models as qm
 class VectorStoreService:
     def __init__(self) -> None:
         self.qdrant_grpc_client = GrpcClientRegistry().register_client("qdrant", QdrantGrpcClient)
-        self.collection_name = EnvTools.required_load_env_var("QDRANT_COLLECTION_NAME")
         self.dimensions: int = int(EnvTools.required_load_env_var("EMBEDDER_DIMENSIONS"))
         self.qdrant_upsert_batch: int = int(EnvTools.required_load_env_var("QDRANT_UPSERT_BATCH"))
 
@@ -73,31 +72,26 @@ class VectorStoreService:
     async def get_document_vectors(
         self,
         doc_id: str,
-        collection_name: Optional[str] = None
+        collection_name: str
     ) -> List[List[float]]:
-        col = collection_name or self.collection_name
-        return await self.qdrant_grpc_client.get_document_vectors(col, doc_id)
+        return await self.qdrant_grpc_client.get_document_vectors(collection_name, doc_id)
 
 
     async def get_document_texts(
         self,
         doc_id: str,
-        collection_name: Optional[str] = None
+        collection_name: str
     ) -> List[str]:
-        col = collection_name or self.collection_name
-        return await self.qdrant_grpc_client.get_document_texts(col, doc_id)
+        return await self.qdrant_grpc_client.get_document_texts(collection_name, doc_id)
 
 
     async def search_documents(
         self,
         query_vector: List[float],
-        collection_name: Optional[str] = None,
+        collection_name: str,
         limit: int = 25,
         score_threshold: float = 0.0
     ) -> List[Dict[str, Any]]:
-        if collection_name is None:
-            collection_name = self.collection_name
-
         result = await self.qdrant_grpc_client.search(
             collection_name=collection_name,
             query_vector=query_vector,
@@ -138,11 +132,8 @@ class VectorStoreService:
     async def delete_document(
         self,
         doc_id: str,
-        collection_name: Optional[str] = None
+        collection_name: str
     ) -> None:
-        if collection_name is None:
-            collection_name = self.collection_name
-        
         await self.qdrant_grpc_client.delete_document(collection_name, doc_id)
         logger.info(f"Document {doc_id} deleted from Qdrant collection {collection_name}")
 
@@ -171,10 +162,8 @@ class VectorStoreService:
     async def get_document_chunks_count(
         self,
         doc_id: str,
-        collection_name: Optional[str] = None
+        collection_name: str
     ) -> int:
-        if collection_name is None:
-            collection_name = self.collection_name
         result = await self.qdrant_grpc_client.get_document_chunks_count(collection_name, doc_id)
         return result
 

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, TypeVar, Generic
+from typing import Any, Dict, List, TypeVar, Generic
 
 import grpc  # type: ignore
 from loguru import logger

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel, Field
 
 
@@ -6,7 +6,7 @@ class IngestFilesItem(BaseModel):
     filename: str = Field(...)
     doc_id: str = Field(...)
     status: str = Field(...)
-    error: Optional[str] = Field(default=None)
+    error: str | None = Field(default=None)
 
 
 class IngestFilesResponse(BaseModel):

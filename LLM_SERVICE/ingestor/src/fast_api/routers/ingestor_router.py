@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 import json
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
@@ -32,8 +32,8 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
     @router.post("/ingest_files", response_model=IngestFilesResponse)  # type: ignore[misc]
     async def ingest_files(
         files: List[UploadFile] = File(...),
-        collection_name: Optional[str] = Form(None),
-        metadata: Optional[str] = Form(None)
+        collection_name: str = Form(...),
+        metadata: str | None = Form(None)
     ) -> IngestFilesResponse:
         try:
             parsed_metadata = json.loads(metadata) if metadata else {}

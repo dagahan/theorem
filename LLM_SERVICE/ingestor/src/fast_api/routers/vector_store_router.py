@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from fastapi import APIRouter, HTTPException
 from loguru import logger
 
@@ -23,7 +23,7 @@ def get_vector_store_router(database_connector: "DataBaseConnector") -> APIRoute
     @router.get("/get_document_info/{doc_id}", response_model=GetDocumentResponse)  # type: ignore[misc]
     async def get_document_info(
         doc_id: str,
-        collection_name: Optional[str] = None
+        collection_name: str
     ) -> GetDocumentResponse:
         try:
             chunks_count = await vector_store_service.get_document_chunks_count(doc_id, collection_name)
@@ -41,7 +41,7 @@ def get_vector_store_router(database_connector: "DataBaseConnector") -> APIRoute
     @router.get("/get_document_embedded/{doc_id}", response_model=Dict[str, Any])  # type: ignore[misc]
     async def get_document_embedded(
         doc_id: str,
-        collection_name: Optional[str] = None
+        collection_name: str
     ) -> Dict[str, Any]:
         try:
             vectors = await vector_store_service.get_document_vectors(doc_id, collection_name)
@@ -60,7 +60,7 @@ def get_vector_store_router(database_connector: "DataBaseConnector") -> APIRoute
     @router.get("/get_document_text/{doc_id}", response_model=Dict[str, Any])  # type: ignore[misc]
     async def get_document_text(
         doc_id: str,
-        collection_name: Optional[str] = None
+        collection_name: str
     ) -> Dict[str, Any]:
         try:
             texts = await vector_store_service.get_document_texts(doc_id, collection_name)

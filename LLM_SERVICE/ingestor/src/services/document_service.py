@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, List
 
 from loguru import logger
 from sqlalchemy import select, delete
@@ -85,7 +85,7 @@ class DocumentService:
         self,
         session: "AsyncSession",
         doc_id: str
-    ) -> Optional[Document]:
+    ) -> Document | None:
         result = await session.execute(
             select(Document).where(Document.doc_id == doc_id)
         )
@@ -107,7 +107,7 @@ class DocumentService:
         self,
         session: "AsyncSession",
         doc_id: str
-    ) -> Optional[Document]:
+    ) -> Document | None:
         document = await self.get_document_by_doc_id(session, doc_id)
         if not document:
             logger.warning(f"Document not found in database: {doc_id}")
@@ -172,7 +172,7 @@ class DocumentService:
         self,
         session: "AsyncSession",
         doc_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Dict[str, Any] | None:
         document = await self.get_document_by_doc_id(session, doc_id)
         if not document:
             return None

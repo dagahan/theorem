@@ -2,22 +2,22 @@
 Common Pydantic models for all microservices.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from pydantic import BaseModel
 
 
 class HealthResponse(BaseModel):
     status: str
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class ErrorResponse(BaseModel):
     error: str
-    details: Optional[str] = None
+    details: str | None = None
 
 
 class SuccessResponse(BaseModel):
     success: bool
-    message: Optional[str] = None
+    message: str | None = None
 
     

@@ -1,4 +1,4 @@
-from typing import Iterator, Optional, Any
+from typing import Iterator, Any
 
 import grpc
 import numpy as np
@@ -29,7 +29,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
         torch.set_num_interop_threads(1)
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.embedder_model: Optional[SentenceTransformer] = None
+        self.embedder_model: SentenceTransformer | None = None
         
         self.dimensions: Any = None
         self._load_model()

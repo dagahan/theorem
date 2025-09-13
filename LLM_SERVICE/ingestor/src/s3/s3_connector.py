@@ -12,6 +12,7 @@ from aiobotocore.session import get_session as get_s3_session  # type: ignore[im
 from botocore.config import Config  # type: ignore[import-untyped]
 
 from src.core.utils import EnvTools
+from src.services.text_normalize_service import TextNormalizeService
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -75,8 +76,7 @@ class S3Client:
     @staticmethod
     def _safe_name(name: str) -> str:
         base = os.path.splitext(os.path.basename(name))[0] or "file"
-        base = re.sub(r"[^a-zA-Z0-9._-]+", "-", base).strip("-_.")
-        return base or "file"
+        return TextNormalizeService().normalize_doc_id(base)
 
 
     async def upload_bytes(self, data: bytes, key: str, content_type: str | None = None, metadata: dict[str, str] | None = None) -> None:

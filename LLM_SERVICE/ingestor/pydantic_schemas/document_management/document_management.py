@@ -1,10 +1,10 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from pydantic import BaseModel, Field
 
 
 class DeleteDocumentRequest(BaseModel):
     doc_id: str = Field(...)
-    collection_name: Optional[str] = Field(default=None)
+    collection_name: str = Field(...)
 
 
 class DeleteDocumentResponse(BaseModel):

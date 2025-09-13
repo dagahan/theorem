@@ -14,7 +14,7 @@ class IdService:
         if not stem:
             raise ValueError("Cannot determine doc_id from filename.")
 
-        normalized_id = TextNormalizeService().normalize_identifier(stem)
+        normalized_id = TextNormalizeService().normalize_doc_id(stem)
         if not normalized_id:
             raise ValueError("Empty doc_id after filename normalization.")
 

@@ -1,9 +1,9 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from pydantic import BaseModel, Field
 
 
 class ReindexRequest(BaseModel):
-    collection_name: Optional[str] = Field(default=None)
+    collection_name: str | None = Field(default=None)
 
 
 class ReindexResponse(BaseModel):

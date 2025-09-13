@@ -2,7 +2,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, HTTPException
 from loguru import logger
 
-from pydantic_schemas import SearchWithContextRequest
+from pydantic_schemas import SearchWithContextRequest, SearchResponse
 
 from src.services.searching_engine_service import SearchingEngineService
 
@@ -16,10 +16,10 @@ def get_search_router(database_connector: "DataBaseConnector") -> APIRouter:
     searching_engine_service = SearchingEngineService(database_connector)
 
 
-    @router.post("/search_with_context", response_model=Dict[str, Any])  # type: ignore[misc]
+    @router.post("/search_with_context", response_model=SearchResponse)  # type: ignore[misc]
     async def search_with_context(
         request: SearchWithContextRequest
-    ) -> Dict[str, Any]:
+    ) -> SearchResponse:
         try:
             logger.debug(f"Search request: query='{request.query}', collection='{request.collection_name}'")
 
@@ -31,7 +31,7 @@ def get_search_router(database_connector: "DataBaseConnector") -> APIRouter:
                 include_whole_paragraph=request.include_whole_paragraph
             )
 
-            return result
+            return SearchResponse(merged_text=result["merged_text"])
             
         except Exception as e:
             logger.error(f"Search with context failed: {e}")

@@ -2,7 +2,7 @@ from __future__ import annotations
 import os
 import re
 import unicodedata
-from typing import List, Dict, Any, Optional, Union, Tuple
+from typing import List, Dict, Any, Union, Tuple
 from loguru import logger
 import asyncio
 
@@ -40,10 +40,10 @@ class IngestorService:
         self,
         file_text: str,
         file_metadata: Dict[str, Any],
-        collection_name: Optional[str] = None,
-        file_content: Optional[bytes] = None,
+        collection_name: str,
+        file_content: bytes | None = None,
     ) -> None:
-        collection = collection_name or self.vector_store_service.collection_name
+        collection = collection_name
         doc_id = IdService.from_filename(file_metadata)
 
         await self.vector_store_service.ensure_collection_exists(collection)
@@ -66,10 +66,10 @@ class IngestorService:
                 doc_id=doc_id
             )
 
-        normalized_text = self.text_normalize_service.normalize_text(
-            file_text,
-            doc_id,
-            file_metadata
+        normalized_text = self.text_normalize_service.normalize_chunk_text(
+            file_text, 
+            doc_id=doc_id, 
+            metadata=file_metadata
         )
         
         chunks = self.chunking_service.chunk_text(
@@ -129,13 +129,10 @@ class IngestorService:
     async def delete_document(
         self,
         doc_id: str,
-        collection_name: Optional[str] = None
+        collection_name: str
     ) -> Dict[str, str]:
         if await self.health_service.health_check_service("qdrant") != "healthy":
             return {"status": "unsuccessful", "doc_id": doc_id}
-
-        if collection_name is None:
-            collection_name = self.vector_store_service.collection_name
         
         try:
             await self.vector_store_service.delete_document(doc_id, collection_name)

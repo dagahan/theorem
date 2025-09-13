@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from inspect import getframeinfo, stack
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import bcrypt
@@ -109,7 +109,7 @@ class EnvTools:
 
     @staticmethod
     def bootstrap_env(
-        service_name: Optional[str] = None,
+        service_name: str | None = None,
         conf_filename: str = ".conf"
     ) -> None:
         if EnvTools.load_env_var("RUNNING_INSIDE_DOCKER") == "1":
