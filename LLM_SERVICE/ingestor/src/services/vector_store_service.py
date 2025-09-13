@@ -35,19 +35,34 @@ class VectorStoreService:
         embeds: List[Dict[str, Any]]
     ) -> List[qm.PointStruct]:
         points: List[qm.PointStruct] = []
-        for ch, em in zip(chunks, embeds):
+        logger.debug(f"Building points: {len(chunks)} chunks, {len(embeds)} embeds")
+        
+        for i, (ch, em) in enumerate(zip(chunks, embeds)):
+            if not em.get("success", False):
+                logger.warning(f"Skipping failed embed for chunk {i}")
+                continue
+                
+            vector = em.get("vector", [])
+            if not vector:
+                logger.warning(f"No vector found for chunk {i}")
+                continue
+                
             pid = str(uuid5(NAMESPACE_URL, f"{ch['doc_id']}|{ch['paragraph_id']}|{ch['chunk_id']}"))
             points.append(qm.PointStruct(
                 id=pid,
-                vector=em["vector"],
+                vector=vector,
                 payload={
                     "doc_id": ch["doc_id"],
                     "paragraph_id": ch["paragraph_id"],
                     "chunk_id": ch["chunk_id"],
                     "text": ch["text"],
+                    "pages": ch.get("pages", []),
+                    "page_anchor": ch.get("page_anchor"),
+                    "parent_type": ch.get("parent_type"),
                 },
             ))
 
+        logger.debug(f"Built {len(points)} points")
         return points
 
 
@@ -56,9 +71,16 @@ class VectorStoreService:
         collection_name: str,
         points: List[qm.PointStruct]
     ) -> None:
+        if not points:
+            logger.warning("No points to upsert")
+            return
+            
+        logger.debug(f"Upserting {len(points)} points to collection {collection_name}")
         b = max(1, self.qdrant_upsert_batch)
         for i in range(0, len(points), b):
-            await self.qdrant_grpc_client.upsert_points(collection_name, points[i : i + b])
+            batch = points[i : i + b]
+            logger.debug(f"Upserting batch {i//b + 1}: {len(batch)} points")
+            await self.qdrant_grpc_client.upsert_points(collection_name, batch)
 
 
     async def is_document_exists(
@@ -85,22 +107,6 @@ class VectorStoreService:
         return await self.qdrant_grpc_client.get_document_texts(collection_name, doc_id)
 
 
-    async def search_documents(
-        self,
-        query_vector: List[float],
-        collection_name: str,
-        limit: int = 25,
-        score_threshold: float = 0.0
-    ) -> List[Dict[str, Any]]:
-        result = await self.qdrant_grpc_client.search(
-            collection_name=collection_name,
-            query_vector=query_vector,
-            limit=limit,
-            score_threshold=score_threshold
-        )
-
-        logger.debug(f"Search result: found {len(result)} results in collection '{collection_name}'")
-        return result
 
 
     async def get_collection_documents(
@@ -110,23 +116,6 @@ class VectorStoreService:
         return await self.qdrant_grpc_client.get_collection_documents(collection_name)
 
 
-    async def get_paragraph_chunks(
-        self,
-        collection_name: str,
-        doc_id: str,
-        paragraph_id: int
-    ) -> List[Dict[str, Any]]:
-        return await self.qdrant_grpc_client.get_paragraph_chunks(collection_name, doc_id, paragraph_id)
-
-
-    async def get_window_by_chunk_id(
-        self,
-        collection_name: str,
-        doc_id: str,
-        start_id: int,
-        end_id: int
-    ) -> List[Dict[str, Any]]:
-        return await self.qdrant_grpc_client.get_window_by_chunk_id(collection_name, doc_id, start_id, end_id)
 
 
     async def delete_document(

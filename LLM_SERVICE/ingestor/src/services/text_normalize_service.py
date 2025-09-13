@@ -32,7 +32,21 @@ class TextNormalizeService:
             0x2044: "/",
         }
 
+        self._OCR_SPACED_WORD_RE: Final = re.compile(r'\b(?:[A-Za-zА-Яа-я]\s){3,}[A-Za-zА-Яа-я]\b')
+        self._OCR_SPACED_ACRONYM_RE: Final = re.compile(r'\b([A-ZА-Я])(?:\s([A-ZА-Я])){1,6}\b')
+        self._COMMON_ABBR: Final = {
+            "т. е.": "т.е.", "т. к.": "т.к.", "и т. д.": "и т.д.", "и т. п.": "и т.п.",
+        }
 
+    def _collapse_ocr_spacing(self, t: str) -> str:
+        t = self._OCR_SPACED_WORD_RE.sub(lambda m: m.group(0).replace(" ", ""), t)
+        t = self._OCR_SPACED_ACRONYM_RE.sub(lambda m: "".join(m.group(0).split()), t)
+        toks = t.split()
+        if toks and sum(1 for w in toks if len(w) == 1) / len(toks) > 0.5:
+            t = re.sub(r'(?<=\w)\s+(?=\w)', '', t)
+        for k, v in self._COMMON_ABBR.items():
+            t = t.replace(k, v)
+        return t
 
     def normalize_chunk_text(
         self,
@@ -53,6 +67,7 @@ class TextNormalizeService:
         t = self._HARD_BREAKS_RE.sub(" ", t)
 
         t = t.translate(self._TRANSLATE)
+        t = self._collapse_ocr_spacing(t)
 
         # защитим "..."
         t = t.replace("...", self._ELLIPS)

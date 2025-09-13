@@ -1,0 +1,105 @@
+syntax = "proto3";
+package llm_gateway.v1;
+
+import "third_party/protovalidate/buf/validate/validate.proto";
+
+
+service LLMGatewayService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc GenerateAnswer(GenerateAnswerRequest) returns (GenerateAnswerResponse);
+  rpc GenerateAnswerWithRAG(GenerateAnswerWithRAGRequest) returns (GenerateAnswerWithRAGResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
+}
+
+
+message HealthRequest {}
+
+
+message HealthResponse {
+  string status = 1 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string llm_status = 2 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string rag_status = 3 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string embedder_status = 4 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  option (buf.validate.message).cel = {
+    id: "status_enum",
+    message: "status must be healthy or unhealthy",
+    expression: "this.status == 'healthy' || this.status == 'unhealthy'"
+  };
+}
+
+
+message GenerateAnswerRequest {
+  string question = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
+  string system_prompt = 2 [(buf.validate.field).string = {max_len: 4096}];
+  int32 max_tokens = 3 [(buf.validate.field).int32 = {gte: 1, lte: 4096}];
+  double temperature = 4 [(buf.validate.field).double = {gte: 0.0, lte: 2.0}];
+  bool stream = 5;
+}
+
+
+message GenerateAnswerResponse {
+  string answer = 1 [(buf.validate.field).string = {max_len: 32768}];
+  bool success = 2;
+  string error = 3 [(buf.validate.field).string = {max_len: 2048}];
+  int32 tokens_used = 4 [(buf.validate.field).int32 = {gte: 0}];
+  double generation_time = 5 [(buf.validate.field).double = {gte: 0.0}];
+}
+
+
+message GenerateAnswerWithRAGRequest {
+  string question = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
+  string collection_name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128, pattern: "^[a-zA-Z0-9_-]+$"}];
+  string system_prompt = 3 [(buf.validate.field).string = {max_len: 4096}];
+  int32 max_tokens = 4 [(buf.validate.field).int32 = {gte: 1, lte: 4096}];
+  double temperature = 5 [(buf.validate.field).double = {gte: 0.0, lte: 2.0}];
+  int32 rag_top_k = 6 [(buf.validate.field).int32 = {gte: 1, lte: 20}];
+  double rag_score_threshold = 7 [(buf.validate.field).double = {gte: 0.0, lte: 1.0}];
+  bool stream = 8;
+}
+
+
+message GenerateAnswerWithRAGResponse {
+  string answer = 1 [(buf.validate.field).string = {max_len: 32768}];
+  repeated RAGContext rag_context = 2 [(buf.validate.field).repeated = {max_items: 20}];
+  bool success = 3;
+  string error = 4 [(buf.validate.field).string = {max_len: 2048}];
+  int32 tokens_used = 5 [(buf.validate.field).int32 = {gte: 0}];
+  double generation_time = 6 [(buf.validate.field).double = {gte: 0.0}];
+  double rag_time = 7 [(buf.validate.field).double = {gte: 0.0}];
+}
+
+
+message RAGContext {
+  string doc_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  string text = 2 [(buf.validate.field).string = {min_len: 1, max_len: 16384}];
+  double score = 3 [(buf.validate.field).double = {gte: 0.0, lte: 1.0}];
+  repeated int32 pages = 4 [(buf.validate.field).repeated = {max_items: 10}];
+  int32 paragraph_id = 5 [(buf.validate.field).int32 = {gte: 0}];
+  int32 chunk_id = 6 [(buf.validate.field).int32 = {gte: 0}];
+}
+
+
+message SearchRequest {
+  string query = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
+  string collection_name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128, pattern: "^[a-zA-Z0-9_-]+$"}];
+  int32 limit = 3 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
+  double score_threshold = 4 [(buf.validate.field).double = {gte: 0.0, lte: 1.0}];
+}
+
+
+message SearchResponse {
+  repeated SearchResult results = 1 [(buf.validate.field).repeated = {max_items: 100}];
+  bool success = 2;
+  string error = 3 [(buf.validate.field).string = {max_len: 2048}];
+}
+
+
+message SearchResult {
+  string doc_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  string text = 2 [(buf.validate.field).string = {min_len: 1, max_len: 16384}];
+  double score = 3 [(buf.validate.field).double = {gte: 0.0, lte: 1.0}];
+  repeated int32 pages = 4 [(buf.validate.field).repeated = {max_items: 10}];
+  int32 paragraph_id = 5 [(buf.validate.field).int32 = {gte: 0}];
+  int32 chunk_id = 6 [(buf.validate.field).int32 = {gte: 0}];
+}
+

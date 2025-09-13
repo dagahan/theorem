@@ -20,15 +20,10 @@ class GrpcTools:
         try:
             Validator().validate(msg)
         except ValidationError as e:
-            details = []
-            for v in getattr(e, "violations", []) or []:
-                details.append(f"path={getattr(v,'field_path', '')} msg={getattr(v,'message','')}")
-            text_details_ex = "; ".join(details) or str(e)
             if ctx:
-                ctx.abort(grpc.StatusCode.INVALID_ARGUMENT, text_details_ex)
+                ctx.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
             else:
-                logger.error(f"Validation failed: {text_details_ex}")
-                raise ValueError(f"Invalid message: {text_details_ex}")
+                raise ValueError(f"Invalid message: {str(e)}")
 
 
     @staticmethod

@@ -24,7 +24,7 @@ if _version_not_supported:
     )
 
 
-class RagServiceStub(object):
+class RAGServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -34,18 +34,18 @@ class RagServiceStub(object):
             channel: A grpc.Channel.
         """
         self.Health = channel.unary_unary(
-                '/rag.v1.RagService/Health',
+                '/rag.v1.RAGService/Health',
                 request_serializer=rag__pb2.HealthRequest.SerializeToString,
                 response_deserializer=rag__pb2.HealthResponse.FromString,
                 _registered_method=True)
-        self.SemanticSearch = channel.unary_unary(
-                '/rag.v1.RagService/SemanticSearch',
-                request_serializer=rag__pb2.SemanticSearchRequest.SerializeToString,
-                response_deserializer=rag__pb2.SemanticSearchResponse.FromString,
+        self.Search = channel.unary_unary(
+                '/rag.v1.RAGService/Search',
+                request_serializer=rag__pb2.SearchRequest.SerializeToString,
+                response_deserializer=rag__pb2.SearchResponse.FromString,
                 _registered_method=True)
 
 
-class RagServiceServicer(object):
+class RAGServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Health(self, request, context):
@@ -54,34 +54,34 @@ class RagServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def SemanticSearch(self, request, context):
+    def Search(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_RagServiceServicer_to_server(servicer, server):
+def add_RAGServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Health': grpc.unary_unary_rpc_method_handler(
                     servicer.Health,
                     request_deserializer=rag__pb2.HealthRequest.FromString,
                     response_serializer=rag__pb2.HealthResponse.SerializeToString,
             ),
-            'SemanticSearch': grpc.unary_unary_rpc_method_handler(
-                    servicer.SemanticSearch,
-                    request_deserializer=rag__pb2.SemanticSearchRequest.FromString,
-                    response_serializer=rag__pb2.SemanticSearchResponse.SerializeToString,
+            'Search': grpc.unary_unary_rpc_method_handler(
+                    servicer.Search,
+                    request_deserializer=rag__pb2.SearchRequest.FromString,
+                    response_serializer=rag__pb2.SearchResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'rag.v1.RagService', rpc_method_handlers)
+            'rag.v1.RAGService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('rag.v1.RagService', rpc_method_handlers)
+    server.add_registered_method_handlers('rag.v1.RAGService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class RagService(object):
+class RAGService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -98,7 +98,7 @@ class RagService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rag.v1.RagService/Health',
+            '/rag.v1.RAGService/Health',
             rag__pb2.HealthRequest.SerializeToString,
             rag__pb2.HealthResponse.FromString,
             options,
@@ -112,7 +112,7 @@ class RagService(object):
             _registered_method=True)
 
     @staticmethod
-    def SemanticSearch(request,
+    def Search(request,
             target,
             options=(),
             channel_credentials=None,
@@ -125,9 +125,9 @@ class RagService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rag.v1.RagService/SemanticSearch',
-            rag__pb2.SemanticSearchRequest.SerializeToString,
-            rag__pb2.SemanticSearchResponse.FromString,
+            '/rag.v1.RAGService/Search',
+            rag__pb2.SearchRequest.SerializeToString,
+            rag__pb2.SearchResponse.FromString,
             options,
             channel_credentials,
             insecure,

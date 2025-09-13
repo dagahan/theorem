@@ -190,3 +190,58 @@ class FileParserLogger:
             logger.error(f"Failed to log parsing results: {ex}")
 
 
+class BlockingLogger:
+    @staticmethod
+    def log_blocking_results(
+        doc_id: str,
+        filename: str,
+        content_type: str,
+        blocks: List[Dict[str, Any]],
+        metadata: Dict[str, Any],
+        success: bool,
+        error_message: str = ""
+    ) -> None:
+        try:
+            debug_dir = "debug/blocking"
+            FileSystemTools.ensure_directory_exists(debug_dir)
+            file_path = os.path.join(debug_dir, f"{doc_id}.json")
+            
+            blocking_entry = {
+                "timestamp": int(datetime.now().timestamp()),
+                "filename": filename,
+                "content_type": content_type,
+                "success": success,
+                "blocks_count": len(blocks),
+                "blocks": [
+                    {
+                        "page": block.get("page", 0),
+                        "kind": block.get("kind", ""),
+                        "text_length": len(block.get("text", "")),
+                        "text_preview": block.get("text", "")[:200] + "..." if len(block.get("text", "")) > 200 else block.get("text", ""),
+                        "bbox": block.get("bbox", (0, 0, 0, 0)),
+                        "meta": block.get("meta", {})
+                    }
+                    for block in blocks
+                ],
+                "error_message": error_message if not success else None
+            }
+            
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            log_data = {
+                "doc_id": doc_id,
+                "metadata": metadata,
+                "blocking_results": [blocking_entry]
+            }
+            
+            with open(file_path, "w", encoding="utf-8") as file:
+                json.dump(log_data, file, indent=2, ensure_ascii=False)
+            
+            logger.debug(f"Blocking logged for {doc_id}: {filename} -> {len(blocks)} blocks")
+            logger.debug(f"Blocking results logged to debug log file: {file_path} for doc_id: {doc_id}")
+            
+        except Exception as ex:
+            logger.error(f"Failed to log blocking results: {ex}")
+
+

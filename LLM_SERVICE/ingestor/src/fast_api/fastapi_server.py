@@ -6,7 +6,6 @@ from src.core.utils import EnvTools
 from src.db.database_connector import DataBaseConnector
 from src.fast_api.routers.health_router import get_health_router
 from src.fast_api.routers.vector_store_router import get_vector_store_router
-from src.fast_api.routers.search_router import get_search_router
 from src.fast_api.routers.statistics_router import get_statistics_router
 from src.fast_api.routers.ingestor_router import get_ingestor_router
 
@@ -70,7 +69,6 @@ class Server:
         '''
         self.app.include_router(get_health_router())
         self.app.include_router(get_vector_store_router(self.database_connector))
-        self.app.include_router(get_search_router(self.database_connector))
         self.app.include_router(get_statistics_router(self.database_connector))
         self.app.include_router(get_ingestor_router(self.database_connector))
             

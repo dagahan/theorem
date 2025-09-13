@@ -62,23 +62,38 @@ class EmbedderGrpcClient:
         texts: list[str],
         normalize: bool = True
     ) -> list[Dict[str, Any]]:
-        all_items: list[Dict[str, Any]] = []
+        valid_texts = []
+        failed_results = []
+        
+        for text in texts:
+            if len(text) >= 10 and text.strip():
+                if len(text) > 8192:
+                    text = text[:8192]
+                valid_texts.append(text)
+            else:
+                failed_results.append({
+                    "vector": [0.0] * 768,
+                    "success": False,
+                    "error": "Text too short or empty"
+                })
+        
+        if not valid_texts:
+            return failed_results
 
-        for i in range(0, len(texts), self.batch_size):
-            part = texts[i:i+ self.batch_size]
-            request = embedder_pb2.EmbedBatchRequest(texts=part, normalize=normalize)
-
+        all_items = []
+        for i in range(0, len(valid_texts), self.batch_size):
+            batch_texts = valid_texts[i:i + self.batch_size]
+            request = embedder_pb2.EmbedBatchRequest(texts=batch_texts, normalize=normalize)
+            
             GrpcTools.validate_proto(request)
-
             response = await self.stub.EmbedBatch(request, timeout=60)
-
-            # GrpcTools.validate_proto(response)
-
-            all_items.extend([GrpcTools.proto_to_dict(it) for it in response.items])
+            
+            batch_items = [GrpcTools.proto_to_dict(item) for item in response.items]
+            all_items.extend(batch_items)
 
         if not any(item.get("success") for item in all_items):
             raise Exception("No successful embeddings returned")
 
-        return all_items
+        return all_items + failed_results
 
 

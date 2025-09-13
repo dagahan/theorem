@@ -74,7 +74,6 @@ from .base_model import *
 from .common import *
 from .collection_management import *
 from .document_management import *
-from .search import *
 from .service_stats import *
 from .ingest import *
 from .postgres import *
@@ -101,11 +100,6 @@ __all__ = [
     "DeleteDocumentResponse",
     "DocumentInfo",
     "GetDocumentResponse",
-    # Search
-    "SearchRequest",
-    "SearchWithContextRequest",
-    "SearchResult",
-    "SearchResponse",
     # Service Stats
     "ServiceStats",
     # File Ingestion

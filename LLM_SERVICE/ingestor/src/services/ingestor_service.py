@@ -1,22 +1,17 @@
 from __future__ import annotations
-import os
-import re
-import unicodedata
-from typing import List, Dict, Any, Union, Tuple
+from typing import List, Dict, Any
 from loguru import logger
-import asyncio
 
 from src.services.chunking_service import ChunkingService
 from src.services.document_service import DocumentService
 from src.services.text_normalize_service import TextNormalizeService
 from src.services.health_service import HealthService
 from src.services.vector_store_service import VectorStoreService
-from src.services.searching_engine_service import SearchingEngineService
 from src.services.statistics_service import StatisticsService
 from src.services.id_service import IdService
+from src.services.file_parser_service import FileParserService
 from src.grpc.client.embedder_grpc_client import EmbedderGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
-from src.core.utils import EnvTools
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -30,7 +25,6 @@ class IngestorService:
         self.text_normalize_service = TextNormalizeService()
         self.health_service = HealthService(database_connector)
         self.vector_store_service = VectorStoreService()
-        self.searching_engine_service = SearchingEngineService(database_connector)
         self.statistics_service = StatisticsService(database_connector)
         self.db_connector = database_connector
         self.embedder_grpc_client = GrpcClientRegistry().register_client("embedder", EmbedderGrpcClient)
@@ -38,7 +32,6 @@ class IngestorService:
 
     async def ingest_file(
         self,
-        file_text: str,
         file_metadata: Dict[str, Any],
         collection_name: str,
         file_content: bytes | None = None,
@@ -66,15 +59,21 @@ class IngestorService:
                 doc_id=doc_id
             )
 
-        normalized_text = self.text_normalize_service.normalize_chunk_text(
-            file_text, 
-            doc_id=doc_id, 
+        if file_content is None:
+            raise ValueError("File content is required for PDF processing")
+        
+        file_parser_service = FileParserService()
+        blocks = file_parser_service.extract_blocks_from_pdf(
+            filename=file_metadata.get("filename", ""),
+            content=file_content,
+            content_type=file_metadata.get("content_type"),
+            doc_id=doc_id,
             metadata=file_metadata
         )
-        
-        chunks = self.chunking_service.chunk_text(
+
+        chunks = self.chunking_service.chunk_blocks(
             doc_id,
-            normalized_text,
+            blocks,
             file_metadata
         )
 
@@ -84,20 +83,41 @@ class IngestorService:
                 await self.document_service.delete_file_from_s3(s3_key)
             return
 
+        converted_chunks = []
+        paragraph_id = 0
+        chunk_id = 0
+        
+        for chunk in chunks:
+            chunk_id += 1
+            converted_chunks.append({
+                "doc_id": doc_id,
+                "paragraph_id": paragraph_id,
+                "chunk_id": chunk_id,
+                "text": chunk["text"]
+            })
+
         embeds = await self.embedder_grpc_client.embed_batch(
-            [str(c["text"]) for c in chunks],
+            [str(c["text"]) for c in converted_chunks],
             normalize=True
         )
 
-        if len(embeds) != len(chunks):
+        if len(embeds) != len(converted_chunks):
             if s3_key:
                 await self.document_service.delete_file_from_s3(s3_key)
             raise RuntimeError("Embedding count mismatch")
+            
+        successful_embeds = [e for e in embeds if e.get("success", False)]
+        if not successful_embeds:
+            if s3_key:
+                await self.document_service.delete_file_from_s3(s3_key)
+            raise RuntimeError("No successful embeddings generated")
 
         points = self.vector_store_service.build_points(
-            chunks,
+            converted_chunks,
             embeds
         )
+        
+        logger.debug(f"Built {len(points)} points for upsert")
         
         try:
             await self.vector_store_service.upsert_batched_to_collection(
@@ -149,6 +169,32 @@ class IngestorService:
         except Exception as ex:
             logger.error(f"Failed to delete document {doc_id}: {ex}")
             return {"status": "error", "doc_id": doc_id, "error": str(ex)}
+
+
+    async def delete_documents(
+        self,
+        doc_ids: list[str],
+        collection_name: str
+    ) -> list[dict[str, str | None]]:
+        results = []
+        
+        for doc_id in doc_ids:
+            try:
+                result = await self.delete_document(doc_id, collection_name)
+                results.append({
+                    "doc_id": doc_id,
+                    "status": result["status"],
+                    "error": result.get("error")
+                })
+            except Exception as ex:
+                logger.error(f"Failed to delete document {doc_id}: {ex}")
+                results.append({
+                    "doc_id": doc_id,
+                    "status": "error",
+                    "error": str(ex)
+                })
+        
+        return results
 
 
 

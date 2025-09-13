@@ -2,22 +2,16 @@ from __future__ import annotations
 
 import io
 import statistics
-
-from dataclasses import dataclass, asdict
-from typing import List, Dict, Any, Tuple
-
+from typing import List, Dict, Any
 import re
-
-import chardet
-from docx import Document
 from loguru import logger
 import pdfplumber
 
 from .text_normalize_service import TextNormalizeService
 
-from .data_classes import Block
+from src.data_classes.data_classes import Block
 
-from src.core.logging import FileParserLogger
+from src.core.logging import FileParserLogger, TextNormalizeLogger, BlockingLogger
 
 
 class FileParserService:
@@ -31,58 +25,106 @@ class FileParserService:
         self.normalizer = TextNormalizeService()
 
 
-    def extract_file_to_text(
+    def extract_blocks_from_pdf(
         self,
         filename: str,
         content: bytes,
         content_type: str | None,
         doc_id: str | None = None,
         metadata: Dict[str, Any] | None = None
-    ) -> str:
+    ) -> List[Block]:
         name = filename.lower().strip()
-        extracted_text = ""
-        parsing_method = ""
+        blocks: List[Block] = []
+        parsing_method = "pdf_blocks_extraction"
         success = True
         error_message = ""
 
         try:
-            if name.endswith(".pdf") or (content_type or "").startswith("application/pdf"):
-                extracted_text = self._from_pdf_plain(content)
-                parsing_method = "pdf_plumber_plain"
-
-            elif name.endswith(".docx") or (content_type or "") in {
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            }:
-                extracted_text = self._from_docx(content)
-                parsing_method = "docx_python_docx"
-
-            elif name.endswith(".txt") or (content_type or "").startswith("text/"):
-                extracted_text = self._from_text(content)
-                parsing_method = "text_chardet"
-
-            else:
-                extracted_text = self._from_text_or_binary(content)
-                parsing_method = "text_or_binary_chardet"
+            if not (name.endswith(".pdf") or (content_type or "").startswith("application/pdf")):
+                raise ValueError("Only PDF files are supported")
+            
+            blocks = self.extract_blocks(content)
+            
+            logger.info(f"Document {doc_id} blocked: {len(blocks)} blocks extracted")
+            
+            if doc_id:
+                blocks_data = [
+                    {
+                        "page": block.page,
+                        "kind": block.kind,
+                        "text": block.text,
+                        "bbox": block.bbox,
+                        "meta": block.meta
+                    }
+                    for block in blocks
+                ]
+                BlockingLogger.log_blocking_results(
+                    doc_id=doc_id,
+                    filename=filename,
+                    content_type=content_type or "unknown",
+                    blocks=blocks_data,
+                    metadata=metadata or {},
+                    success=True
+                )
+            
+            original_text_length = sum(len(block.text) for block in blocks)
+            
+            normalized_blocks = []
+            for block in blocks:
+                normalized_text = self.normalizer.normalize_by_kind(block.kind, block.text)
+                normalized_block = Block(
+                    text=normalized_text,
+                    kind=block.kind,
+                    page=block.page,
+                    bbox=block.bbox,
+                    meta=block.meta
+                )
+                normalized_blocks.append(normalized_block)
+            
+            blocks = normalized_blocks
+            normalized_text_length = sum(len(block.text) for block in blocks)
+            
+            logger.info(f"Document {doc_id} normalized: {len(blocks)} blocks processed")
+            logger.info(f"Text normalization: {original_text_length} -> {normalized_text_length} chars")
+            
+            if doc_id:
+                TextNormalizeLogger.log_normalization_results(
+                    doc_id=doc_id,
+                    normalized_text="\n\n".join([block.text for block in blocks]),
+                    metadata=metadata or {},
+                    original_length=original_text_length,
+                    normalized_length=normalized_text_length
+                )
 
         except Exception as e:
             success = False
             error_message = str(e)
-            logger.error(f"Failed to parse file {filename}: {e}")
-            extracted_text = ""
+            logger.error(f"Failed to parse PDF file {filename}: {e}")
+            
+            if doc_id:
+                BlockingLogger.log_blocking_results(
+                    doc_id=doc_id,
+                    filename=filename,
+                    content_type=content_type or "unknown",
+                    blocks=[],
+                    metadata=metadata or {},
+                    success=False,
+                    error_message=error_message
+                )
 
         if doc_id and metadata is not None:
             FileParserLogger.log_parsing_results(
                 doc_id=doc_id,
                 filename=filename,
                 content_type=content_type or "unknown",
-                extracted_text=extracted_text,
+                extracted_text="\n\n".join([block.text for block in blocks]),
                 metadata=metadata,
                 parsing_method=parsing_method,
                 success=success,
                 error_message=error_message
             )
 
-        return extracted_text
+        return blocks
 
 
     def extract_blocks(
@@ -96,8 +138,26 @@ class FileParserService:
                 words = p.extract_words(
                     use_text_flow=True,
                     keep_blank_chars=False,
-                    extra_attrs=["x0", "x1", "top", "bottom"],
+                    x_tolerance=2.5,
+                    y_tolerance=1.5,
+                    extra_attrs=["x0", "x1", "top", "bottom", "size"]
                 )
+
+                def _glue_letter_splits(ws: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+                    if not ws: return ws
+                    glued = [ws[0].copy()]
+                    for w in ws[1:]:
+                        prev = glued[-1]
+                        gap = w["x0"] - prev["x1"]
+                        avg_sz = (float(prev.get("size") or 10) + float(w.get("size") or 10)) / 2.0
+                        if len(prev["text"]) == 1 and len(w["text"]) == 1 and gap >= 0 and gap < 0.6 * avg_sz:
+                            prev["text"] += w["text"]
+                            prev["x1"] = w["x1"]
+                        else:
+                            glued.append(w.copy())
+                    return glued
+
+                words = _glue_letter_splits(words)
 
                 lines_map: Dict[float, List[Dict[str, Any]]] = {}
                 for w in words:
@@ -248,114 +308,6 @@ class FileParserService:
         return out
 
 
-    def _from_pdf_plain(
-        self,
-        content: bytes
-    ) -> str:
-        try:
-            with pdfplumber.open(io.BytesIO(content)) as pdf:
-
-                parts = []
-
-                for page_num, page in enumerate(pdf.pages, start=1):
-                    try:
-                        page_parts = []
-
-                        text = page.extract_text()
-
-                        if text and text.strip():
-                            page_parts.append(self.normalizer.normalize_chunk_text(text.strip()))
-
-                        tables = page.extract_tables()
-                        if tables:
-                            for t_idx, table in enumerate(tables, start=1):
-                                if table:
-                                    table_text = self._format_table(table)
-                                    if table_text:
-                                        page_parts.append(f"Table {t_idx}:\n{table_text}")
-
-                        if page_parts:
-                            page_content = "\n\n".join(page_parts)
-                            parts.append(f"--- Page {page_num} ---\n{page_content}")
-
-                    except Exception as ex:
-                        logger.warning(f"Failed to extract content from PDF page {page_num}: {ex}")
-                        continue
-
-                if not parts:
-                    logger.warning("No content extracted from PDF")
-                    return ""
-                return "\n\n".join(parts).strip()
-
-        except Exception as ex:
-            logger.error(f"Failed to process PDF with pdfplumber: {ex}")
-            return ""
-
-
-    @staticmethod
-    def _format_table(table: list[list[str | None]]) -> str:
-        if not table:
-            return ""
-        try:
-            max_widths: list[int] = []
-            for row in table:
-                for index, cell in enumerate(row):
-                    cell_text = str(cell or "").strip()
-
-                    if index >= len(max_widths):
-                        max_widths.append(len(cell_text))
-
-                    else:
-                        max_widths[index] = max(max_widths[index], len(cell_text))
-
-            formatted_rows = []
-
-            for row in table:
-                formatted_cells = []
-                for index, cell in enumerate(row):
-                    cell_text = str(cell or "").strip()
-                    width = max_widths[index] if index < len(max_widths) else len(cell_text)
-                    formatted_cells.append(cell_text.ljust(width))
-                formatted_rows.append(" | ".join(formatted_cells))
-
-            return "\n".join(formatted_rows)
-
-        except Exception as e:
-            logger.warning(f"Failed to format table: {e}")
-            return "\n".join([" | ".join([str(cell or "") for cell in row]) for row in table])
-
-
-    @staticmethod
-    def _from_docx(content: bytes) -> str:
-        bio = io.BytesIO(content)
-        doc = Document(bio)
-        parts = [p.text.strip() for p in doc.paragraphs if p.text and p.text.strip()]
-        return "\n".join(parts).strip()
-
-
-    @staticmethod
-    def _from_text(content: bytes) -> str:
-        det = chardet.detect(content)
-        enc = det.get("encoding") or "utf-8"
-        try:
-            return content.decode(enc, errors="replace").strip()
-        except Exception:
-            return content.decode("utf-8", errors="replace").strip()
-
-
-    def _from_text_or_binary(
-        self,
-        content: bytes
-    ) -> str:
-        if not content:
-            return ""
-
-        sample = content[:4096]
-        printable_ratio = sum(32 <= b <= 126 or b in (9, 10, 13) for b in sample) / max(1, len(sample))
-        if printable_ratio < 0.6:
-            return ""
-
-        return self._from_text(content)
 
 
         

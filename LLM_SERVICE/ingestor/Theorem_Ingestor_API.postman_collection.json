@@ -165,7 +165,7 @@
 			"response": []
 		},
 		{
-			"name": "Delete Document",
+			"name": "Delete Documents",
 			"request": {
 				"method": "DELETE",
 				"header": [
@@ -176,16 +176,16 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"doc_id\": \"{{doc_id}}\",\n    \"collection_name\": \"{{collection_name}}\"\n}"
+					"raw": "{\n    \"doc_ids\": {{doc_ids}},\n    \"collection_name\": \"{{collection_name}}\"\n}"
 				},
 				"url": {
-					"raw": "{{base_url}}/ingestor/delete_document",
+					"raw": "{{base_url}}/ingestor/delete_documents",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
 						"ingestor",
-						"delete_document"
+						"delete_documents"
 					]
 				}
 			},
@@ -262,6 +262,11 @@
 		{
 			"key": "doc_id",
 			"value": "sample-document",
+			"type": "string"
+		},
+		{
+			"key": "doc_ids",
+			"value": "[\"sample-document-1\", \"sample-document-2\", \"sample-document-3\"]",
 			"type": "string"
 		},
 		{

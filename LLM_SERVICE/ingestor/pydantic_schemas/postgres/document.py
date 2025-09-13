@@ -18,3 +18,6 @@ class Document(Base):
 
     def __repr__(self) -> str:
         return f"<Document(doc_id='{self.doc_id}', collection='{self.collection_name}')>"
+
+
+        

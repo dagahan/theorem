@@ -7,6 +7,9 @@ from loguru import logger
 from pydantic_schemas import (
     DeleteDocumentRequest,
     DeleteDocumentResponse,
+    DeleteDocumentsRequest,
+    DeleteDocumentsItem,
+    DeleteDocumentsResponse,
     IngestFilesItem,
     IngestFilesResponse,
 )
@@ -51,16 +54,11 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
 
                     doc_id = id_service.from_filename(file_metadata)
 
-                    file_text = file_parser_service.extract_file_to_text(
-                        filename=file.filename,
-                        content=content,
-                        content_type=file.content_type,
-                        doc_id=doc_id,
-                        metadata=file_metadata
-                    )
+                    if not (file.filename.lower().endswith('.pdf') or 
+                           (file.content_type and file.content_type.startswith('application/pdf'))):
+                        raise ValueError("Only PDF files are supported")
 
                     await ingestor_service.ingest_file(
-                        file_text=file_text,
                         file_metadata=file_metadata,
                         collection_name=collection_name,
                         file_content=content
@@ -94,22 +92,38 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e))
 
 
-    @router.delete("/delete_document", response_model=DeleteDocumentResponse)  # type: ignore[misc]
-    async def delete_document(
-        request: DeleteDocumentRequest
-    ) -> DeleteDocumentResponse:
+    @router.delete("/delete_documents", response_model=DeleteDocumentsResponse)  # type: ignore[misc]
+    async def delete_documents(
+        request: DeleteDocumentsRequest
+    ) -> DeleteDocumentsResponse:
         try:
-            result = await ingestor_service.delete_document(
-                doc_id=request.doc_id,
+            results = await ingestor_service.delete_documents(
+                doc_ids=request.doc_ids,
                 collection_name=request.collection_name
             )
-            return DeleteDocumentResponse(
-                doc_id=request.doc_id,
-                status=result["status"]
+            
+            items = [
+                DeleteDocumentsItem(
+                    doc_id=result["doc_id"],
+                    status=result["status"],
+                    error=result.get("error")
+                )
+                for result in results
+            ]
+            
+            successful_count = len([item for item in items if item.status == "deleted"])
+            failed_count = len([item for item in items if item.status != "deleted"])
+            
+            return DeleteDocumentsResponse(
+                items=items,
+                total_documents=len(items),
+                successful_documents=successful_count,
+                failed_documents=failed_count,
+                status="completed"
             )
             
         except Exception as e:
-            logger.error(f"Delete document failed: {e}")
+            logger.error(f"Delete documents failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     return router

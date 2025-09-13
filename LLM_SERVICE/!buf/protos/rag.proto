@@ -4,9 +4,9 @@ package rag.v1;
 import "third_party/protovalidate/buf/validate/validate.proto";
 
 
-service RagService {
+service RAGService {
   rpc Health(HealthRequest) returns (HealthResponse);
-  rpc SemanticSearch(SemanticSearchRequest) returns (SemanticSearchResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
 }
 
 
@@ -14,47 +14,37 @@ message HealthRequest {}
 
 
 message HealthResponse {
-  string status = 1 [(buf.validate.field).string = {min_len: 1, max_len: 32}];
+  string status = 1 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string embedder_status = 4 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string qdrant_status = 5 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string embedder_model_id = 6 [(buf.validate.field).string = {min_len: 0, max_len: 256}];
+  int32 embedder_dim = 7 [(buf.validate.field).int32 = {gte: -1, lte: 4096}];
   option (buf.validate.message).cel = {
     id: "status_enum",
     message: "status must be healthy or unhealthy",
-    expression: "status in ['healthy','unhealthy']"
+    expression: "this.status == 'healthy' || this.status == 'unhealthy'"
   };
 }
 
 
-message Chunk {
-  string id         = 1 [(buf.validate.field).string = {pattern: "^[0-9a-fA-F-]{36}$"}];
-  string doc_id     = 2 [(buf.validate.field).string = {pattern: "^[0-9a-fA-F-]{36}$"}];
-  int32  paragraph_id = 3 [(buf.validate.field).int32 = {gte: 1, lte: 100000000}];
-  int32  chunk_id     = 4 [(buf.validate.field).int32 = {gte: 1, lte: 100000000}];
-  string text       = 5 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
+message SearchRequest {
+  string query = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}]; //any non-space char is required
+  string collection_name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128, pattern: "^[a-zA-Z0-9_-]+$"}]; //only latin symbols and numbers, _ and -. at least one symbol
 }
 
 
-message SemanticSearchRequest {
-  string query = 1 [(buf.validate.field).string = {min_len: 1, max_len: 4096, pattern: ".*\\S.*"}];
-  int32  top_k = 2 [(buf.validate.field).int32 = {gte: 1, lte: 100}];
-  int32  neighbor_window = 3 [(buf.validate.field).int32 = {gte: 0, lte: 10}];
-  bool   include_whole_paragraph = 4;
-  repeated string filter_doc_ids = 10 [(buf.validate.field).repeated = {
-    min_items: 0,
-    max_items: 512,
-    unique: true,
-    items: { string: { pattern: "^[0-9a-fA-F-]{36}$" } }
-  }];
+message SearchResponse {
+  repeated SearchResult results = 1 [(buf.validate.field).repeated = {max_items: 100}];
+  bool success = 2;
+  string error = 3 [(buf.validate.field).string = {max_len: 2048}];
 }
 
 
-message SemanticSearchResponse {
-  repeated Chunk chunks = 1 [(buf.validate.field).repeated = {min_items: 0, max_items: 200, unique: true}];
-  string merged_text = 2 [(buf.validate.field).string = {max_len: 200000}];
-  option (buf.validate.message).cel = {
-    id: "merged_text_when_chunks",
-    message: "merged_text must be non-empty when chunks are present",
-    expression: "size(chunks) == 0 || (has(merged_text) && size(merged_text) > 0)"
-  };
+message SearchResult {
+  string doc_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  string text = 2 [(buf.validate.field).string = {min_len: 1}];
+  double score = 3 [(buf.validate.field).double = {gte: 0.0, lte: 1.0}];
+  repeated int32 pages = 4 [(buf.validate.field).repeated = {max_items: 10}];
+  int32 paragraph_id = 5 [(buf.validate.field).int32 = {gte: 0}];
+  int32 chunk_id = 6 [(buf.validate.field).int32 = {gte: 0}];
 }
-
-
-

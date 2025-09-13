@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 
 class ReindexRequest(BaseModel):
-    collection_name: str = Field(...)
+    collection_name: str | None = Field(default=None)
 
 
 class ReindexResponse(BaseModel):
