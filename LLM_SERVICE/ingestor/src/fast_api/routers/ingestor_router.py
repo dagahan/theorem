@@ -17,6 +17,7 @@ from pydantic_schemas import (
 from src.services.ingestor_service import IngestorService
 from src.services.file_parser_service import FileParserService
 from src.services.id_service import IdService
+from src.services.health_service import HealthService
 
 
 from typing import TYPE_CHECKING
@@ -30,6 +31,7 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
     file_parser_service = FileParserService()
     ingestor_service = IngestorService(database_connector)
     id_service = IdService()
+    health_service = HealthService(database_connector)
 
 
     @router.post("/ingest_files", response_model=IngestFilesResponse)  # type: ignore[misc]
@@ -39,6 +41,8 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
         metadata: str | None = Form(None)
     ) -> IngestFilesResponse:
         try:
+            await health_service.ensure_all_healthy()
+            
             parsed_metadata = json.loads(metadata) if metadata else {}
             results = []
             
@@ -97,6 +101,8 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
         request: DeleteDocumentsRequest
     ) -> DeleteDocumentsResponse:
         try:
+            await health_service.ensure_all_healthy()
+            
             results = await ingestor_service.delete_documents(
                 doc_ids=request.doc_ids,
                 collection_name=request.collection_name

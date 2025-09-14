@@ -17,7 +17,7 @@ from src.services.rag_service import RAGService
 class GRPCServerRunner:
     def __init__(self) -> None:
         self._servicer = RAGService()
-        self._max_workers = int(EnvTools.required_load_env_var("RAG_MAX_CONCURRENCY"))
+        self._max_workers = 4
         self._host: str = EnvTools.get_service_host("rag")
         self._port: int = int(EnvTools.get_service_grpc_port("rag"))
         self._addr = f"{self._host}:{self._port}"

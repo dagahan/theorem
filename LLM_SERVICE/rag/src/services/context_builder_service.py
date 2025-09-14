@@ -18,7 +18,8 @@ class ContextBuilderService:
         self.vector_store: VectorStoreService = VectorStoreService()
         self.text_normalizer: TextNormalizeService = TextNormalizeService()
 
-    def trim_to_sentences(self, text: str, max_length: int = 1200) -> str:
+
+    def trim_to_sentences(self, text: str, max_length: int = 50000) -> str:
         if len(text) <= max_length:
             return text
         sentences = re.split(r'(?<=[\.\!\?])\s+', text)
@@ -33,7 +34,8 @@ class ContextBuilderService:
             current_length += len(sentence) + 1
         return (" ".join(result_sentences)).strip() + " …"
 
-    def limit_results_per_document(self, context_windows: List[Dict[str, Any]], max_total: int, max_per_document: int = 2) -> List[Dict[str, Any]]:
+
+    def limit_results_per_document(self, context_windows: List[Dict[str, Any]], max_total: int, max_per_document: int = 5) -> List[Dict[str, Any]]:
         documents_windows: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
         for window in sorted(context_windows, key=lambda w: w["relevance_score"], reverse=True):
             if len(documents_windows[window["doc_id"]]) < max_per_document:
@@ -41,7 +43,8 @@ class ContextBuilderService:
         all_results = []
         for document_windows in documents_windows.values():
             all_results.extend(document_windows)
-        return sorted(all_results, key=lambda w: w["relevance_score"], reverse=True)[:max_total]
+        return sorted(all_results, key=lambda w: w["relevance_score"], reverse=True)
+
 
     async def build_context_windows(
         self,
@@ -55,7 +58,7 @@ class ContextBuilderService:
         processed_paragraphs: set[Tuple[str, int]] = set()
         processed_windows: set[Tuple[str, int, int, int]] = set()
 
-        for document_item in ranked_documents[:max_results]:
+        for document_item in ranked_documents:
             document_id = str(document_item["document_data"]["doc_id"])
             paragraph_id = int(document_item["document_data"]["paragraph_id"])
             chunk_id = int(document_item["document_data"]["chunk_id"])
@@ -116,7 +119,7 @@ class ContextBuilderService:
                     "relevance_score": document_item["combined_score"],
                 })
 
-        context_windows = self.limit_results_per_document(context_windows, max_results, max_per_document=2)
+        context_windows = self.limit_results_per_document(context_windows, max_results, max_per_document=25)
         return context_windows
 
 

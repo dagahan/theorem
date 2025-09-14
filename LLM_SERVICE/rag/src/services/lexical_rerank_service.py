@@ -66,7 +66,6 @@ class BM25Scorer:
 
 
 class LexicalRerankService:
-    _MAX_DOCUMENTS_TO_PROCESS: Final[int] = 64
     _MAX_PARAGRAPHS_PER_DOCUMENT: Final[int] = 3
     _DEFAULT_SCORE: Final[float] = 0.0
 
@@ -88,7 +87,7 @@ class LexicalRerankService:
 
         documents_by_id: Dict[str, List[Tuple[int, int]]] = defaultdict(list)
 
-        for semantic_result in sorted(semantic_results, key=lambda x: -x.get("similarity_score", self._DEFAULT_SCORE))[: min(self._MAX_DOCUMENTS_TO_PROCESS, len(semantic_results))]:
+        for semantic_result in sorted(semantic_results, key=lambda x: -x.get("similarity_score", self._DEFAULT_SCORE)):
             document_id, paragraph_id, chunk_id = semantic_result["document_key"]
             documents_by_id[document_id].append((paragraph_id, chunk_id))
 
@@ -136,6 +135,9 @@ class LexicalRerankService:
         self,
         text: str
     ) -> List[str]:
-        return [word for word in text.lower().split() if word]
+        import re
+        russian_letters = "А-Яа-яЁё"
+        word_pattern = re.compile(rf"[0-9A-Za-z{russian_letters}]+")
+        return [word.lower() for word in word_pattern.findall(text)]
 
 

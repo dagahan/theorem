@@ -41,11 +41,17 @@ class TextNormalizeService:
     def _collapse_ocr_spacing(self, t: str) -> str:
         t = self._OCR_SPACED_WORD_RE.sub(lambda m: m.group(0).replace(" ", ""), t)
         t = self._OCR_SPACED_ACRONYM_RE.sub(lambda m: "".join(m.group(0).split()), t)
+        
         toks = t.split()
         if toks and sum(1 for w in toks if len(w) == 1) / len(toks) > 0.5:
             t = re.sub(r'(?<=\w)\s+(?=\w)', '', t)
+        
         for k, v in self._COMMON_ABBR.items():
             t = t.replace(k, v)
+        
+        t = re.sub(r'\b([а-яё])\s+([а-яё])\b', r'\1\2', t, flags=re.IGNORECASE)
+        t = re.sub(r'\b([a-z])\s+([a-z])\b', r'\1\2', t, flags=re.IGNORECASE)
+        
         return t
 
     def normalize_chunk_text(

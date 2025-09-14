@@ -8,9 +8,7 @@ from src.grpc.client.embedder_grpc_client import EmbedderGrpcClient
 
 
 class DenseRetrieverService:
-    _MIN_SCORE_THRESHOLD: Final[float] = 0.0
-    _DEFAULT_DISTANCE_SCORE: Final[float] = 0.0
-    _DEFAULT_RANK: Final[int] = 10**9
+    _DEFAULT_SCORE: Final[float] = 0.0
 
     def __init__(self) -> None:
         self.vector_store: VectorStoreService = VectorStoreService()
@@ -33,7 +31,7 @@ class DenseRetrieverService:
                 query_vector=query_vector,
                 collection_name=collection_name,
                 top_k=top_k,
-                score_threshold=self._MIN_SCORE_THRESHOLD
+                score_threshold=0.0
             )
 
             for rank_position, search_result in enumerate(search_results, start=1):
@@ -47,7 +45,7 @@ class DenseRetrieverService:
                     continue
 
                 document_key: Tuple[str, int, int] = (str(document_id), int(paragraph_id), int(chunk_id))
-                raw_similarity_score: float = float(search_result.get("score", search_result.get("distance", self._DEFAULT_DISTANCE_SCORE)))
+                raw_similarity_score: float = float(search_result.get("score", search_result.get("distance", self._DEFAULT_SCORE)))
                 similarity_score: float = -raw_similarity_score if "distance" in search_result else raw_similarity_score
                 existing_result: Dict[str, Any] | None = document_results.get(document_key)
 

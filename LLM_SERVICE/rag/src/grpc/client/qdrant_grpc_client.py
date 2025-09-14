@@ -208,7 +208,10 @@ class QdrantGrpcClient:
         
         for point in points_list:
             if hasattr(point, "id") and hasattr(point, "payload"):
-                results.append({"id": point.id, "payload": point.payload})
+                payload = point.payload
+                if hasattr(payload, '__dict__'):
+                    payload = payload.__dict__
+                results.append({"id": point.id, "payload": payload})
             elif isinstance(point, dict):
                 results.append({"id": point.get("id", ""), "payload": point.get("payload", {})})
         
@@ -247,7 +250,10 @@ class QdrantGrpcClient:
         
         for point in points_list:
             if hasattr(point, "id") and hasattr(point, "payload"):
-                results.append({"id": point.id, "payload": point.payload})
+                payload = point.payload
+                if hasattr(payload, '__dict__'):
+                    payload = payload.__dict__
+                results.append({"id": point.id, "payload": payload})
             elif isinstance(point, dict):
                 results.append({"id": point.get("id", ""), "payload": point.get("payload", {})})
         
@@ -281,10 +287,13 @@ class QdrantGrpcClient:
         if hasattr(raw_res, '__iter__'):
             for scored_point in raw_res:
                 if hasattr(scored_point, "id") and hasattr(scored_point, "score") and hasattr(scored_point, "payload"):
+                    payload = scored_point.payload
+                    if hasattr(payload, '__dict__'):
+                        payload = payload.__dict__
                     results.append({
                         "id": scored_point.id,
                         "score": scored_point.score,
-                        "payload": scored_point.payload
+                        "payload": payload
                     })
         
         logger.debug(f"Qdrant search: processed {len(results)} results")

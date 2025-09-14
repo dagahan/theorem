@@ -6,10 +6,8 @@ from typing import Any, Dict, Final, List, Tuple
 
 class FusionService:
     _RRF_CONSTANT: Final[int] = 60
-    _DEFAULT_RANK: Final[int] = 10**9
     _DEFAULT_SCORE: Final[float] = 0.0
-    _DEFAULT_MIN_SCORE: Final[float] = 0.0
-    _DEFAULT_MAX_SCORE: Final[float] = 1.0
+
 
     def combine_semantic_and_lexical_scores(
         self,
@@ -22,8 +20,8 @@ class FusionService:
     ) -> List[Dict[str, Any]]:
         reciprocal_rank_scores: Dict[Tuple[str, int, int], float] = defaultdict(float)
 
-        for semantic_result in sorted(semantic_results, key=lambda x: x.get("rank_position", self._DEFAULT_RANK)):
-            rank_position: int = semantic_result.get("rank_position", self._DEFAULT_RANK)
+        for semantic_result in sorted(semantic_results, key=lambda x: x.get("rank_position", 999999)):
+            rank_position: int = semantic_result.get("rank_position", 999999)
             document_key: Tuple[str, int, int] = semantic_result["document_key"]
             reciprocal_rank_scores[document_key] += 1.0 / (self._RRF_CONSTANT + rank_position)
 
@@ -31,7 +29,7 @@ class FusionService:
             lexical_document_key: Tuple[str, int, int] = lexical_result["document_key"]
             reciprocal_rank_scores[lexical_document_key] += 1.0 / (self._RRF_CONSTANT + rank_position)
 
-        score_components: Dict[Tuple[str, int, int], Dict[str, float]] = defaultdict(lambda: {"semantic": self._DEFAULT_SCORE, "lexical": self._DEFAULT_SCORE, "reciprocal_rank": self._DEFAULT_SCORE})
+        score_components: Dict[Tuple[str, int, int], Dict[str, float]] = defaultdict(lambda: {"semantic": 0.0, "lexical": 0.0, "reciprocal_rank": 0.0})
         
         for semantic_result in semantic_results:
             semantic_document_key: Tuple[str, int, int] = semantic_result["document_key"]
@@ -48,18 +46,19 @@ class FusionService:
         lexical_scores: List[float] = [components["lexical"] for components in score_components.values()]
         reciprocal_rank_scores_list: List[float] = [components["reciprocal_rank"] for components in score_components.values()]
         
-        semantic_min, semantic_max = (min(semantic_scores, default=self._DEFAULT_MIN_SCORE), max(semantic_scores, default=self._DEFAULT_MAX_SCORE))
-        lexical_min, lexical_max = (min(lexical_scores, default=self._DEFAULT_MIN_SCORE), max(lexical_scores, default=self._DEFAULT_MAX_SCORE))
-        reciprocal_rank_min, reciprocal_rank_max = (min(reciprocal_rank_scores_list, default=self._DEFAULT_MIN_SCORE), max(reciprocal_rank_scores_list, default=self._DEFAULT_MAX_SCORE))
+        semantic_min, semantic_max = (min(semantic_scores, default=0.0), max(semantic_scores, default=1.0))
+        lexical_min, lexical_max = (min(lexical_scores, default=0.0), max(lexical_scores, default=1.0))
+        reciprocal_rank_min, reciprocal_rank_max = (min(reciprocal_rank_scores_list, default=0.0), max(reciprocal_rank_scores_list, default=1.0))
+
 
         def normalize_score(score: float, min_score: float, max_score: float) -> float:
-            return (score - min_score) / (max_score - min_score) if max_score > min_score else self._DEFAULT_SCORE
+            return (score - min_score) / (max_score - min_score) if max_score > min_score else 0.0
 
         combined_results: List[Tuple[Tuple[str, int, int], float]] = []
         for document_key, score_components_dict in score_components.items():
-            normalized_semantic: float = normalize_score(score_components_dict.get("semantic", self._DEFAULT_SCORE), semantic_min, semantic_max)
-            normalized_lexical: float = normalize_score(score_components_dict.get("lexical", self._DEFAULT_SCORE), lexical_min, lexical_max)
-            normalized_reciprocal_rank: float = normalize_score(score_components_dict.get("reciprocal_rank", self._DEFAULT_SCORE), reciprocal_rank_min, reciprocal_rank_max)
+            normalized_semantic: float = normalize_score(score_components_dict.get("semantic", 0.0), semantic_min, semantic_max)
+            normalized_lexical: float = normalize_score(score_components_dict.get("lexical", 0.0), lexical_min, lexical_max)
+            normalized_reciprocal_rank: float = normalize_score(score_components_dict.get("reciprocal_rank", 0.0), reciprocal_rank_min, reciprocal_rank_max)
             
             combined_score: float = (reciprocal_rank_fusion_weight * normalized_reciprocal_rank + 
                                     bm25_weight * normalized_lexical + 

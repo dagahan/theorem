@@ -28,7 +28,6 @@ class HealthService:
             try:
                 return await self.embedder_grpc_client.health_check()
             except Exception as ex:
-                logger.warning(f"Embedder health check failed: {ex}")
                 return {"status": "unhealthy", "model_id": "", "dim": 0}
 
         async def _check_qdrant() -> str:
@@ -36,14 +35,12 @@ class HealthService:
                 h = await self.qdrant_grpc_client.health_check()
                 return str(h.get("status", "unknown"))
             except Exception as e:
-                logger.warning(f"Qdrant health check failed: {e}")
                 return "unhealthy"
 
         async def _check_postgres() -> Dict[str, Any]:
             try:
                 return await self.db_connector.health_check()
             except Exception as e:
-                logger.warning(f"PostgreSQL health check failed: {e}")
                 return {"status": "unhealthy", "error": str(e)}
 
         async def _check_s3() -> str:
@@ -52,7 +49,6 @@ class HealthService:
                 s3_client = S3Client()
                 return "healthy"
             except Exception as e:
-                logger.warning(f"S3 health check failed: {e}")
                 return "unhealthy"
 
         name = service_name.lower()

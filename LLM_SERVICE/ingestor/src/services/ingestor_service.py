@@ -44,8 +44,6 @@ class IngestorService:
             raise ValueError(f"Document with id '{doc_id}' already exists in collection '{collection}'. "
                              f"File name (without extension) must be unique.")
 
-        await self.health_service.ensure_all_healthy()
-
         s3_key = None
         if file_content:
             filename = file_metadata.get("filename", "unknown")
@@ -63,6 +61,7 @@ class IngestorService:
             raise ValueError("File content is required for PDF processing")
         
         file_parser_service = FileParserService()
+        
         blocks = file_parser_service.extract_blocks_from_pdf(
             filename=file_metadata.get("filename", ""),
             content=file_content,
@@ -151,9 +150,6 @@ class IngestorService:
         doc_id: str,
         collection_name: str
     ) -> Dict[str, str]:
-        if await self.health_service.health_check_service("qdrant") != "healthy":
-            return {"status": "unsuccessful", "doc_id": doc_id}
-        
         try:
             await self.vector_store_service.delete_document(doc_id, collection_name)
             

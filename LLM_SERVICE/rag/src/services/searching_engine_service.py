@@ -23,15 +23,13 @@ class SearchingEngineService:
         self.fusion_service = FusionService()
         self.context_builder = ContextBuilderService()
 
-        self.max_dense_candidates = int(EnvTools.required_load_env_var("SEARCH_DENSE_CANDIDATES"))
-        self.max_lexical_candidates = int(EnvTools.required_load_env_var("SEARCH_LEX_CANDIDATES"))
-        self.max_rerank_results = int(EnvTools.required_load_env_var("SEARCH_RERANK_TOP"))
-        self.include_whole_paragraph = bool(EnvTools.required_load_env_var("SEARCH_INCLUDE_WHOLE_PARAGRAPH"))
-        self.max_final_results = int(EnvTools.required_load_env_var("TOP_K"))
-        self.context_window_size = int(EnvTools.required_load_env_var("SEARCH_NEIGHBOR_WINDOW_DEFAULT"))
-        self.rrf_weight = float(EnvTools.required_load_env_var("SEARCH_WEIGHT_RRF"))
-        self.bm25_weight = float(EnvTools.required_load_env_var("SEARCH_WEIGHT_BM25"))
-        self.semantic_weight = float(EnvTools.required_load_env_var("SEARCH_WEIGHT_DENSE"))
+        self.top_k = int(EnvTools.required_load_env_var("TOP_K"))
+        self.top_m = int(EnvTools.required_load_env_var("TOP_M"))
+        self.context_window_size = int(EnvTools.required_load_env_var("CONTEXT_WINDOW_SIZE"))
+        self.include_whole_paragraph = bool(EnvTools.required_load_env_var("INCLUDE_WHOLE_PARAGRAPH"))
+        self.rrf_weight = float(EnvTools.required_load_env_var("WEIGHT_RRF"))
+        self.bm25_weight = float(EnvTools.required_load_env_var("WEIGHT_BM25"))
+        self.semantic_weight = float(EnvTools.required_load_env_var("WEIGHT_SEMANTIC"))
 
 
     async def retrieve_context(
@@ -55,7 +53,7 @@ class SearchingEngineService:
         semantic_results = await self.dense_retriever.retrieve_documents_by_semantic_similarity(
             expanded_queries,
             collection_name,
-            self.max_dense_candidates
+            self.top_k
         )
 
         # Step 6: Lexical reranking with BM25 algorithm
@@ -63,7 +61,7 @@ class SearchingEngineService:
             collection_name,
             semantic_results,
             query_words,
-            self.max_lexical_candidates,
+            self.top_k,
             self.context_window_size
         )
 
@@ -71,7 +69,7 @@ class SearchingEngineService:
         fused_results = self.fusion_service.combine_semantic_and_lexical_scores(
             semantic_results,
             lexical_results,
-            max_results=max(self.max_rerank_results, self.max_final_results),
+            max_results=self.top_k,
             reciprocal_rank_fusion_weight=self.rrf_weight,
             bm25_weight=self.bm25_weight,
             semantic_similarity_weight=self.semantic_weight
@@ -83,10 +81,13 @@ class SearchingEngineService:
             ranked_documents=fused_results,
             neighbor_window_size=self.context_window_size,
             include_whole_paragraph=self.include_whole_paragraph,
-            max_results=self.max_final_results
+            max_results=self.top_m
         )
+        
+        # Step 9: Apply final results limit
+        context_windows = context_windows[:self.top_m]
 
-        # Step 9: Return context windows as structured snippets
+        # Step 10: Return context windows as structured snippets
         return {"context_windows": context_windows}
 
 
