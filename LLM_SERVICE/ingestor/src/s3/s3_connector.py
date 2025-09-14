@@ -79,19 +79,31 @@ class S3Client:
         return TextNormalizeService().normalize_doc_id(base)
 
 
-    async def upload_bytes(self, data: bytes, key: str, content_type: str | None = None, metadata: dict[str, str] | None = None) -> None:
-        kwargs: dict[str, Any] = {"Bucket": self.bucket_name, "Key": key, "Body": data}
+    async def upload_bytes(
+        self,
+        data: bytes,
+        s3_key: str,
+        content_type: str | None = None,
+    ) -> None:
+        kwargs: dict[str, Any] = {"Bucket": self.bucket_name, "Key": s3_key, "Body": data}
         if content_type:
             kwargs["ContentType"] = content_type
-        if metadata:
-            kwargs["Metadata"] = metadata
+
         if self.default_acl:
             kwargs["ACL"] = self.default_acl
+
         async with self.get_s3_client() as s3:
             await s3.put_object(**kwargs)
 
 
-    def make_key(self, prefix: str, user_id: str, filename: str, content_type: str | None) -> str:
+    def make_key(
+        self,
+        prefix:
+        str,
+        user_id: str,
+        filename: str,
+        content_type: str
+    ) -> str:
         ext = self._ext_from(filename, content_type)
         safe = self._safe_name(filename)
         uid = uuid4().hex[:8]

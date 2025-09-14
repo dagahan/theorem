@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 from uuid import uuid5, NAMESPACE_URL
 from loguru import logger
 
+from src.data_classes.data_classes import Chunk, EmbeddedChunk  # noqa: TC001
 from src.grpc.client.qdrant_grpc_client import QdrantGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 from src.core.utils import EnvTools
@@ -29,56 +30,56 @@ class VectorStoreService:
             await self.qdrant_grpc_client.create_collection(collection_name, self.dimensions)
 
 
-    def build_points(
+    def build_point_structs_from_embedded_chunks(
         self,
-        chunks: List[Dict[str, Any]],
-        embeds: List[Dict[str, Any]]
+        embedded_chunks: List[EmbeddedChunk],
+        doc_id: str,
+        pdf_metadata: Dict[str, Any]
     ) -> List[qm.PointStruct]:
-        points: List[qm.PointStruct] = []
-        logger.debug(f"Building points: {len(chunks)} chunks, {len(embeds)} embeds")
+        point_structs: List[qm.PointStruct] = []
         
-        for i, (ch, em) in enumerate(zip(chunks, embeds)):
-            if not em.get("success", False):
-                logger.warning(f"Skipping failed embed for chunk {i}")
+        for i, embedded_chunk in enumerate(embedded_chunks):
+            if not embedded_chunk.success:
+                logger.warning(f"Skipping failed embedded chunk {i}")
                 continue
                 
-            vector = em.get("vector", [])
-            if not vector:
-                logger.warning(f"No vector found for chunk {i}")
+            if not embedded_chunk.vector:
+                logger.warning(f"No vector found for embedded chunk {i}")
                 continue
                 
-            pid = str(uuid5(NAMESPACE_URL, f"{ch['doc_id']}|{ch['paragraph_id']}|{ch['chunk_id']}"))
-            points.append(qm.PointStruct(
-                id=pid,
-                vector=vector,
+            point_id = str(uuid5(NAMESPACE_URL, f"{doc_id}|{i+1}|{i+1}"))
+            point_struct = qm.PointStruct(
+                id=point_id,
+                vector=embedded_chunk.vector,
                 payload={
-                    "doc_id": ch["doc_id"],
-                    "paragraph_id": ch["paragraph_id"],
-                    "chunk_id": ch["chunk_id"],
-                    "text": ch["text"],
-                    "pages": ch.get("pages", []),
-                    "page_anchor": ch.get("page_anchor"),
-                    "parent_type": ch.get("parent_type"),
-                },
-            ))
+                    "doc_id": doc_id,
+                    "paragraph_id": i + 1,
+                    "chunk_id": i + 1,
+                    "text": embedded_chunk.text,
+                    **pdf_metadata,
+                    **embedded_chunk.metadata
+                }
+            )
 
-        logger.debug(f"Built {len(points)} points")
-        return points
+            point_structs.append(point_struct)
+
+        logger.debug(f"Built {len(point_structs)} point structs from embedded chunks")
+        return point_structs
 
 
     async def upsert_batched_to_collection(
         self,
         collection_name: str,
-        points: List[qm.PointStruct]
+        point_structs: List[qm.PointStruct]
     ) -> None:
-        if not points:
-            logger.warning("No points to upsert")
+        if not point_structs:
+            logger.warning("No point structs to upsert")
             return
             
-        logger.debug(f"Upserting {len(points)} points to collection {collection_name}")
+        logger.debug(f"Upserting {len(point_structs)} point structs to collection {collection_name}")
         b = max(1, self.qdrant_upsert_batch)
-        for i in range(0, len(points), b):
-            batch = points[i : i + b]
+        for i in range(0, len(point_structs), b):
+            batch = point_structs[i : i + b]
             logger.debug(f"Upserting batch {i//b + 1}: {len(batch)} points")
             await self.qdrant_grpc_client.upsert_points(collection_name, batch)
 
@@ -107,15 +108,11 @@ class VectorStoreService:
         return await self.qdrant_grpc_client.get_document_texts(collection_name, doc_id)
 
 
-
-
     async def get_collection_documents(
         self,
         collection_name: str
     ) -> List[str]:
         return await self.qdrant_grpc_client.get_collection_documents(collection_name)
-
-
 
 
     async def delete_document(

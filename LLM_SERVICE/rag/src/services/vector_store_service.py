@@ -45,6 +45,7 @@ class VectorStoreService:
                     "paragraph_id": ch["paragraph_id"],
                     "chunk_id": ch["chunk_id"],
                     "text": ch["text"],
+                    "meta": ch.get("meta", {}),
                 },
             ))
 
@@ -90,17 +91,64 @@ class VectorStoreService:
         query_vector: List[float],
         collection_name: str,
         top_k: int = 25,
-        score_threshold: float = 0.0
+        score_threshold: float = 0.0,
+        quality_filter: bool = True
     ) -> List[Dict[str, Any]]:
         result = await self.qdrant_grpc_client.search(
             collection_name=collection_name,
             query_vector=query_vector,
-            top_k=top_k,
+            top_k=top_k * 2 if quality_filter else top_k,  # Get more results for filtering
             score_threshold=score_threshold
         )
 
+        if quality_filter:
+            result = self._filter_by_quality(result)
+
+        result = result[:top_k]  # Limit to requested top_k
         logger.debug(f"Search result: found {len(result)} results in collection '{collection_name}'")
         return result
+
+    def _filter_by_quality(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        filtered = []
+        for result in results:
+            payload = result.get("payload", result)
+            
+            # Skip low-quality chunks
+            if self._is_low_quality_chunk(payload):
+                continue
+                
+            # Boost high-quality chunks
+            quality_score = payload.get("meta", {}).get("quality_score", 0.5)
+            if quality_score < 0.3:
+                continue
+                
+            # Boost specific parent types for EGE
+            parent_type = payload.get("meta", {}).get("parent_type", "")
+            if parent_type in {"task", "answer", "heading", "formula"}:
+                result["score"] = result.get("score", 0) * 1.2
+                
+            filtered.append(result)
+            
+        return filtered
+
+    def _is_low_quality_chunk(self, payload: Dict[str, Any]) -> bool:
+        text = payload.get("text", "")
+        meta = payload.get("meta", {})
+        
+        # Check explicit quality flags
+        if meta.get("has_cid", False) or meta.get("has_ellipsis", False) or meta.get("has_ocr_spacing", False):
+            return True
+            
+        # Check alpha ratio
+        alpha_ratio = meta.get("alpha_ratio", 0.5)
+        if alpha_ratio < 0.4:
+            return True
+            
+        # Check text length
+        if len(text) < 180:
+            return True
+            
+        return False
 
 
     async def get_collection_documents(

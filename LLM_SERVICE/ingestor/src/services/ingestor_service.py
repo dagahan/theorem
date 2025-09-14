@@ -1,7 +1,9 @@
 from __future__ import annotations
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
+import re
 from loguru import logger
 
+from src.data_classes.data_classes import PdfFile, IngestResult
 from src.services.chunking_service import ChunkingService
 from src.services.document_service import DocumentService
 from src.services.text_normalize_service import TextNormalizeService
@@ -12,10 +14,14 @@ from src.services.id_service import IdService
 from src.services.file_parser_service import FileParserService
 from src.grpc.client.embedder_grpc_client import EmbedderGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
+from src.transaction_manager.transaction_manager import transactional, execute_atomic_step
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from src.db.database_connector import DataBaseConnector
+    from qdrant_client.http import models as qm
+    from pydantic_schemas import Document
+    from src.data_classes.data_classes import Block, Chunk, EmbeddedChunk
 
 
 class IngestorService:
@@ -26,123 +32,162 @@ class IngestorService:
         self.health_service = HealthService(database_connector)
         self.vector_store_service = VectorStoreService()
         self.statistics_service = StatisticsService(database_connector)
+        self.file_parser_service = FileParserService()
         self.db_connector = database_connector
         self.embedder_grpc_client = GrpcClientRegistry().register_client("embedder", EmbedderGrpcClient)
 
+    
+    async def ingest_files(
+        self,
+        files: List[Any],
+        collection_name: str,
+        metadata: Dict[str, Any]
+    ) -> List[IngestResult]:
+        """
+        Processes multiple files through the ingestion pipeline.
+        Validates each file type and creates appropriate dataclass objects.
+        """
+        results = []
+        
+        for file in files:
+            try:
+                content = await file.read()
+                
+                if not (file.filename.lower().endswith('.pdf') or 
+                       (file.content_type and file.content_type.startswith('application/pdf'))):
+                    raise ValueError("Only PDF files are supported")
+                
+                pdf_file = PdfFile(
+                    filename=file.filename,
+                    content_type=file.content_type or "application/pdf",
+                    content=content,
+                    metadata={**metadata, "filename": file.filename}
+                )
+                
+                await self.ingest_file(
+                    pdf_file=pdf_file,
+                    collection_name=collection_name
+                )
+                
+                results.append(IngestResult(
+                    filename=file.filename,
+                    doc_id=pdf_file.doc_id,
+                    status="success",
+                    error=None
+                ))
+                
+            except Exception as ex:
+                logger.error(f"Failed to process file {file.filename}: {ex}")
+                results.append(IngestResult(
+                    filename=file.filename,
+                    doc_id="",
+                    status="failed",
+                    error=str(ex)
+                ))
+        
+        return results
 
+
+    @transactional
     async def ingest_file(
         self,
-        file_metadata: Dict[str, Any],
+        pdf_file: PdfFile,
         collection_name: str,
-        file_content: bytes | None = None,
     ) -> None:
-        collection = collection_name
-        doc_id = IdService.from_filename(file_metadata)
+        """
+        Processes a PDF file through the complete ingestion pipeline with automatic rollback.
+        """
+        doc_id: str = IdService.make_id_by_filename(pdf_file.metadata)
 
-        await self.vector_store_service.ensure_collection_exists(collection)
-        if await self.vector_store_service.is_document_exists(collection, doc_id):
-            raise ValueError(f"Document with id '{doc_id}' already exists in collection '{collection}'. "
+        await self.vector_store_service.ensure_collection_exists(collection_name)
+
+        if await self.vector_store_service.is_document_exists(collection_name, doc_id):
+            raise ValueError(f"Document with id '{doc_id}' already exists in collection '{collection_name}'. "
                              f"File name (without extension) must be unique.")
-
-        s3_key = None
-        if file_content:
-            filename = file_metadata.get("filename", "unknown")
-            content_type = file_metadata.get("content_type", "application/octet-stream")
             
-            s3_key = await self.document_service.upload_file_to_s3(
-                file_content=file_content,
-                filename=filename,
-                content_type=content_type,
-                collection_name=collection,
-                doc_id=doc_id
-            )
+        s3_uploaded_key: str = await execute_atomic_step(
+            action=lambda: self.document_service.required_upload_file_to_s3(
+                pdf=pdf_file,
+                collection_name=collection_name
+            ),
+            rollback=lambda s3_uploaded_key: self._rollback_s3_upload(s3_uploaded_key)
+        )
+        
+        blocks: List["Block"] = self.file_parser_service.extract_blocks_from_pdf(pdf_file)
 
-        if file_content is None:
-            raise ValueError("File content is required for PDF processing")
-        
-        file_parser_service = FileParserService()
-        
-        blocks = file_parser_service.extract_blocks_from_pdf(
-            filename=file_metadata.get("filename", ""),
-            content=file_content,
-            content_type=file_metadata.get("content_type"),
-            doc_id=doc_id,
-            metadata=file_metadata
+        chunks: List["Chunk"] = self.chunking_service.chunk_blocks(
+            doc_id, blocks,
+            pdf_file.metadata
         )
 
-        chunks = self.chunking_service.chunk_blocks(
+        embedded_chunks: List["EmbeddedChunk"] = await self.embedder_grpc_client.embed_chunks(chunks)
+
+        point_structs: List[qm.PointStruct] = self.vector_store_service.build_point_structs_from_embedded_chunks(
+            embedded_chunks,
             doc_id,
-            blocks,
-            file_metadata
+            pdf_file.metadata
         )
 
-        if not chunks:
-            logger.warning(f"No chunks produced for {doc_id}")
-            if s3_key:
-                await self.document_service.delete_file_from_s3(s3_key)
-            return
-
-        converted_chunks = []
-        paragraph_id = 0
-        chunk_id = 0
-        
-        for chunk in chunks:
-            chunk_id += 1
-            converted_chunks.append({
-                "doc_id": doc_id,
-                "paragraph_id": paragraph_id,
-                "chunk_id": chunk_id,
-                "text": chunk["text"]
-            })
-
-        embeds = await self.embedder_grpc_client.embed_batch(
-            [str(c["text"]) for c in converted_chunks],
-            normalize=True
-        )
-
-        if len(embeds) != len(converted_chunks):
-            if s3_key:
-                await self.document_service.delete_file_from_s3(s3_key)
-            raise RuntimeError("Embedding count mismatch")
-            
-        successful_embeds = [e for e in embeds if e.get("success", False)]
-        if not successful_embeds:
-            if s3_key:
-                await self.document_service.delete_file_from_s3(s3_key)
-            raise RuntimeError("No successful embeddings generated")
-
-        points = self.vector_store_service.build_points(
-            converted_chunks,
-            embeds
-        )
-        
-        logger.debug(f"Built {len(points)} points for upsert")
-        
-        try:
-            await self.vector_store_service.upsert_batched_to_collection(
-                collection,
-                points
+        await execute_atomic_step(
+            action=lambda: self.vector_store_service.upsert_batched_to_collection(
+                collection_name,
+                point_structs
+            ),
+            rollback=lambda _: self.vector_store_service.delete_document(
+                doc_id,
+                collection_name
             )
-            
-            if file_content and s3_key:
-                async with self.db_connector.session_ctx() as session:
-                    await self.document_service.create_document_record(
-                        session=session,
-                        doc_id=doc_id,
-                        content_type=content_type,
-                        file_size=len(file_content),
-                        s3_key=s3_key,
-                        collection_name=collection
-                    )
-            
-            logger.info(f"Document {doc_id} successfully ingested with {len(chunks)} chunks" + 
-                       (f" and stored in S3: {s3_key}" if s3_key else ""))
-                       
-        except Exception as ex:
-            if s3_key:
-                logger.warning(f"Cleaning up S3 file {s3_key} due to Qdrant upsert failure")
-                await self.document_service.delete_file_from_s3(s3_key)
-            raise RuntimeError(f"Failed to ingest document {doc_id}: {str(ex)}") from ex
+        )
+        
+        await execute_atomic_step(
+            action=lambda: self._create_db_record(
+                doc_id,
+                pdf_file,
+                s3_uploaded_key,
+                collection_name
+            ),
+            rollback=lambda record: self._rollback_db_record(
+                record,
+                doc_id
+            )
+        )
+        
+        logger.info(f"Document {doc_id} successfully ingested with {len(chunks)} chunks" + 
+                   (f" and stored in S3: {s3_uploaded_key}" if s3_uploaded_key else ""))
+
+
+    async def _rollback_s3_upload(
+        self,
+        s3_uploaded_key: str
+    ) -> None:
+        await self.document_service.delete_file_from_s3(s3_uploaded_key)
+
+
+    async def _create_db_record(
+        self, 
+        doc_id: str, 
+        pdf_file: PdfFile, 
+        s3_uploaded_key: str, 
+        collection_name: str
+    ) -> "Document":
+        async with self.db_connector.session_ctx() as session:
+            return await self.document_service.create_document_record(
+                session=session,
+                doc_id=doc_id,
+                content_type=pdf_file.content_type,
+                file_size=pdf_file.file_size,
+                s3_key=s3_uploaded_key,
+                collection_name=collection_name
+            )
+
+
+    async def _rollback_db_record(
+        self,
+        record: "Document",
+        doc_id: str
+    ) -> None:
+        async with self.db_connector.session_ctx() as session:
+            await self.document_service.delete_document_record(session, doc_id)
 
 
     async def delete_document(

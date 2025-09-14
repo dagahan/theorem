@@ -17,6 +17,8 @@ class TextNormalizeService:
         self._HARD_BREAKS_RE: Final = re.compile(r"(?:\r?\n)+")
         self._WS_RE: Final = re.compile(r"\s+")
         self._MULTI_PUNCT_RE: Final = re.compile(r"([,;:!?])\1+")
+        self._CID_RE: Final = re.compile(r"\(cid:\d+\)")
+        self._SOFT_HYPHEN_RE: Final = re.compile(r"\u00ad")
 
         self._ALLOWED_RE: Final = re.compile(
             r"[^A-Za-z0-9\u0400-\u04FF\u0370-\u03FF\u1F00-\u1FFF\s\.\,\!\?\;\:\(\)\[\]\{\}\-\+\*/=<>^%|~'\"#\\@&_"
@@ -68,18 +70,24 @@ class TextNormalizeService:
         t = unicodedata.normalize("NFKC", text.strip())
         if not t:
             return ""
+        t = self._SOFT_HYPHEN_RE.sub("", t)
         t = self._CONTROL_ZW_RE.sub("", t)
-        t = self._HYPHEN_BREAK_RE.sub("-", t)
+        t = self._HYPHEN_BREAK_RE.sub("", t)
         t = self._HARD_BREAKS_RE.sub(" ", t)
 
+        t = self._CID_RE.sub("", t)
+        t = re.sub(r"\(cid:\d+\)", "", t)
+
         t = t.translate(self._TRANSLATE)
+        t = t.replace(" - ", " — ")
+        t = re.sub(r"\s+—\s+", " — ", t)
+
         t = self._collapse_ocr_spacing(t)
 
-        # защитим "..."
-        t = t.replace("...", self._ELLIPS)
+        # Clean up multiple punctuation and preserve ellipsis
         t = self._ALLOWED_RE.sub("", t)
         t = self._MULTI_PUNCT_RE.sub(r"\1", t)
-        t = t.replace(self._ELLIPS, "...")
+        t = re.sub(r"\.{3,}", "...", t)
 
         t = self._WS_RE.sub(" ", t).strip()
         
@@ -152,14 +160,14 @@ class TextNormalizeService:
 
     def normalize_doc_id(
         self,
-        name: str,
+        doc_id: str,
         max_len: int = 128,
         sep: str = "_"
     ) -> str:
-        if not name:
+        if not doc_id:
             return "doc"
 
-        s = unicodedata.normalize("NFKC", name).strip().lower().replace("\u00ad", "")
+        normalized_doc_id = unicodedata.normalize("NFKC", doc_id).strip().lower().replace("\u00ad", "")
 
         CYR = {
             "а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"e","ж":"zh","з":"z","и":"i","й":"i",
@@ -178,29 +186,23 @@ class TextNormalizeService:
             if ch in GRC: return GRC[ch]
             return ch
 
-        s = "".join(_tr(ch) for ch in s)
+        normalized_doc_id = "".join(_tr(ch) for ch in normalized_doc_id)
 
-        # Удаляем диакритику после транслитерации
-        s = unicodedata.normalize("NFKD", s)
-        s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+        normalized_doc_id = unicodedata.normalize("NFKD", normalized_doc_id)
+        normalized_doc_id = "".join(c for c in normalized_doc_id if unicodedata.category(c) != "Mn")
 
-        # Разрешённый алфавит + перевод остальных в разделитель
-        s = re.sub(r"[^a-z0-9_\-\.]+", sep, s)
+        normalized_doc_id = re.sub(r"[^a-z0-9_\-\.]+", sep, normalized_doc_id)
 
-        # Схлопываем пачки разделителей/дефисов/точек в единый sep
-        s = re.sub(r"[ _\-\.]{2,}", sep, s)
+        normalized_doc_id = re.sub(r"[ _\-\.]{2,}", sep, normalized_doc_id)
 
-        # Удаляем разделители по краям
-        s = s.strip(f"{sep}-.")
+        normalized_doc_id = normalized_doc_id.strip(f"{sep}-.")
 
-        # Если первый символ не буква/цифра — префиксуем
-        if not re.match(r"^[a-z0-9]", s):
-            s = f"d{sep}{s}"
+        if not re.match(r"^[a-z0-9]", normalized_doc_id):
+            normalized_doc_id = f"d{sep}{normalized_doc_id}"
 
-        # Обрезка
-        if len(s) > max_len:
-            s = s[:max_len].rstrip(f"{sep}-.")
+        if len(normalized_doc_id) > max_len:
+            normalized_doc_id = normalized_doc_id[:max_len].rstrip(f"{sep}-.")
 
-        return s
+        return normalized_doc_id
 
 

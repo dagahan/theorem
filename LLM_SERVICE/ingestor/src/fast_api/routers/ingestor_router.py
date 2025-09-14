@@ -5,32 +5,27 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from loguru import logger
 
 from pydantic_schemas import (
-    DeleteDocumentRequest,
-    DeleteDocumentResponse,
     DeleteDocumentsRequest,
     DeleteDocumentsItem,
     DeleteDocumentsResponse,
-    IngestFilesItem,
     IngestFilesResponse,
+    IngestResult as PydanticIngestResult,
 )
 
 from src.services.ingestor_service import IngestorService
-from src.services.file_parser_service import FileParserService
-from src.services.id_service import IdService
 from src.services.health_service import HealthService
 
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Dict, Any
 if TYPE_CHECKING:
     from src.db.database_connector import DataBaseConnector
+    from src.data_classes.data_classes import IngestResult
 
 
 def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
     router = APIRouter(prefix="/ingestor", tags=["documents"])
     
-    file_parser_service = FileParserService()
     ingestor_service = IngestorService(database_connector)
-    id_service = IdService()
     health_service = HealthService(database_connector)
 
 
@@ -43,57 +38,39 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
         try:
             await health_service.ensure_all_healthy()
             
-            parsed_metadata = json.loads(metadata) if metadata else {}
-            results = []
+            parsed_metadata: Dict[str, Any] = json.loads(metadata) if metadata else {}
             
-            for file in files:
-                try:
-                    content = await file.read()
+            ingest_results: List[IngestResult] = await ingestor_service.ingest_files(
+                files=files,
+                collection_name=collection_name,
+                metadata=parsed_metadata
+            )
+            
+            successful_count: int = len([r for r in ingest_results if r.status == "success"])
 
-                    file_metadata = {
-                        "filename": file.filename,
-                        "content_type": file.content_type,
-                        **parsed_metadata
-                    }
-
-                    doc_id = id_service.from_filename(file_metadata)
-
-                    if not (file.filename.lower().endswith('.pdf') or 
-                           (file.content_type and file.content_type.startswith('application/pdf'))):
-                        raise ValueError("Only PDF files are supported")
-
-                    await ingestor_service.ingest_file(
-                        file_metadata=file_metadata,
-                        collection_name=collection_name,
-                        file_content=content
-                    )
-                    
-                    results.append(IngestFilesItem(
-                        filename=file.filename,
-                        doc_id=doc_id,
-                        status="success"
-                    ))
-                    
-                except Exception as e:
-                    logger.error(f"Failed to process file {file.filename}: {e}")
-                    results.append(IngestFilesItem(
-                        filename=file.filename,
-                        doc_id="",
-                        status="failed",
-                        error=str(e)
-                    ))
+            failed_count: int = len([r for r in ingest_results if r.status == "failed"])
+            
+            pydantic_ingest_results = [
+                PydanticIngestResult(
+                    filename=result.filename,
+                    doc_id=result.doc_id,
+                    status=result.status,
+                    error=result.error
+                )
+                for result in ingest_results
+            ]
             
             return IngestFilesResponse(
-                items=results,
-                total_files=len(results),
-                successful_files=len([r for r in results if r.status == "success"]),
-                failed_files=len([r for r in results if r.status == "failed"]),
+                items=pydantic_ingest_results,
+                total_files=len(ingest_results),
+                successful_files=successful_count,
+                failed_files=failed_count,
                 status="completed"
             )
             
-        except Exception as e:
-            logger.error(f"Ingest files failed: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as ex:
+            logger.error(f"Ingest files failed: {ex}")
+            raise HTTPException(status_code=500, detail=str(ex))
 
 
     @router.delete("/delete_documents", response_model=DeleteDocumentsResponse)  # type: ignore[misc]
@@ -128,9 +105,9 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
                 status="completed"
             )
             
-        except Exception as e:
-            logger.error(f"Delete documents failed: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as ex:
+            logger.error(f"Delete documents failed: {ex}")
+            raise HTTPException(status_code=500, detail=str(ex))
 
     return router
 

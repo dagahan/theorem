@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any, Dict, List, Final
+from loguru import logger
 
 from src.core.utils import EnvTools
 from src.services.text_normalize_service import TextNormalizeService
@@ -87,7 +88,37 @@ class SearchingEngineService:
         # Step 9: Apply final results limit
         context_windows = context_windows[:self.top_m]
 
-        # Step 10: Return context windows as structured snippets
+        # Step 10: Log search diagnostics
+        self._log_search_diagnostics(query, context_windows)
+
+        # Step 11: Return context windows as structured snippets
         return {"context_windows": context_windows}
+
+    def _log_search_diagnostics(self, query: str, context_windows: List[Dict[str, Any]]) -> None:
+        if not context_windows:
+            logger.warning(f"No context found for query: '{query}'")
+            return
+            
+        # Count parent types
+        parent_type_counts: Dict[str, int] = {}
+        quality_scores: List[float] = []
+        
+        for window in context_windows:
+            parent_types = window.get("parent_types", [])
+            for pt in parent_types:
+                parent_type_counts[pt] = parent_type_counts.get(pt, 0) + 1
+                
+            # Estimate quality from text
+            text = window.get("context_text", "")
+            alpha_count = sum(1 for ch in text if ch.isalpha())
+            alpha_ratio = alpha_count / max(1, len(text))
+            quality_scores.append(alpha_ratio)
+            
+        avg_quality = sum(quality_scores) / len(quality_scores) if quality_scores else 0
+        
+        logger.info(f"Search diagnostics for '{query[:50]}...': "
+                   f"results={len(context_windows)}, "
+                   f"avg_quality={avg_quality:.3f}, "
+                   f"parent_types={parent_type_counts}")
 
 

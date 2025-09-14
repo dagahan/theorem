@@ -10,43 +10,12 @@ from loguru import logger
 import pdfplumber
 
 from .text_normalize_service import TextNormalizeService
+from .layout_analyzer import LayoutAnalyzer
 
-from src.data_classes.data_classes import Block
+from src.data_classes.data_classes import Block, TextCharacter, TextLine, PageParseResult, PdfFile
+from src.core.utils import EnvTools
 
 from src.core.logging import FileParserLogger, TextNormalizeLogger, BlockingLogger
-
-
-@dataclass(frozen=True)
-class TextCharacter:
-    character: str
-    x0: float
-    x1: float
-    top: float
-    bottom: float
-    page: int
-
-
-@dataclass(frozen=True)
-class TextLine:
-    page: int
-    top: float
-    bottom: float
-    x0: float
-    x1: float
-    text: str
-    character_spans: List[Tuple[int, int]]
-
-
-@dataclass(frozen=True)
-class PageParseResult:
-    doc_id: str
-    page_index: int
-    width: float
-    height: float
-    lines: List[TextLine]
-    normalized_text: str
-    original_length: int
-    normalized_length: int
 
 
 RUSSIAN_LETTERS = "А-Яа-яЁё"
@@ -62,129 +31,209 @@ class FileParserService:
     ANSWER_PATTERN = re.compile(r"^Ответ\s*:\s*", re.I)
     LIST_LEAD_PATTERN = re.compile(r"^(\d+[\.\)]|[-•])\s+")
     FORMULA_PATTERN = re.compile(r"[=+\-×÷∑∏∫∂√≤≥≠→←α-ωΑ-Ω]")
+    
+    _MATH_CHARS = set("=+−-×÷∑∏∫∂√≤≥≠→←αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΘΛΞΠΣΦΨΩ^_*/|<>≈∞≡∇∂")
+    _RE_FIG = re.compile(r"^Рис\.\s*\d+[A-Za-zА-Яа-я\-–—\.\s]*", re.I)
+    _RE_TASK = re.compile(r"^[МФ]\d{3,5}\b")
+    _RE_TABLE_TITLE = re.compile(r"^Таблица\s+\d+\b", re.I)
+    _RE_ANSWER = re.compile(r"^Ответ\s*:\s*", re.I)
 
-    def __init__(self, line_merge_tolerance_ratio: float = 0.65, min_line_characters: int = 2) -> None:
+
+    def __init__(
+        self,
+        line_merge_tolerance_ratio: float = 0.65,
+        min_line_characters: int = 2
+    ) -> None:
         self.line_merge_tolerance_ratio = line_merge_tolerance_ratio
         self.min_line_characters = min_line_characters
         self.normalizer = TextNormalizeService()
+        self.layout = LayoutAnalyzer(
+            column_max=int(EnvTools.required_load_env_var("COLUMN_MAX") or 3),
+            column_gap_tol=float(EnvTools.required_load_env_var("COLUMN_GAP_TOLERANCE") or 0.035),
+            header_footer_freq=float(EnvTools.required_load_env_var("HEADER_FOOTER_FREQ") or 0.55),
+        )
+
+
+    def _math_ratio(
+        self,
+        s: str
+    ) -> float:
+        if not s: 
+            return 0.0
+        m = sum(1 for ch in s if ch in self._MATH_CHARS)
+        return m / max(1, len(s))
+
+
+    def _cyr_ratio(
+        self,
+        s: str
+    ) -> float:
+        if not s: 
+            return 0.0
+        c = sum(1 for ch in s if "А" <= ch <= "я" or ch in "Ёё")
+        return c / max(1, len(s))
+
+
+    def _classify_text_kind(
+        self,
+        text: str
+    ) -> str:
+        t = text.strip()
+        if self._RE_TABLE_TITLE.match(t): 
+            return "table_title"
+        if self._RE_ANSWER.match(t): 
+            return "answer"
+        if self._RE_TASK.match(t): 
+            return "task"
+        if self._RE_FIG.match(t): 
+            return "caption"
+        if self.HEAD_PATTERNS.match(t): 
+            return "heading"
+        
+        mr = self._math_ratio(t)
+        cr = self._cyr_ratio(t)
+        if mr >= float(EnvTools.required_load_env_var("OCR_MATH_SYM_RATIO_THRESHOLD") or 0.10) and cr < 0.50:
+            return "formula"
+        
+        if self.LIST_LEAD_PATTERN.match(t): 
+            return "list_item"
+        return "paragraph"
 
 
     def extract_blocks_from_pdf(
         self,
-        filename: str,
-        content: bytes,
-        content_type: str | None,
-        doc_id: str | None = None,
-        metadata: Dict[str, Any] | None = None
+        pdf_file: PdfFile
     ) -> List[Block]:
-        name = filename.lower().strip()
-        blocks: List[Block] = []
-        parsing_method = "enhanced_pdf_parsing"
-        success = True
-        error_message = ""
+        page_results: List[PageParseResult] = self.parse_pdf_with_character_layer(
+            pdf_file.content,
+            pdf_file.doc_id
+        )
 
-        try:
-            if not (name.endswith(".pdf") or (content_type or "").startswith("application/pdf")):
-                raise ValueError("Only PDF files are supported")
-            
-            page_results = self.parse_pdf_with_character_layer(content, doc_id or "unknown")
-            blocks = self.convert_page_results_to_blocks(page_results)
-            
-            logger.info(f"Document {doc_id} parsed: {len(blocks)} blocks extracted from {len(page_results)} pages")
-            
-            if doc_id:
-                blocks_data = [
-                    {
-                        "page": block.page,
-                        "kind": block.kind,
-                        "text": block.text,
-                        "bbox": block.bbox,
-                        "meta": block.meta
-                    }
-                    for block in blocks
-                ]
-                BlockingLogger.log_blocking_results(
-                    doc_id=doc_id,
-                    filename=filename,
-                    content_type=content_type or "unknown",
-                    blocks=blocks_data,
-                    metadata=metadata or {},
-                    success=True
-                )
-            
-            original_text_length = sum(len(block.text) for block in blocks)
-            
-            normalized_blocks = []
-            for block in blocks:
-                normalized_text = self.normalizer.normalize_by_kind(block.kind, block.text)
-                normalized_block = Block(
-                    text=normalized_text,
-                    kind=block.kind,
-                    page=block.page,
-                    bbox=block.bbox,
-                    meta=block.meta
-                )
-                normalized_blocks.append(normalized_block)
-            
-            blocks = normalized_blocks
-            normalized_text_length = sum(len(block.text) for block in blocks)
-            
-            logger.info(f"Document {doc_id} normalized: {len(blocks)} blocks processed")
-            logger.info(f"Text normalization: {original_text_length} -> {normalized_text_length} chars")
-            
-            if doc_id:
-                TextNormalizeLogger.log_normalization_results(
-                    doc_id=doc_id,
-                    normalized_text="\n\n".join([block.text for block in blocks]),
-                    metadata=metadata or {},
-                    original_length=original_text_length,
-                    normalized_length=normalized_text_length
-                )
-
-        except Exception as e:
-            success = False
-            error_message = str(e)
-            logger.error(f"Failed to parse PDF file {filename}: {e}")
-            
-            if doc_id:
-                BlockingLogger.log_blocking_results(
-                    doc_id=doc_id,
-                    filename=filename,
-                    content_type=content_type or "unknown",
-                    blocks=[],
-                    metadata=metadata or {},
-                    success=False,
-                    error_message=error_message
-                )
-
-        if doc_id and metadata is not None:
-            FileParserLogger.log_parsing_results(
-                doc_id=doc_id,
-                filename=filename,
-                content_type=content_type or "unknown",
-                extracted_text="\n\n".join([block.text for block in blocks]),
-                metadata=metadata,
-                parsing_method=parsing_method,
-                success=success,
-                error_message=error_message
+        raw_blocks: List[Block] = self.convert_page_results_to_blocks(page_results)
+        
+        if not raw_blocks:
+            raise RuntimeError(f"No blocks extracted from PDF {pdf_file.doc_id}")
+        
+        original_length: int = sum(len(block.text) for block in raw_blocks)
+        
+        normalized_blocks: List[Block] = [
+            Block(
+                text=self.normalizer.normalize_by_kind(block.kind, block.text),
+                kind=block.kind,
+                page=block.page,
+                bbox=block.bbox,
+                meta=block.meta
             )
+            for block in raw_blocks
+        ]
+        
+        normalized_length: int = sum(len(block.text) for block in normalized_blocks)
+        
+        logger.info(f"Document {pdf_file.doc_id}: {len(normalized_blocks)} blocks, "
+                   f"text {original_length} -> {normalized_length} chars")
+        
+        blocks_data: List[Dict[str, Any]] = [
+            {
+                "page": block.page,
+                "kind": block.kind,
+                "text": block.text,
+                "bbox": block.bbox,
+                "meta": block.meta
+            }
+            for block in normalized_blocks
+        ]
+        
+        BlockingLogger.log_blocking_results(
+            doc_id=pdf_file.doc_id,
+            content_type=pdf_file.content_type,
+            blocks=blocks_data,
+            metadata=pdf_file.metadata,
+            success=True
+        )
+        
+        TextNormalizeLogger.log_normalization_results(
+            doc_id=pdf_file.doc_id,
+            normalized_text="\n\n".join([block.text for block in normalized_blocks]),
+            metadata=pdf_file.metadata,
+            original_length=original_length,
+            normalized_length=normalized_length
+        )
+        
+        FileParserLogger.log_parsing_results(
+            doc_id=pdf_file.doc_id,
+            content_type=pdf_file.content_type,
+            extracted_text="\n\n".join([block.text for block in normalized_blocks]),
+            metadata=pdf_file.metadata,
+            parsing_method="enhanced_pdf_parsing",
+            success=True,
+            error_message=""
+        )
 
-        return blocks
+        return normalized_blocks
 
 
-    def parse_pdf_with_character_layer(self, pdf_bytes: bytes, doc_id: str) -> List[PageParseResult]:
+    def parse_pdf_with_character_layer(
+        self,
+        pdf_bytes: bytes,
+        doc_id: str
+    ) -> List[PageParseResult]:
         results: List[PageParseResult] = []
+        all_pages_for_hf: List[Tuple[float, List[Dict[str,Any]]]] = []
+        
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            tmp_line_cache: Dict[int, List[TextLine]] = {}
+            
             for page_index, page in enumerate(pdf.pages):
-                page_result = self._parse_page_with_characters(doc_id, page_index, page)
-                results.append(page_result)
+                width = float(page.width)
+                height = float(page.height)
+                characters = self._extract_characters_from_page(page, page_index)
+                lines = self._cluster_characters_into_lines(characters)
+                text_lines = self._reconstruct_text_lines(lines)
+                all_pages_for_hf.append(
+                    (height, [dict(top=l.top, bottom=l.bottom, x0=l.x0, x1=l.x1, text=l.text) for l in text_lines])
+                )
+                tmp_line_cache[page_index] = text_lines
+
+            top_rm, bot_rm = self.layout.compute_global_header_footer(all_pages_for_hf)
+
+            for page_index, page in enumerate(pdf.pages):
+                width = float(page.width)
+                height = float(page.height)
+                raw = [dict(top=l.top, bottom=l.bottom, x0=l.x0, x1=l.x1, text=l.text) for l in tmp_line_cache[page_index]]
+                ordered = self.layout.order_page_lines(page_index, width, height, raw, top_rm, bot_rm)
+
+                normalized_text = self._normalize_page_text("\n".join(ol.text for ol in ordered))
+                results.append(PageParseResult(
+                    doc_id=doc_id,
+                    page_index=page_index,
+                    width=width,
+                    height=height,
+                    lines=[
+                        TextLine(page=ol.page-1, top=ol.top, bottom=ol.bottom, x0=ol.x0, x1=ol.x1, text=ol.text, character_spans=[])
+                        for ol in ordered
+                    ],
+                    normalized_text=normalized_text,
+                    original_length=sum(len(ol.text) for ol in ordered),
+                    normalized_length=len(normalized_text)
+                ))
+
         return results
 
-    def _parse_page_with_characters(self, doc_id: str, page_index: int, page: pdfplumber.page.Page) -> PageParseResult:
+
+    def _parse_page_with_characters(
+        self,
+        doc_id: str,
+        page_index: int,
+        page: pdfplumber.page.Page
+    ) -> PageParseResult:
         width = float(page.width)
         height = float(page.height)
 
-        characters = self._extract_characters_from_page(page, page_index)
+        characters = self._extract_characters_from_page(
+            page,
+            page_index
+        )
+
         if not characters:
             return PageParseResult(
                 doc_id=doc_id,
@@ -214,7 +263,12 @@ class FileParserService:
             normalized_length=len(normalized_text)
         )
 
-    def _extract_characters_from_page(self, page: pdfplumber.page.Page, page_index: int) -> List[TextCharacter]:
+
+    def _extract_characters_from_page(
+        self,
+        page: pdfplumber.page.Page,
+        page_index: int
+    ) -> List[TextCharacter]:
         characters = []
         for char_data in page.chars:
             character = char_data.get("text", "")
@@ -231,7 +285,11 @@ class FileParserService:
             ))
         return characters
 
-    def _cluster_characters_into_lines(self, characters: List[TextCharacter]) -> List[List[TextCharacter]]:
+
+    def _cluster_characters_into_lines(
+        self,
+        characters: List[TextCharacter]
+    ) -> List[List[TextCharacter]]:
         if not characters:
             return []
 
@@ -261,7 +319,11 @@ class FileParserService:
 
         return [line for line in lines if len(line) >= self.min_line_characters]
 
-    def _reconstruct_text_lines(self, character_lines: List[List[TextCharacter]]) -> List[TextLine]:
+
+    def _reconstruct_text_lines(
+        self,
+        character_lines: List[List[TextCharacter]]
+    ) -> List[TextLine]:
         text_lines = []
         
         for line_characters in character_lines:
@@ -287,7 +349,11 @@ class FileParserService:
 
         return text_lines
 
-    def _reconstruct_line_text(self, line_characters: List[TextCharacter]) -> Tuple[str, float, float, List[Tuple[int, int]]]:
+
+    def _reconstruct_line_text(
+        self,
+        line_characters: List[TextCharacter]
+    ) -> Tuple[str, float, float, List[Tuple[int, int]]]:
         if not line_characters:
             return "", 0.0, 0.0, []
 
@@ -328,7 +394,11 @@ class FileParserService:
 
         return text, x0, x1, character_spans
 
-    def _normalize_line_text(self, text: str) -> str:
+
+    def _normalize_line_text(
+        self,
+        text: str
+    ) -> str:
         text = re.sub(r"\s+([,.;:!?])", r"\1", text)
         text = re.sub(r"\s-\s", " — ", text)
         text = re.sub(r"[ \t]{2,}", " ", text)
@@ -338,53 +408,67 @@ class FileParserService:
         
         return text
 
-    def _normalize_page_text(self, text: str) -> str:
+
+    def _normalize_page_text(
+        self,
+        text: str
+    ) -> str:
         text = re.sub(r"(?:^|\s)([Nn])\s*(\d+)", r" № \2", text)
         text = re.sub(r"-\n(?=\S)", "", text)
         text = re.sub(r"\s+([\)\]\}•])", r"\1", text)
         text = re.sub(r"\n{3,}", "\n\n", text)
         return text.strip()
 
-    def convert_page_results_to_blocks(self, page_results: List[PageParseResult]) -> List[Block]:
-        blocks = []
 
-        for page_result in page_results:
-            for line in page_result.lines:
-                text = line.text.strip()
-                if not text:
-                    continue
-
-                block_kind = self._classify_text_kind(text)
-                normalized_text = self.normalizer.normalize_by_kind(block_kind, text)
-
-                block = Block(
-                    page=line.page + 1,
-                    kind=block_kind,
-                    text=normalized_text,
-                    bbox=(line.x0, line.top, line.x1, line.bottom),
-                    meta={"character_spans": line.character_spans}
-                )
-                blocks.append(block)
-
-        return blocks
-
-    def _classify_text_kind(self, text: str) -> str:
-        text_clean = text.strip()
+    def convert_page_results_to_blocks(
+        self,
+        page_results: List[PageParseResult]
+    ) -> List[Block]:
+        blocks: List[Block] = []
         
-        if self.TABLE_TITLE_PATTERN.match(text_clean):
-            return "table_title"
-        elif self.HEAD_PATTERNS.match(text_clean):
-            return "heading"
-        elif self.ANSWER_PATTERN.match(text_clean):
-            return "answer"
-        elif self.LIST_LEAD_PATTERN.match(text_clean):
-            return "list"
-        elif self.FORMULA_PATTERN.search(text_clean):
-            return "formula"
-        elif len(text_clean) < 10:
-            return "paragraph"
-        else:
-            return "paragraph"
+        for pr in page_results:
+            y_gap = (pr.height * float(EnvTools.required_load_env_var("LINE_MERGE_Y_RATIO") or 0.70)) * 0.015
+            buf: List[TextLine] = []
+            
+            def flush_para() -> None:
+                if not buf: 
+                    return
+                text = " ".join(l.text for l in buf).strip()
+                kind = self._classify_text_kind(text)
+                norm = self.normalizer.normalize_by_kind(kind, text)
+                bbox = (min(l.x0 for l in buf), min(l.top for l in buf), max(l.x1 for l in buf), max(l.bottom for l in buf))
+                blocks.append(Block(page=buf[0].page+1, kind=kind, text=norm, bbox=bbox, meta={}))
+                buf.clear()
+
+            last_bottom = None
+            for ln in pr.lines:
+                if last_bottom is not None and (ln.top - last_bottom) > y_gap:
+                    flush_para()
+                buf.append(ln)
+                last_bottom = ln.bottom
+            flush_para()
+
+        out: List[Block] = []
+        i = 0
+        while i < len(blocks):
+            b = blocks[i]
+            if b.kind in ("caption", "answer"):
+                if out:
+                    prev = out[-1]
+                    prev.text = self.normalizer.normalize_by_kind(prev.kind, f"{prev.text} {b.text}")
+                else:
+                    if i + 1 < len(blocks):
+                        nxt = blocks[i+1]
+                        nxt.text = self.normalizer.normalize_by_kind(nxt.kind, f"{b.text} {nxt.text}")
+                        i += 1
+                        out.append(nxt)
+                i += 1
+                continue
+            out.append(b)
+            i += 1
+
+        return out
+
 
 
     def linearize_tables(
@@ -474,7 +558,11 @@ class FileParserService:
             out.append(" ".join(buf))
         return out
 
-    def _estimate_gap_threshold(self, gaps: List[float]) -> float:
+
+    def _estimate_gap_threshold(
+        self,
+        gaps: List[float]
+    ) -> float:
         if len(gaps) < 2:
             return statistics.median(gaps) * 1.6 if gaps else 1.0
 
@@ -501,7 +589,12 @@ class FileParserService:
 
         return (center1 + center2) / 2.0
 
-    def _percentile(self, sorted_values: List[float], percentile: float) -> float:
+
+    def _percentile(
+        self,
+        sorted_values: List[float],
+        percentile: float
+    ) -> float:
         if not sorted_values:
             return 0.0
         if percentile <= 0:

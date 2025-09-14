@@ -16,6 +16,8 @@ from .parameters_validation_service import ParametersValidationService
 from src.core.utils import EnvTools
 from src.core.logging import ChunkingLogger
 
+_KEEP_WITH_PREV = {"caption", "answer", "formula_display"}
+_KEEP_WITH_NEXT = {"heading", "table_title"}
 
 class ChunkingService:
     def __init__(self) -> None:
@@ -38,6 +40,91 @@ class ChunkingService:
             self.character_overlap_between_chunks
         )
 
+    def _is_mathematical(self, t: str) -> bool:
+        math_chars = set("=+−-×÷∑∏∫∂√≤≥≠→←^_*/|<>≈∞≡∇∂")
+        return sum(1 for ch in t if ch in math_chars) / max(1, len(t)) >= 0.08
+
+    def _reclassify_formula_to_text(self, kind: str, text: str) -> str:
+        if kind != "formula":
+            return kind
+        cyr = sum(1 for ch in text if "А" <= ch <= "я" or ch in "Ёё") / max(1, len(text))
+        if cyr >= float(EnvTools.required_load_env_var("OCR_WORD_CYR_RATIO_THRESHOLD") or 0.5) and not self._is_mathematical(text):
+            return "paragraph"
+        return "formula"
+
+    def _autocorrect_after_chunking(self, chunks: List[Chunk]) -> List[Chunk]:
+        out: List[Chunk] = []
+        i = 0
+        while i < len(chunks):
+            cur = chunks[i]
+            cur_dict = cur.__dict__
+            cur_dict["parent_type"] = self._reclassify_formula_to_text(cur.parent_type, cur.text)
+
+            # Quality filter: skip low-quality chunks
+            if self._is_low_quality_chunk(cur_dict):
+                i += 1
+                continue
+
+            if len(cur.text) < 200 and i + 1 < len(chunks):
+                nxt = chunks[i+1]
+                nxt_dict = nxt.__dict__
+                if nxt.parent_type == cur.parent_type and not self._is_low_quality_chunk(nxt_dict):
+                    merged_text = self.text_normalizer.normalize_by_kind(nxt.parent_type, f"{cur.text} {nxt.text}")
+                    merged_pages = sorted(set(cur.pages + nxt.pages))
+                    merged_chunk = Chunk(
+                        id=str(uuid.uuid4()),
+                        text=merged_text,
+                        tokens_est=self._estimate_token_count(merged_text),
+                        parent_type=nxt.parent_type,
+                        pages=merged_pages,
+                        parent_page_anchor=min(merged_pages) if merged_pages else 1,
+                        meta=nxt.meta
+                    )
+                    out.append(merged_chunk)
+                    i += 2
+                    continue
+            
+            # Update parent_type if changed
+            if cur_dict["parent_type"] != cur.parent_type:
+                updated_chunk = Chunk(
+                    id=cur.id,
+                    text=cur.text,
+                    tokens_est=cur.tokens_est,
+                    parent_type=cur_dict["parent_type"],
+                    pages=cur.pages,
+                    parent_page_anchor=cur.parent_page_anchor,
+                    meta=cur.meta
+                )
+                out.append(updated_chunk)
+            else:
+                out.append(cur)
+            i += 1
+        return out
+
+    def _is_low_quality_chunk(self, chunk: Dict[str,Any]) -> bool:
+        text = chunk.get("text", "")
+        if len(text) < 180:
+            return True
+        
+        # Check for CID artifacts
+        if re.search(r"\(cid:\d+\)", text):
+            return True
+            
+        # Check for ELLIPSIS artifacts
+        if "ELLIPSIS" in text:
+            return True
+            
+        # Check alpha ratio
+        alpha_count = sum(1 for ch in text if ch.isalpha())
+        alpha_ratio = alpha_count / max(1, len(text))
+        if alpha_ratio < 0.4:
+            return True
+            
+        # Check OCR spacing artifacts
+        if re.search(r'\b(?:[A-Za-zА-Яа-я]\s){3,}[A-Za-zА-Яа-я]\b', text):
+            return True
+            
+        return False
 
     @staticmethod
     def _split_text_into_sentences(paragraph_text: str) -> List[str]:
@@ -125,47 +212,26 @@ class ChunkingService:
     ) -> Dict[str, int]:
         """
         Adapts character window based on sentence length statistics.
-        Stays targeted in 200-400 range without excessive fluctuation.
+        Optimized for larger semantic chunks (500-1500 chars).
         Example: Short sentences -> smaller window, long sentences -> larger window
         """
-        sentence_lengths = [len(sentence) for block in document_blocks if block.kind in ("paragraph", "list")
-                           for sentence in self._split_text_into_sentences(block.text)]
+        sentence_lengths = [len(s) for b in document_blocks if b.kind in ("paragraph","list_item","task")
+                            for s in self._split_text_into_sentences(b.text)]
         if not sentence_lengths:
-            return dict(
-                min=self.minimum_characters_per_chunk, 
-                target=self.target_characters_per_chunk, 
-                max=self.maximum_characters_per_chunk, 
-                hard=self.hard_limit_characters_per_chunk
-            )
+            return dict(min=self.minimum_characters_per_chunk,
+                        target=self.target_characters_per_chunk,
+                        max=self.maximum_characters_per_chunk,
+                        hard=self.hard_limit_characters_per_chunk)
 
-        median_sentence_length = int(st.median(sentence_lengths))
-        percentile_95_sentence_length = self._calculate_95th_percentile(sentence_lengths)
+        med = int(st.median(sentence_lengths))
+        p95 = self._calculate_95th_percentile(sentence_lengths)
 
-        # If sentences are very short — slightly move target down;
-        # if very long — don't let target grow > 380.
-        adaptive_target_length = self.target_characters_per_chunk
-        if median_sentence_length < 80:
-            adaptive_target_length = max(self.minimum_characters_per_chunk + 60, min(self.target_characters_per_chunk, 340))
-        elif median_sentence_length > 200:
-            adaptive_target_length = min(380, max(self.target_characters_per_chunk, 300))
-
-        adaptive_maximum_length = self.maximum_characters_per_chunk
-        if percentile_95_sentence_length < 280:
-            adaptive_maximum_length = max(self.maximum_characters_per_chunk - 20, adaptive_target_length + 40)
-        elif percentile_95_sentence_length > 500:
-            adaptive_maximum_length = min(self.hard_limit_characters_per_chunk - 80, self.maximum_characters_per_chunk)
-
-        # Guarantees and monotonicity
-        adaptive_minimum_length = max(160, min(self.minimum_characters_per_chunk, adaptive_target_length - 100))
-        adaptive_maximum_length = max(adaptive_target_length + 40, min(self.hard_limit_characters_per_chunk - 20, adaptive_maximum_length))
-        adaptive_hard_limit = self.hard_limit_characters_per_chunk
-
-        return dict(
-            min=adaptive_minimum_length, 
-            target=adaptive_target_length, 
-            max=adaptive_maximum_length, 
-            hard=adaptive_hard_limit
-        )
+        target = max(700, min(self.target_characters_per_chunk, 1100))
+        if med > 180: 
+            target = min(1200, max(target, 900))
+        maxlen = min(self.hard_limit_characters_per_chunk, max(target + 300, p95 + 200))
+        minlen = max(450, min(target - 400, self.minimum_characters_per_chunk))
+        return dict(min=minlen, target=target, max=maxlen, hard=self.hard_limit_characters_per_chunk)
 
 
     @staticmethod
@@ -270,7 +336,7 @@ class ChunkingService:
         document_id: str,
         document_blocks: List[Block],
         document_metadata: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Chunk]:
         """
         Main function: assembles chunks of 200-400 characters (hard ≤ 500),
         carefully splits oversize sentences, supports character overlap.
@@ -284,7 +350,7 @@ class ChunkingService:
         hard_limit_characters = character_window_configuration["hard"]
         character_overlap_amount = self.character_overlap_between_chunks
 
-        resulting_chunks: List[Dict[str, Any]] = []
+        resulting_chunks: List[Chunk] = []
 
         text_buffer: List[str] = []
         buffer_character_count: int = 0
@@ -324,7 +390,8 @@ class ChunkingService:
                 parent_page_anchor=min(page_numbers_list) if page_numbers_list else 1,
                 meta={**((current_parent_context or {}).get("meta", {})), **document_metadata},
             )
-            resulting_chunks.append(chunk_object.__dict__)
+            
+            resulting_chunks.append(chunk_object)
             text_buffer.clear()
             buffer_character_count = 0
             current_parent_context = None
@@ -480,24 +547,29 @@ class ChunkingService:
         if buffer_character_count > 0:
             _flush_current_buffer_to_chunk()
 
-        # 3) Character overlap (optional, compact)
+        # 3) Autocorrection and reclassification
+        resulting_chunks = self._autocorrect_after_chunking(resulting_chunks)
+
+        # 4) Character overlap (optional, compact)
         if character_overlap_amount > 0:
             resulting_chunks = self._apply_character_overlap_between_chunks(resulting_chunks, overlap_characters=character_overlap_amount)
 
         # 4) Validation and post-fixes
         # Recalculate coverage — by characters.
         source_text_length = sum(len(block.text) for block in document_blocks if block.kind in ("paragraph", "list", "heading"))
-        output_text_length = sum(len(chunk["text"]) for chunk in resulting_chunks)
+        output_text_length = sum(len(chunk.text) for chunk in resulting_chunks)
         text_coverage_ratio = output_text_length / max(1, source_text_length)
         logger.info(
             f"Chunking (chars) coverage={text_coverage_ratio:.3f}, chunks={len(resulting_chunks)}, "
             f"window=[{minimum_characters},{target_characters},{maximum_characters}], hard={hard_limit_characters}, overlap={character_overlap_amount}"
         )
 
+        # Convert chunks to dict for logging
+        chunks_for_logging = [chunk.__dict__ for chunk in resulting_chunks]
         ChunkingLogger.log_chunking_results(
             doc_id=document_id,
             extracted_text="",
-            chunks=resulting_chunks,
+            chunks=chunks_for_logging,
             metadata={
                 **document_metadata,
                 "coverage": text_coverage_ratio,
@@ -517,40 +589,91 @@ class ChunkingService:
         )
 
         # Additional pass: guarantee non-empty pages and anchors.
+        final_chunks: List[Chunk] = []
         for chunk in resulting_chunks:
-            if not chunk.get("pages"):
-                chunk["pages"] = [1]
-            if chunk.get("parent_page_anchor") is None:
-                chunk["parent_page_anchor"] = min(chunk["pages"]) if chunk["pages"] else 1
+            if not chunk.pages:
+                updated_chunk = Chunk(
+                    id=chunk.id,
+                    text=chunk.text,
+                    tokens_est=chunk.tokens_est,
+                    parent_type=chunk.parent_type,
+                    pages=[1],
+                    parent_page_anchor=1,
+                    meta=chunk.meta
+                )
+                final_chunks.append(updated_chunk)
+            elif chunk.parent_page_anchor is None:
+                updated_chunk = Chunk(
+                    id=chunk.id,
+                    text=chunk.text,
+                    tokens_est=chunk.tokens_est,
+                    parent_type=chunk.parent_type,
+                    pages=chunk.pages,
+                    parent_page_anchor=min(chunk.pages),
+                    meta=chunk.meta
+                )
+                final_chunks.append(updated_chunk)
+            else:
+                final_chunks.append(chunk)
 
         logger.info(
             f"Chunk validation (chars): {validation_result['counts']} issues "
             f"out of {validation_result['total']} chunks"
         )
 
-        # 5) Final mapping for search API (sequential numbering and mini-meta)
-        paragraph_sequence_number = 0
-        chunk_sequence_number = 0
-        final_output_chunks: List[Dict[str, Any]] = []
-        for chunk in resulting_chunks:
-            paragraph_sequence_number += 1
-            chunk_sequence_number += 1
-            final_output_chunks.append({
-                "id": chunk["id"],
-                "doc_id": document_id,
-                "paragraph_id": paragraph_sequence_number,
-                "chunk_id": chunk_sequence_number,
-                "text": chunk["text"],
-                "pages": chunk["pages"],
-                "page_anchor": chunk["parent_page_anchor"],
-                "parent_type": chunk.get("parent_type"),
-                "meta": chunk.get("meta", {}),
-            })
-        return final_output_chunks
+        # 5) Additional quality metrics and final processing
+        cid_re = re.compile(r"\(cid:\d+\)")
+        bad_formula_re = re.compile(r"[А-Яа-яЁё]{2,}")
+        ocr_spacing_re = re.compile(r'\b(?:[A-Za-zА-Яа-я]\s){3,}[A-Za-zА-Яа-я]\b')
+        
+        cid_frac = sum(1 for c in final_chunks if cid_re.search(c.text)) / max(1, len(final_chunks))
+        miss_formula = sum(1 for c in final_chunks if c.parent_type == "formula" and bad_formula_re.search(c.text)) / max(1, len(final_chunks))
+        logger.info(f"QC: cid_share={cid_frac:.3f}, formula_ru_share={miss_formula:.3f}")
+
+        # 6) Add quality metrics to chunk metadata
+        processed_chunks: List[Chunk] = []
+        for chunk in final_chunks:
+            # Calculate quality metrics
+            alpha_count = sum(1 for ch in chunk.text if ch.isalpha())
+            alpha_ratio = alpha_count / max(1, len(chunk.text))
+            has_cid = bool(cid_re.search(chunk.text))
+            has_ellipsis = "ELLIPSIS" in chunk.text
+            has_ocr_spacing = bool(ocr_spacing_re.search(chunk.text))
+            
+            quality_score = 1.0
+            if alpha_ratio < 0.4: quality_score -= 0.3
+            if has_cid: quality_score -= 0.4
+            if has_ellipsis: quality_score -= 0.3
+            if has_ocr_spacing: quality_score -= 0.2
+            if len(chunk.text) < 200: quality_score -= 0.2
+            
+            # Create updated chunk with quality metrics
+            updated_chunk = Chunk(
+                id=chunk.id,
+                text=chunk.text,
+                tokens_est=chunk.tokens_est,
+                parent_type=chunk.parent_type,
+                pages=chunk.pages,
+                parent_page_anchor=chunk.parent_page_anchor,
+                meta={
+                    **chunk.meta,
+                    "quality_score": max(0.0, quality_score),
+                    "alpha_ratio": alpha_ratio,
+                    "has_cid": has_cid,
+                    "has_ellipsis": has_ellipsis,
+                    "has_ocr_spacing": has_ocr_spacing
+                }
+            )
+            processed_chunks.append(updated_chunk)
+
+        return processed_chunks
 
 
-
-    def _apply_character_overlap_between_chunks(self, chunks_list: List[Dict[str, Any]], overlap_characters: int) -> List[Dict[str, Any]]:
+    def _apply_character_overlap_between_chunks(
+        self,
+        chunks_list: List[Chunk],
+        overlap_characters: int
+    ) -> List[Chunk]:
         """
         Creates compact overlap between adjacent chunks: adds tail of previous chunk
         to beginning of current chunk up to overlap_chars (if not already naturally attached).
@@ -560,10 +683,10 @@ class ChunkingService:
         if overlap_characters <= 0 or len(chunks_list) <= 1:
             return chunks_list
 
-        chunks_with_overlap: List[Dict[str, Any]] = []
+        chunks_with_overlap: List[Chunk] = []
         previous_chunk_tail: str = ""
         for chunk_index, current_chunk in enumerate(chunks_list):
-            current_chunk_text: str = current_chunk["text"]
+            current_chunk_text: str = current_chunk.text
             if chunk_index == 0:
                 chunks_with_overlap.append(current_chunk)
                 previous_chunk_tail = current_chunk_text[-overlap_characters:] if len(current_chunk_text) > overlap_characters else current_chunk_text
@@ -586,15 +709,21 @@ class ChunkingService:
                         # If overlap doesn't fit at all — abandon it
                         text_with_overlap = current_chunk_text
 
-                # Update tokens/text
-                modified_chunk = dict(current_chunk)
-                modified_chunk["text"] = text_with_overlap
-                modified_chunk["tokens_est"] = self._estimate_token_count(text_with_overlap)
+                # Create new chunk with updated text
+                modified_chunk = Chunk(
+                    id=current_chunk.id,
+                    text=text_with_overlap,
+                    tokens_est=self._estimate_token_count(text_with_overlap),
+                    parent_type=current_chunk.parent_type,
+                    pages=current_chunk.pages,
+                    parent_page_anchor=current_chunk.parent_page_anchor,
+                    meta=current_chunk.meta
+                )
                 chunks_with_overlap.append(modified_chunk)
             else:
                 chunks_with_overlap.append(current_chunk)
 
-            previous_chunk_tail = chunks_with_overlap[-1]["text"][-overlap_characters:] if len(chunks_with_overlap[-1]["text"]) > overlap_characters else chunks_with_overlap[-1]["text"]
+            previous_chunk_tail = chunks_with_overlap[-1].text[-overlap_characters:] if len(chunks_with_overlap[-1].text) > overlap_characters else chunks_with_overlap[-1].text
 
         return chunks_with_overlap
 
@@ -602,7 +731,7 @@ class ChunkingService:
 
     @staticmethod
     def validate_chunks(
-        chunks_to_validate: List[Dict[str, Any]],
+        chunks_to_validate: List[Chunk],
         *,
         minimum_characters: int = 200,
         maximum_characters: int = 400,
@@ -613,9 +742,11 @@ class ChunkingService:
         Validates length (by characters), bracket balance, possible OCR artifacts, etc.
         Example: "(hello world" -> flag_paren=True (unbalanced parentheses)
         """
-        validation_flags = {"len": 0, "paren": 0, "dup": 0, "alpha": 0, "single": 0, "ocr_space": 0, "pages": 0}
+        validation_flags = {"len":0,"paren":0,"dup":0,"alpha":0,"single":0,"ocr_space":0,"pages":0,"cid":0,"formula_ru":0}
         seen_text_hashes: set[str] = set()
         ocr_spacing_pattern = re.compile(r'\b(?:[A-Za-zА-Яа-я]\s){3,}[A-Za-zА-Яа-я]\b')
+        cid_re = re.compile(r"\(cid:\d+\)")
+        ru_re = re.compile(r"[А-Яа-яЁё]{2,}")
 
         def _calculate_text_hash(text_string: str) -> str:
             return hashlib.md5(text_string.encode("utf-8")).hexdigest()
@@ -632,49 +763,49 @@ class ChunkingService:
 
         total_chunks_count = len(chunks_to_validate)
         for chunk in chunks_to_validate:
-            chunk_text: str = chunk["text"]
+            chunk_text: str = chunk.text
 
             # Length only by characters (except formulas/answers where sometimes shorter is useful)
-            if chunk.get("parent_type") not in ("answer", "formula"):
+            if chunk.parent_type not in ("answer", "formula"):
                 if not (minimum_characters <= len(chunk_text) <= maximum_characters):
-                    chunk["flag_len"] = True
                     validation_flags["len"] += 1
             else:
                 # But forbid giants here too
                 if len(chunk_text) > maximum_characters:
-                    chunk["flag_len"] = True
                     validation_flags["len"] += 1
 
             # Parentheses balance
             if not (_are_parentheses_balanced(chunk_text, "(", ")") and _are_parentheses_balanced(chunk_text, "[", "]") and _are_parentheses_balanced(chunk_text, "{", "}")):
-                chunk["flag_paren"] = True
                 validation_flags["paren"] += 1
 
             # Duplicates (exact)
             text_hash = _calculate_text_hash(chunk_text)
             if text_hash in seen_text_hashes:
-                chunk["flag_dup"] = True
                 validation_flags["dup"] += 1
             seen_text_hashes.add(text_hash)
 
             # Noise metrics
             quality_metrics = _calculate_text_quality_metrics(chunk_text)
             if quality_metrics["alpha_ratio"] < 0.40:
-                chunk["flag_low_alpha"] = True
                 validation_flags["alpha"] += 1
             if quality_metrics["single_share"] > max_single_char_share:
-                chunk["flag_single_char"] = True
                 validation_flags["single"] += 1
 
             # Typical OCR artifact "р а з р ы в ы" letters
             if ocr_spacing_pattern.search(chunk_text):
-                chunk["flag_ocr_spacing"] = True
                 validation_flags["ocr_space"] += 1
 
             # Page spread
-            if len(set(chunk.get("pages", []) or [])) > max_pages_span:
-                chunk["flag_pages_span"] = True
+            if len(set(chunk.pages)) > max_pages_span:
                 validation_flags["pages"] += 1
+
+            # CID artifacts
+            if cid_re.search(chunk_text):
+                validation_flags["cid"] += 1
+
+            # Formula with Russian text
+            if chunk.parent_type == "formula" and ru_re.search(chunk_text):
+                validation_flags["formula_ru"] += 1
 
         return {"counts": validation_flags, "total": total_chunks_count}
 

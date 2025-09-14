@@ -67,8 +67,14 @@ class ContextBuilderService:
                 paragraph_chunks = await self.vector_store.get_paragraph_chunks(collection_name, document_id, paragraph_id)
                 normalized_texts = []
                 page_numbers = set()
+                parent_types = set()
+                
                 for chunk in paragraph_chunks:
                     payload = chunk.get("payload", chunk)
+                    meta = payload.get("meta", {})
+                    parent_type = meta.get("parent_type", "paragraph")
+                    parent_types.add(parent_type)
+                    
                     normalized_text = self.text_normalizer.normalize_chunk_text(payload.get("text",""))
                     if normalized_text:
                         normalized_texts.append(normalized_text)
@@ -80,14 +86,19 @@ class ContextBuilderService:
                     continue
 
                 processed_paragraphs.add(paragraph_key)
+                
+                # Enhanced context with keep-with logic
+                context_text = self._build_enhanced_context(normalized_texts, parent_types)
+                
                 context_windows.append({
                     "doc_id": document_id,
                     "paragraph_id": paragraph_id,
                     "chunk_id": chunk_id,
                     "pages": sorted(page_numbers),
                     "text_range": f"paragraph:{paragraph_id}",
-                    "context_text": self.trim_to_sentences(" ".join(normalized_texts)),
+                    "context_text": self.trim_to_sentences(context_text),
                     "relevance_score": document_item["combined_score"],
+                    "parent_types": list(parent_types),
                 })
 
             else:
@@ -96,8 +107,14 @@ class ContextBuilderService:
                 window_chunks = await self.vector_store.get_window_by_chunk_id(collection_name, document_id, window_start, window_end)
                 normalized_texts = []
                 page_numbers = set()
+                parent_types = set()
+                
                 for chunk in window_chunks:
                     payload = chunk.get("payload", chunk)
+                    meta = payload.get("meta", {})
+                    parent_type = meta.get("parent_type", "paragraph")
+                    parent_types.add(parent_type)
+                    
                     normalized_text = self.text_normalizer.normalize_chunk_text(payload.get("text",""))
                     if normalized_text:
                         normalized_texts.append(normalized_text)
@@ -109,18 +126,45 @@ class ContextBuilderService:
                     continue
 
                 processed_windows.add(window_key)
+                
+                # Enhanced context with keep-with logic
+                context_text = self._build_enhanced_context(normalized_texts, parent_types)
+                
                 context_windows.append({
                     "doc_id": document_id,
                     "paragraph_id": paragraph_id,
                     "chunk_id": chunk_id,
                     "pages": sorted(page_numbers),
                     "text_range": f"chunks:{window_start}-{window_end}",
-                    "context_text": self.trim_to_sentences(" ".join(normalized_texts)),
+                    "context_text": self.trim_to_sentences(context_text),
                     "relevance_score": document_item["combined_score"],
+                    "parent_types": list(parent_types),
                 })
 
         context_windows = self.limit_results_per_document(context_windows, max_results, max_per_document=25)
         return context_windows
+
+    def _build_enhanced_context(self, texts: List[str], parent_types: set[str]) -> str:
+        if not texts:
+            return ""
+            
+        # For EGE tasks, prioritize task->formula->answer sequence
+        if "task" in parent_types:
+            # Look for related formulas and answers
+            enhanced_texts = []
+            for i, text in enumerate(texts):
+                enhanced_texts.append(text)
+                # Add context markers for better understanding
+                if "задача" in text.lower() or "найти" in text.lower():
+                    enhanced_texts.append("[УСЛОВИЕ ЗАДАЧИ]")
+                elif "ответ" in text.lower():
+                    enhanced_texts.append("[ОТВЕТ]")
+                elif any(sym in text for sym in "=+−-×÷∑∏∫∂√≤≥≠→←"):
+                    enhanced_texts.append("[ФОРМУЛА]")
+                    
+            return " ".join(enhanced_texts)
+        else:
+            return " ".join(texts)
 
 
     def assemble_context_text(

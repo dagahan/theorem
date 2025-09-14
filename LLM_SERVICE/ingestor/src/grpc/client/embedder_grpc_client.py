@@ -5,6 +5,7 @@ from loguru import logger
 
 from protobuf_stubs import embedder_pb2, embedder_pb2_grpc
 from src.grpc.grpc_utils import GrpcTools
+from src.data_classes.data_classes import Chunk, EmbeddedChunk
 
 
 class EmbedderGrpcClient:
@@ -91,9 +92,59 @@ class EmbedderGrpcClient:
             batch_items = [GrpcTools.proto_to_dict(item) for item in response.items]
             all_items.extend(batch_items)
 
-        if not any(item.get("success") for item in all_items):
+        successful_items = [item for item in all_items if item.get("success", False)]
+        if not successful_items:
             raise Exception("No successful embeddings returned")
 
         return all_items + failed_results
+
+
+    async def embed_chunks(
+        self,
+        chunks: List[Chunk]
+    ) -> List[EmbeddedChunk]:
+        """
+        Embeds a list of Chunk objects by extracting their text content.
+        Returns EmbeddedChunk objects with vector embeddings and metadata.
+        """
+        texts = [chunk.text for chunk in chunks]
+        embeddings = await self.embed_batch(texts, normalize=True)
+        
+        if len(embeddings) != len(chunks):
+            raise RuntimeError(f"Embedding count mismatch: expected {len(chunks)}, got {len(embeddings)}")
+        
+        # Combine embeddings with chunk metadata
+        result = []
+        for chunk, embedding in zip(chunks, embeddings):
+            if embedding.get("success", False) and embedding.get("vector"):
+                embedded_chunk = EmbeddedChunk(
+                    chunk_id=chunk.id,
+                    text=chunk.text,
+                    vector=embedding["vector"],
+                    metadata={
+                        **chunk.meta,
+                        "parent_type": chunk.parent_type,
+                        "pages": chunk.pages,
+                        "parent_page_anchor": chunk.parent_page_anchor
+                    }
+                )
+                result.append(embedded_chunk)
+            else:
+                # Create failed embedded chunk
+                embedded_chunk = EmbeddedChunk(
+                    chunk_id=chunk.id,
+                    text=chunk.text,
+                    vector=[],
+                    metadata={
+                        **chunk.meta,
+                        "parent_type": chunk.parent_type,
+                        "pages": chunk.pages,
+                        "parent_page_anchor": chunk.parent_page_anchor,
+                        "error": embedding.get("error", "Unknown embedding error")
+                    }
+                )
+                result.append(embedded_chunk)
+        
+        return result
 
 

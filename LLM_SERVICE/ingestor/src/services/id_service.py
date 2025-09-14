@@ -8,7 +8,7 @@ from src.services.text_normalize_service import TextNormalizeService
 
 class IdService:
     @staticmethod
-    def from_filename(meta: Dict[str, Any]) -> str:
+    def make_id_by_filename(meta: Dict[str, Any]) -> str:
         name = str(meta.get("filename", "")).strip()
         stem = os.path.splitext(os.path.basename(name))[0]
         if not stem:
@@ -22,7 +22,7 @@ class IdService:
 
 
     @staticmethod
-    def generate_s3_key(
+    def make_s3_key(
         collection_name: str,
         doc_id: str
     ) -> str:

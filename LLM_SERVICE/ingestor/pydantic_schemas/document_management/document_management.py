@@ -2,15 +2,6 @@ from typing import Any, Dict
 from pydantic import BaseModel, Field
 
 
-class DeleteDocumentRequest(BaseModel):
-    doc_id: str = Field(...)
-    collection_name: str | None = Field(default=None)
-
-
-class DeleteDocumentResponse(BaseModel):
-    status: str = Field(...)
-
-
 class DeleteDocumentsRequest(BaseModel):
     doc_ids: list[str] = Field(...)
     collection_name: str | None = Field(default=None)

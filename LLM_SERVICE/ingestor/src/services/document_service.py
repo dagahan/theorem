@@ -4,7 +4,6 @@ from typing import Dict, Any, List
 
 from loguru import logger
 from sqlalchemy import select, delete
-import time
 
 from pydantic_schemas import Document
 from src.s3.s3_connector import S3Client
@@ -14,6 +13,7 @@ import mimetypes
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+    from src.data_classes.data_classes import PdfFile
 
 
 class DocumentService:
@@ -52,33 +52,39 @@ class DocumentService:
 
     async def upload_file_to_s3(
         self,
-        file_content: bytes,
-        filename: str,
-        content_type: str,
+        doc_id: str,
         collection_name: str,
-        doc_id: str
+        file_content: bytes,
+        content_type: str
     ) -> str:
-        s3_key = self.id_service.generate_s3_key(collection_name, doc_id)
+        s3_key = self.id_service.make_s3_key(collection_name, doc_id)
         
         try:
-            import time
-            current_timestamp = int(time.time())
-            
             await self.s3_client.upload_bytes(
                 data=file_content,
-                key=s3_key,
+                s3_key=s3_key,
                 content_type=content_type,
-                metadata={
-                    "created_at": str(current_timestamp),
-                    "updated_at": str(current_timestamp)
-                }
             )
-            logger.info(f"File uploaded to S3: {filename} -> {s3_key}")
+
+            logger.info(f"File uploaded to S3: {doc_id} -> {s3_key}")
             return s3_key
 
         except Exception as ex:
-            logger.error(f"Failed to upload file to S3: {filename}, error: {ex}")
-            raise RuntimeError(f"S3 upload failed for {filename}: {str(ex)}") from ex
+            logger.error(f"Failed to upload file to S3: {doc_id}, error: {ex}")
+            raise RuntimeError(f"S3 upload failed for {doc_id}: {str(ex)}") from ex
+
+
+    async def required_upload_file_to_s3(
+        self,
+        pdf: "PdfFile",
+        collection_name: str
+    ) -> str:
+        return await self.upload_file_to_s3(
+            pdf.doc_id,
+            collection_name,
+            pdf.content,
+            pdf.content_type
+        )
 
 
     async def get_document_by_doc_id(
