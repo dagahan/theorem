@@ -76,5 +76,7 @@ ignore_missing_imports = true
 ignore_missing_imports = true
 [mypy-grpc]
 ignore_missing_imports = true
+[mypy-rust_chunking]
+ignore_missing_imports = true
 
 

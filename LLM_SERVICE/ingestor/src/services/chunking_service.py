@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import re
 import uuid
+import json
 from typing import List, Dict, Any, Iterable, Optional, Sequence, Tuple
 
 import blingfire  # type: ignore
@@ -16,8 +17,6 @@ from .parameters_validation_service import ParametersValidationService
 from src.core.utils import EnvTools
 from src.core.logging import ChunkingLogger
 
-_KEEP_WITH_PREV = {"caption", "answer", "formula_display"}
-_KEEP_WITH_NEXT = {"heading", "table_title"}
 
 class ChunkingService:
     def __init__(self) -> None:
@@ -40,11 +39,20 @@ class ChunkingService:
             self.character_overlap_between_chunks
         )
 
-    def _is_mathematical(self, t: str) -> bool:
+
+    def _is_mathematical(
+        self,
+        t: str
+    ) -> bool:
         math_chars = set("=+−-×÷∑∏∫∂√≤≥≠→←^_*/|<>≈∞≡∇∂")
         return sum(1 for ch in t if ch in math_chars) / max(1, len(t)) >= 0.08
 
-    def _reclassify_formula_to_text(self, kind: str, text: str) -> str:
+
+    def _reclassify_formula_to_text(
+        self,
+        kind: str,
+        text: str
+    ) -> str:
         if kind != "formula":
             return kind
         cyr = sum(1 for ch in text if "А" <= ch <= "я" or ch in "Ёё") / max(1, len(text))
@@ -52,7 +60,11 @@ class ChunkingService:
             return "paragraph"
         return "formula"
 
-    def _autocorrect_after_chunking(self, chunks: List[Chunk]) -> List[Chunk]:
+
+    def _autocorrect_after_chunking(
+        self,
+        chunks: List[Chunk]
+    ) -> List[Chunk]:
         out: List[Chunk] = []
         i = 0
         while i < len(chunks):
@@ -101,7 +113,11 @@ class ChunkingService:
             i += 1
         return out
 
-    def _is_low_quality_chunk(self, chunk: Dict[str,Any]) -> bool:
+
+    def _is_low_quality_chunk(
+        self,
+        chunk: Dict[str,Any]
+    ) -> bool:
         text = chunk.get("text", "")
         if len(text) < 180:
             return True
@@ -125,6 +141,7 @@ class ChunkingService:
             return True
             
         return False
+
 
     @staticmethod
     def _split_text_into_sentences(paragraph_text: str) -> List[str]:
@@ -301,7 +318,10 @@ class ChunkingService:
 
 
     @staticmethod
-    def _find_closest_value_to_target(values_array: Sequence[int], target_value: int) -> int:
+    def _find_closest_value_to_target(
+        values_array: Sequence[int],
+        target_value: int
+    ) -> int:
         """
         Returns element from array closest to target value.
         Example: [10, 20, 30], target=25 -> 20 (closest)
@@ -318,7 +338,10 @@ class ChunkingService:
         return best_value
 
 
-    def _iterate_sentences_from_block(self, document_block: Block) -> Iterable[str]:
+    def _iterate_sentences_from_block(
+        self,
+        document_block: Block
+    ) -> Iterable[str]:
         """
         Iterates sentences; formulas/answers/table rows returned as whole.
         Example: paragraph -> ["Sentence 1.", "Sentence 2."], formula -> ["x^2 + y^2 = z^2"]
@@ -337,11 +360,6 @@ class ChunkingService:
         document_blocks: List[Block],
         document_metadata: Dict[str, Any],
     ) -> List[Chunk]:
-        """
-        Main function: assembles chunks of 200-400 characters (hard ≤ 500),
-        carefully splits oversize sentences, supports character overlap.
-        Example: Long paragraph -> multiple 300-char chunks with 50-char overlap
-        """
         # 1) Adaptive window calculation based on statistics.
         character_window_configuration = self._calculate_adaptive_character_window(document_blocks)
         minimum_characters = character_window_configuration["min"]
@@ -399,7 +417,10 @@ class ChunkingService:
 
 
 
-        def _ensure_parent_context_exists(block_type: str, additional_metadata: Optional[Dict[str, Any]] = None) -> None:
+        def _ensure_parent_context_exists(
+            block_type: str,
+            additional_metadata: Optional[Dict[str, Any]] = None
+        ) -> None:
             nonlocal current_parent_context
             if current_parent_context is None:
                 current_parent_context = {"kind": block_type, "meta": dict(additional_metadata or {})}
@@ -412,7 +433,11 @@ class ChunkingService:
                     current_parent_context.setdefault("meta", {}).update(additional_metadata)
 
 
-        def _add_text_piece_to_buffer(text_piece: str, block_page_number: int, block_type: str) -> None:
+        def _add_text_piece_to_buffer(
+            text_piece: str,
+            block_page_number: int,
+            block_type: str
+        ) -> None:
             """
             Adds text piece to buffer, softly splits if needed by TARGET/HARD limits.
             Example: 500-char text with 200-char limit -> split into 200+300 chars
