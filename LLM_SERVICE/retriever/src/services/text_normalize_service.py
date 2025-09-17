@@ -4,7 +4,6 @@ import re
 import unicodedata
 from typing import Final
 
-
 class TextNormalizeService:
     def __init__(self) -> None:
         self._TOKEN_RE = re.compile(r"[A-Za-zА-Яа-я0-9_]+", re.UNICODE)
@@ -29,22 +28,26 @@ class TextNormalizeService:
     ) -> str:
         if not text:
             return ""
-        
-        # jsut normalizing text into unicode symbols.
+
         text = unicodedata.normalize("NFKC", text.strip())
+        
         if not text:
             return ""
 
-        # removing control chars, fixing hyphens, cleaning whitespace
         text = self._CONTROL_ZW_RE.sub("", text)
         text = self._HYPHEN_BREAK_RE.sub("-", text)
         text = self._HARD_BREAKS_RE.sub(" ", text)
         text = text.translate(self._TRANSLATE)
         text = self._WS_RE.sub(" ", text).strip()
-        
+
         return text
 
 
-    def extract_words(self, text: str) -> list[str]:
+    def extract_words(
+        self,
+        text: str
+    ) -> list[str]:
         return [m.group(0).lower() for m in self._TOKEN_RE.finditer(text)]
+
+
 

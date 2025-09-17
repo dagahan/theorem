@@ -1,11 +1,7 @@
-# src/services/synonyms_service.py
 from __future__ import annotations
-
 import re
 import unicodedata
-from functools import lru_cache
 from typing import Dict, Iterable, List, Set, Tuple
-
 from src.services.text_normalize_service import TextNormalizeService
 
 
@@ -18,7 +14,7 @@ class SynonymService:
         self.case_variants = (str.lower, str.upper, str.title)
         self.word_joiners = (" ", "-", "_", "")
         self.punctuation_separators = (" ", "-", "_", "/")
-        self.adjective_endings = ("", "ый", "ий", "ая", "ое", "ые", "ого", "ему", "ому", "ым", "ими", "ых")
+        self.adjective_endings = ("", "ый", "ий", "ой", "ая", "ое", "ые", "ого", "ему", "ому", "ым", "ими", "ых")
         self.noun_endings = ("", "а", "я", "ы", "и", "ам", "ям", "ами", "ями", "ах", "ях", "у", "ю", "ой", "ей", "ов", "ев")
         self.synonym_database: Dict[str, List[str]] = self._initialize_synonym_database()
         self.russian_to_latin_map = self._create_russian_to_latin_mapping()
@@ -35,55 +31,20 @@ class SynonymService:
         return [m.group(0).lower() for m in self.word_tokenizer.finditer(text.lower())]
 
 
-    def expand_query_variants(
+    def expand_words_for_bm25(
         self,
-        queries: List[str]
+        words: List[str]
     ) -> List[str]:
-        expanded_queries: List[str] = []
+        unique: Set[str] = set()
+        ordered: List[str] = []
 
-        for query in queries:
-            normalized_query = self.norm.normalize_query_text(query)
-            query_words = self.extract_words(normalized_query)
-            expanded_words = self.generate_word_variants(query_words)
-            expanded_text = " ".join(expanded_words)[: self.max_query_length]
-            expanded_queries.append((normalized_query + " " + expanded_text).strip())
+        for w in words:
+            for v in self._generate_word_expansions(w)[: self.max_expansions_per_word]:
+                if v not in unique:
+                    unique.add(v)
+                    ordered.append(v)
 
-        return expanded_queries
-
-
-    def generate_word_variants(
-        self,
-        words: Iterable[str]
-    ) -> List[str]:
-        unique_variants: Set[str] = set()
-        variant_list: List[str] = []
-
-        for word in words:
-            for variant in self._generate_word_expansions(word)[: self.max_expansions_per_word]:
-                if variant not in unique_variants:
-                    unique_variants.add(variant)
-                    variant_list.append(variant)
-                    
-        return variant_list
-
-
-    def add_synonym_group(
-        self,
-        main_term: str,
-        synonyms: Iterable[str]
-    ) -> None:
-        normalized_term = main_term.lower().strip()
-        existing_synonyms = self.synonym_database.get(normalized_term, [])
-        merged_synonyms = list(dict.fromkeys(existing_synonyms + [s for s in synonyms if s]))
-        self.synonym_database[normalized_term] = merged_synonyms
-
-
-    def import_synonym_dictionary(
-        self,
-        additional_synonyms: Dict[str, Iterable[str]]
-    ) -> None:
-        for term, synonyms in additional_synonyms.items():
-            self.add_synonym_group(term, synonyms)
+        return ordered
 
 
     def _generate_word_expansions(
@@ -97,186 +58,148 @@ class SynonymService:
         self,
         word: str
     ) -> Iterable[str]:
-        cleaned_word = word.strip()
-        if not cleaned_word:
+        cleaned = self.whitespace_normalizer.sub(" ", word.strip())
+        if not cleaned:
             return
-        cleaned_word = self.whitespace_normalizer.sub(" ", cleaned_word)
-        yield from self._remove_duplicates(
-            cleaned_word,
-            *self._get_database_synonyms(cleaned_word),
-            *self._generate_case_variants(cleaned_word),
-            *self._generate_hyphen_variants(cleaned_word),
-            *self._generate_year_variants(cleaned_word),
-            *self._generate_transliteration_variants(cleaned_word),
-            *self._generate_keyboard_layout_variants(cleaned_word),
-            *self._generate_morphological_variants(cleaned_word),
-            *self._generate_symbol_variants(cleaned_word),
+        yield from self._dedup(
+            cleaned,
+            *self._get_db_synonyms(cleaned),
+            *self._case_variants(cleaned),
+            *self._hyphen_variants(cleaned),
+            *self._year_variants(cleaned),
+            *self._translit_variants(cleaned),
+            *self._kbd_layout_variants(cleaned),
+            *self._morph_variants(cleaned),
+            *self._symbol_variants(cleaned),
         )
 
 
-    def _get_database_synonyms(
+    def _get_db_synonyms(
         self,
         word: str
     ) -> List[str]:
-        normalized_word = word.lower()
-        synonyms = self.synonym_database.get(normalized_word, [])
-        return list(synonyms)
+        return list(self.synonym_database.get(word.lower(), []))
 
 
-    def _generate_case_variants(
+    def _case_variants(
         self,
         text: str
     ) -> List[str]:
-        return list({case_function(text) for case_function in self.case_variants})
+        return list({fn(text) for fn in self.case_variants})
 
 
-    def _generate_hyphen_variants(
+    def _hyphen_variants(
         self,
         text: str
     ) -> List[str]:
-        word_parts = [part for part in self.whitespace_normalizer.split(text) if part]
-        if len(word_parts) <= 1:
+        parts = [p for p in self.whitespace_normalizer.split(text) if p]
+        if len(parts) <= 1:
             return [text]
-
-        variants: Set[str] = set()
-
+        out = set()
         for joiner in self.word_joiners:
-            variants.add(joiner.join(word_parts))
+            out.add(joiner.join(parts))
+        return list(out)
 
-        return list(variants)
 
-
-    def _generate_year_variants(
+    def _year_variants(
         self,
         text: str
     ) -> List[str]:
-        year_matches = self.year_pattern.findall(text)
-        if not year_matches:
+        m = self.year_pattern.findall(text)
+        if not m:
             return []
-
-        year_variants: Set[str] = set()
-
-        for separator in self.punctuation_separators:
-            year_variants.add(self.year_pattern.sub(lambda match: f"{separator}{match.group(0)}", text))
-            year_variants.add(self.year_pattern.sub(lambda match: f"{match.group(0)}{separator}", text))
-
-        return list(year_variants)
+        out: Set[str] = set()
+        for sep in self.punctuation_separators:
+            out.add(self.year_pattern.sub(lambda t: f"{sep}{t.group(0)}", text))
+            out.add(self.year_pattern.sub(lambda t: f"{t.group(0)}{sep}", text))
+        return list(out)
 
 
-    def _generate_transliteration_variants(
+    def _translit_variants(
         self,
         text: str
     ) -> List[str]:
-        cyrillic_version = self._convert_to_cyrillic(text)
-        latin_version = self._convert_to_latin(text)
-        transliteration_variants = {cyrillic_version, latin_version}
-
-        for case_function in self.case_variants:
-            transliteration_variants.add(case_function(cyrillic_version))
-            transliteration_variants.add(case_function(latin_version))
-
-        return list(transliteration_variants)
+        cyr = self._to_cyrillic(text)
+        lat = self._to_latin(text)
+        out = {cyr, lat}
+        for fn in self.case_variants:
+            out.add(fn(cyr)); out.add(fn(lat))
+        return list(out)
 
 
-    def _generate_keyboard_layout_variants(
+    def _kbd_layout_variants(
         self,
         text: str
     ) -> List[str]:
-        english_layout = "".join(self.keyboard_layout_ru_to_en.get(char, char) for char in text)
-        russian_layout = "".join(self.keyboard_layout_en_to_ru.get(char, char) for char in text)
-        return list({english_layout, russian_layout})
+        en = "".join(self.keyboard_layout_ru_to_en.get(ch, ch) for ch in text)
+        ru = "".join(self.keyboard_layout_en_to_ru.get(ch, ch) for ch in text)
+        return list({en, ru})
 
 
-    def _generate_morphological_variants(
+    def _morph_variants(
         self,
         word: str
     ) -> List[str]:
-        word_stem = self._extract_word_stem(word)
-        morphological_variants: Set[str] = set()
-
-        for adjective_ending in self.adjective_endings:
-            morphological_variants.add(word_stem + adjective_ending)
-
-        for noun_ending in self.noun_endings:
-            morphological_variants.add(word_stem + noun_ending)
-
-        return list(morphological_variants)
+        stem = re.sub(r"(ий|ый|ой|ая|ое|ые|ого|ему|ому|ыми|ими|ых|ах|ях|ам|ям|ов|ев|ой|ей|у|ю|а|я|ы|и)$", "", word.lower())
+        out: Set[str] = set()
+        for a in self.adjective_endings: out.add(stem + a)
+        for n in self.noun_endings: out.add(stem + n)
+        return list(out)
 
 
-    def _generate_symbol_variants(
+    def _symbol_variants(
         self,
         text: str
     ) -> List[str]:
-        normalized_symbols = text.replace("№", "No").replace("no", "No").replace("%", " percent ")
-        return list({normalized_symbols, normalized_symbols.replace(" ", ""), normalized_symbols.replace(" ", "-")})
+        s = text.replace("№", "No").replace("no", "No").replace("%", " percent ")
+        return list({s, s.replace(" ", ""), s.replace(" ", "-")})
 
 
-    def _convert_to_latin(
+    def _to_latin(
         self,
         text: str
     ) -> str:
-        latin_chars = []
-        for char in unicodedata.normalize("NFKC", text):
-            lowercase_char = char.lower()
-            latin_chars.append(self.russian_to_latin_map.get(lowercase_char, char))
-        return "".join(latin_chars)
+        out = []
+        for ch in unicodedata.normalize("NFKC", text):
+            out.append(self.russian_to_latin_map.get(ch.lower(), ch))
+        return "".join(out)
 
 
-    def _convert_to_cyrillic(
+    def _to_cyrillic(
         self,
         text: str
     ) -> str:
-        cyrillic_chars = []
-        position = 0
-
-        while position < len(text):
-            two_char_chunk = text[position : position + 2].lower()
-            single_char = text[position].lower()
-            mapped_char = None
-
-            for cyrillic_char, latin_chars in self.russian_to_latin_map.items():
-                if isinstance(latin_chars, str) and len(latin_chars) == 2 and latin_chars == two_char_chunk:
-                    mapped_char = cyrillic_char
-                    position += 2
-                    break
-
-            if mapped_char is None:
-                mapped_char = next((cyrillic_char for cyrillic_char, latin_chars in self.russian_to_latin_map.items() if latin_chars == single_char), text[position])
-                position += 1
-            cyrillic_chars.append(mapped_char)
-
-        return "".join(cyrillic_chars)
+        out = []
+        i = 0
+        while i < len(text):
+            two = text[i:i+2].lower()
+            one = text[i].lower()
+            mapped = None
+            for cyr, lat in self.russian_to_latin_map.items():
+                if isinstance(lat, str) and len(lat) == 2 and lat == two:
+                    mapped = cyr; i += 2; break
+            if mapped is None:
+                mapped = next((cyr for cyr, lat in self.russian_to_latin_map.items() if lat == one), text[i])
+                i += 1
+            out.append(mapped)
+        return "".join(out)
 
 
-    def _extract_word_stem(
-        self,
-        word: str
-    ) -> str:
-        lowercase_word = word.lower()
-        stem = re.sub(r"(ий|ый|ой|ая|ое|ые|ого|ему|ому|ыми|ими|ых|ах|ях|ам|ям|ов|ев|ой|ей|у|ю|а|я|ы|и)$", "", lowercase_word)
-        return stem
-
-
-    def _remove_duplicates(
-        self,
-        *values: str
-    ) -> Iterable[str]:
-        processed_values: Set[str] = set()
-        for value in values:
-            normalized_value = self.whitespace_normalizer.sub(" ", value).strip()
-            if not normalized_value:
-                continue
-            if normalized_value not in processed_values:
-                processed_values.add(normalized_value)
-                yield normalized_value
+    def _dedup(self, *vals: str) -> Iterable[str]:
+        seen: Set[str] = set()
+        for v in vals:
+            vv = self.whitespace_normalizer.sub(" ", v).strip()
+            if vv and vv not in seen:
+                seen.add(vv)
+                yield vv
 
 
     def _create_russian_to_latin_mapping(self) -> Dict[str, str]:
         return {
-            "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e", "ж": "zh", "з": "z",
-            "и": "i", "й": "i", "к": "k", "л": "l", "м": "m", "н": "n", "о": "o", "п": "p", "р": "r",
-            "с": "s", "т": "t", "у": "u", "ф": "f", "х": "h", "ц": "c", "ч": "ch", "ш": "sh",
-            "щ": "shch", "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
+            "а": "a","б": "b","в": "v","г": "g","д": "d","е": "e","ё": "e","ж": "zh","з": "z",
+            "и": "i","й": "i","к": "k","л": "l","м": "m","н": "n","о": "o","п": "p","р": "r",
+            "с": "s","т": "t","у": "u","ф": "f","х": "h","ц": "c","ч": "ch","ш": "sh",
+            "щ": "shch","ъ": "","ы": "y","ь": "","э": "e","ю": "yu","я": "ya",
         }
 
 
@@ -288,11 +211,6 @@ class SynonymService:
         ru2en.update({r.upper(): e.upper() for r, e in zip(ru, en)})
         en2ru.update({e.upper(): r.upper() for r, e in zip(ru, en)})
         return ru2en, en2ru
-
-
-    @lru_cache(maxsize=8192)
-    def get_cached_word_expansions(self, word: str) -> Tuple[str, ...]:
-        return tuple(self._generate_word_expansions(word))
 
 
     def _initialize_synonym_database(self) -> Dict[str, List[str]]:
@@ -453,7 +371,6 @@ class SynonymService:
                 "математическая запись", "выражение", "равенство", "неравенство", "формульная запись",
             ],
 
-            # Организация/сроки/регламенты
             "расписание": [
                 "календарь егэ", "даты экзаменов", "сроки проведения", "график", "периоды проведения",
             ],
@@ -462,14 +379,6 @@ class SynonymService:
             ],
             "регламент": [
                 "порядок проведения", "инструкция", "методические рекомендации", "письмо рособрнадзора",
-            ],
-
-            # Иностранные языки (устная часть)
-            "устная часть": [
-                "устные ответы", "станция записи устных ответов", "аудитория проведения", "аудитория подготовки",
-            ],
-            "иностранные языки": [
-                "английский язык", "немецкий язык", "французский язык", "испанский язык", "китайский язык",
             ],
         }
 

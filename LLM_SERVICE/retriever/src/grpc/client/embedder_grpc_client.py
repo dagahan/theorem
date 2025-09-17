@@ -52,8 +52,6 @@ class EmbedderGrpcClient:
             GrpcTools.validate_proto(response)
 
             result = GrpcTools.proto_to_dict(response)
-
-            logger.debug(f"Embedding result: success={result.get('success')}, vector_len={len(result.get('vector', []))}")
             return result
 
         except grpc.RpcError as ex:

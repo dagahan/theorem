@@ -1,143 +1,109 @@
 from __future__ import annotations
-
 import math
+import re
 from collections import Counter, defaultdict
 from typing import Any, Dict, Final, List, Tuple
-
 from src.services.vector_store_service import VectorStoreService
 from src.services.text_normalize_service import TextNormalizeService
-
+from src.services.synonym_service import SynonymService
+from src.domain.models import Candidate, DocKey
 
 class BM25Scorer:
     _DEFAULT_K1: Final[float] = 1.5
     _DEFAULT_B: Final[float] = 0.75
-    _DEFAULT_SCORE: Final[float] = 0.0
-    _SMOOTHING_CONSTANT: Final[float] = 0.5
+    _EPS: Final[float] = 1e-9
 
-    def __init__(
-        self,
-        document_word_lists: List[List[str]],
-        k1_parameter: float = _DEFAULT_K1,
-        b_parameter: float = _DEFAULT_B
-    ) -> None:
-        self.k1_parameter: float = k1_parameter
-        self.b_parameter: float = b_parameter
-        self.total_documents: int = len(document_word_lists)
-        self.document_lengths: List[int] = [len(document_words) for document_words in document_word_lists]
-        self.average_document_length: float = sum(self.document_lengths) / max(1, self.total_documents)
+    def __init__(self, docs_tokens: List[List[str]], k1: float = _DEFAULT_K1, b: float = _DEFAULT_B) -> None:
+        self.k1 = k1
+        self.b = b
+        self.n_docs = len(docs_tokens)
+        self.lengths = [len(d) for d in docs_tokens]
+        self.avg_len = sum(self.lengths) / max(1, self.n_docs)
+        df: Counter[str] = Counter()
+        for tks in docs_tokens:
+            df.update(set(tks))
+        self.idf: Dict[str, float] = {}
+        for w, dfreq in df.items():
+            self.idf[w] = math.log((self.n_docs - dfreq + 0.5) / (dfreq + 0.5) + 1.0)
 
-        document_frequency: Counter[str] = Counter()
-
-        for document_words in document_word_lists:
-            document_frequency.update(set(document_words))
-
-        self.inverse_document_frequency: Dict[str, float] = {}
-
-        for word, document_freq in document_frequency.items():
-            self.inverse_document_frequency[word] = math.log(
-                (self.total_documents - document_freq + self._SMOOTHING_CONSTANT) / 
-                (document_freq + self._SMOOTHING_CONSTANT) + 1.0
-            )
-
-
-    def calculate_bm25_score(
-        self,
-        query_words: List[str],
-        document_words: List[str]
-    ) -> float:
-        if not query_words or not document_words:
-            return self._DEFAULT_SCORE
-
-        term_frequency: Counter[str] = Counter(document_words)
-        bm25_score: float = self._DEFAULT_SCORE
-        document_length: int = len(document_words)
-
-        normalization_factor: float = self.k1_parameter * (1.0 - self.b_parameter + self.b_parameter * document_length / max(1, self.average_document_length))
-
-        for query_word in query_words:
-            if query_word not in term_frequency:
+    def score(self, query_tokens: List[str], doc_tokens: List[str]) -> float:
+        if not query_tokens or not doc_tokens:
+            return 0.0
+        tf: Counter[str] = Counter(doc_tokens)
+        L = len(doc_tokens)
+        denom_norm = self.k1 * (1.0 - self.b + self.b * L / max(1, self.avg_len))
+        s = 0.0
+        for q in query_tokens:
+            if q not in tf:
                 continue
-
-            inverse_document_freq: float = self.inverse_document_frequency.get(query_word, self._DEFAULT_SCORE)
-            term_freq: int = term_frequency[query_word]
-            bm25_score += inverse_document_freq * (term_freq * (self.k1_parameter + 1.0)) / (term_freq + normalization_factor)
-
-        return bm25_score
-
+            s += self.idf.get(q, 0.0) * (tf[q] * (self.k1 + 1.0)) / (tf[q] + denom_norm + self._EPS)
+        return s
 
 class Bm25Ranker:
-    _MAX_PARAGRAPHS_PER_DOCUMENT: Final[int] = 9
-    _DEFAULT_SCORE: Final[float] = 0.0
+    _MAX_PAR_BY_DOC: Final[int] = 9
 
     def __init__(self) -> None:
-        self.vector_store: VectorStoreService = VectorStoreService()
-        self.text_normalizer: TextNormalizeService = TextNormalizeService()
+        self.store = VectorStoreService()
+        self.norm = TextNormalizeService()
+        self.syn = SynonymService()
+        self._word_re = re.compile(r"[0-9A-Za-zА-Яа-яЁё]+")
 
-
-    async def rerank_documents_by_keyword_matching(
+    async def rerank_with_bm25(
         self,
         collection_name: str,
-        semantic_results: List[Dict[str, Any]],
-        query_words: List[str],
-        max_lexical_results: int,
-        neighbor_window_size: int
-    ) -> List[Dict[str, Any]]:
-        if not semantic_results:
+        ann_candidates: List[Candidate],
+        original_query: str,
+        neighbor_window_size: int,
+        max_results: int
+    ) -> List[Candidate]:
+        if not ann_candidates:
             return []
 
-        documents_by_id: Dict[str, List[Tuple[int, int]]] = defaultdict(list)
+        by_doc: Dict[str, List[Tuple[int, int]]] = defaultdict(list)
+        for c in sorted(ann_candidates, key=lambda x: -x.score_ann):
+            doc, par, ch = c.key
+            by_doc[doc].append((par, ch))
 
-        for semantic_result in sorted(semantic_results, key=lambda x: -x.get("similarity_score", self._DEFAULT_SCORE)):
-            document_id, paragraph_id, chunk_id = semantic_result["document_key"]
-            documents_by_id[document_id].append((paragraph_id, chunk_id))
+        contexts: List[Tuple[DocKey, str, List[int], Dict[str, Any]]] = []
+        for doc_id, pairs in by_doc.items():
+            for par_id, ch_id in pairs[: self._MAX_PAR_BY_DOC]:
+                start = max(1, ch_id - neighbor_window_size)
+                end = ch_id + neighbor_window_size
+                window = await self.store.get_window_by_chunk_id(collection_name, doc_id, start, end)
+                for chunk in window:
+                    payload = chunk.get("payload", chunk)
+                    key: DocKey = (str(payload["doc_id"]), int(payload["paragraph_id"]), int(payload["chunk_id"]))
+                    text = payload.get("text", "")
+                    pages = [int(p) for p in payload.get("pages", [])]
+                    contexts.append((key, text, pages, payload))
 
-        document_contexts: List[Tuple[Tuple[str, int, int], str]] = []
-
-        for document_id, paragraph_chunk_pairs in documents_by_id.items():
-            for paragraph_id, chunk_id in paragraph_chunk_pairs[:self._MAX_PARAGRAPHS_PER_DOCUMENT]:
-                window_start: int = max(1, chunk_id - neighbor_window_size)
-                window_end: int = chunk_id + neighbor_window_size
-
-                window_chunks: List[Dict[str, Any]] = await self.vector_store.get_window_by_chunk_id(collection_name, document_id, window_start, window_end)
-
-                for chunk_data in window_chunks:
-                    chunk_payload: Dict[str, Any] = chunk_data.get("payload", chunk_data)
-                    document_key: Tuple[str, int, int] = (str(chunk_payload["doc_id"]), int(chunk_payload["paragraph_id"]), int(chunk_payload["chunk_id"]))
-                    document_contexts.append((document_key, chunk_payload["text"]))
-
-        if not document_contexts:
+        if not contexts:
             return []
 
-        document_word_lists: List[List[str]] = [self._extract_words_from_text(self.text_normalizer.normalize_query_text(text)) for _, text in document_contexts]
-        bm25_scorer: BM25Scorer = BM25Scorer(document_word_lists)
+        docs_tokens: List[List[str]] = []
+        for _, text, _, _ in contexts:
+            txt = self.norm.normalize_query_text(text)
+            docs_tokens.append([w.lower() for w in self._word_re.findall(txt)])
 
-        lexical_results: List[Dict[str, Any]] = []
+        base_words = [w.lower() for w in self._word_re.findall(self.norm.normalize_query_text(original_query))]
+        expanded = self.syn.expand_words_for_bm25(base_words)
+        query_tokens = list(dict.fromkeys(base_words + expanded))
 
-        for (document_key, text), document_words in zip(document_contexts, document_word_lists):
-            bm25_score: float = bm25_scorer.calculate_bm25_score(query_words, document_words)
-            lexical_results.append({
-                "document_key": document_key, 
-                "scoring_method": "bm25", 
-                "bm25_score": bm25_score, 
-                "document_data": {
-                    "doc_id": document_key[0], 
-                    "paragraph_id": document_key[1], 
-                    "chunk_id": document_key[2], 
-                    "text": text
-                }
-            })
+        scorer = BM25Scorer(docs_tokens)
+        scored: List[Tuple[int, float]] = []
+        for i, dt in enumerate(docs_tokens):
+            scored.append((i, scorer.score(query_tokens, dt)))
+        scored.sort(key=lambda x: x[1], reverse=True)
 
-        lexical_results.sort(key=lambda result: result["bm25_score"], reverse=True)
-        return lexical_results[:max_lexical_results]
-
-
-    def _extract_words_from_text(
-        self,
-        text: str
-    ) -> List[str]:
-        import re
-        russian_letters = "А-Яа-яЁё"
-        word_pattern = re.compile(rf"[0-9A-Za-z{russian_letters}]+")
-        return [word.lower() for word in word_pattern.findall(text)]
-
-
+        out: List[Candidate] = []
+        for rank, (idx, score) in enumerate(scored[:max_results], start=1):
+            key, text, pages, payload = contexts[idx]
+            out.append(Candidate(
+                key=key,
+                text=text,
+                pages=pages,
+                payload=payload,
+                score_bm25=score,
+                rank_bm25=rank
+            ))
+        return out

@@ -9,14 +9,14 @@ import colorama  # type: ignore
 import grpc  # type: ignore
 from loguru import logger
 
-from protobuf_stubs import rag_pb2_grpc
+from protobuf_stubs import retriever_pb2_grpc
 from src.core.utils import EnvTools
-from src.services.rag_service import RAGService
+from src.grpc.api.retriever_api import RetrieverService
 
 
 class GRPCServerRunner:
     def __init__(self) -> None:
-        self._servicer = RAGService()
+        self._servicer = RetrieverService()
         self._max_workers = 4
         self._host: str = EnvTools.get_service_host("rag")
         self._port: int = int(EnvTools.get_service_grpc_port("rag"))
@@ -35,7 +35,7 @@ class GRPCServerRunner:
             options=self._GRPC_OPTIONS,
         )
 
-        rag_pb2_grpc.add_RAGServiceServicer_to_server(self._servicer, self._server)
+        retriever_pb2_grpc.add_RetrieverServiceServicer_to_server(self._servicer, self._server)
         self._server.add_insecure_port(self._addr)
 
         self._thread: threading.Thread | None = None

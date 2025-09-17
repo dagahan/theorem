@@ -73,13 +73,13 @@ class GrpcTools:
                 
                 try:
                     result = func(self, request, context)
-                    duration = time.time() - start_time
-                    logger.info(f"gRPC request completed: {method_name} from {client_info} in {duration:.3f}s")
+                    duration_ms = (time.time() - start_time) * 1000
+                    logger.info(f"gRPC request completed: {method_name} from {client_info} in {duration_ms:.2f} ms")
                     return result
                     
                 except Exception as e:
-                    duration = time.time() - start_time
-                    logger.error(f"gRPC request failed: {method_name} from {client_info} in {duration:.3f}s - {str(e)}")
+                    duration_ms = (time.time() - start_time) * 1000
+                    logger.error(f"gRPC request failed: {method_name} from {client_info} in {duration_ms:.2f} ms - {str(e)}")
                     raise
             
             return wrapper

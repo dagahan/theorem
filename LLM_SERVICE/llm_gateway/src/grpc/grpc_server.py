@@ -11,12 +11,20 @@ from loguru import logger
 
 from protobuf_stubs import llm_gateway_pb2_grpc
 from src.core.utils import EnvTools
-from src.services.llm_gateway_service import LLMGatewayService
+from src.grpc.api.llm_gateway_api import LLMGatewayAPI
+from src.services.orchestrator import LLMGraphOrchestrator
+from src.adapters.vllm_adapter import VLLMAdapter
+from src.adapters.retriever_adapter import RetrieverAdapter
 
 
 class GRPCServerRunner:
     def __init__(self) -> None:
-        self._llm_gateway_servicer = LLMGatewayService()
+        vllm_adapter = VLLMAdapter()
+        retriever_adapter = RetrieverAdapter()
+        
+        orchestrator = LLMGraphOrchestrator(vllm_adapter, retriever_adapter)
+        
+        self._servicer = LLMGatewayAPI(orchestrator)
         self._max_workers = int(EnvTools.required_load_env_var("LLM_GATEWAY_MAX_CONCURRENCY"))
         self._host: str = EnvTools.get_service_host("llm_gateway")
         self._port: int = int(EnvTools.get_service_grpc_port("llm_gateway"))
@@ -35,7 +43,7 @@ class GRPCServerRunner:
             options=self._GRPC_OPTIONS,
         )
 
-        llm_gateway_pb2_grpc.add_LLMGatewayServiceServicer_to_server(self._llm_gateway_servicer, self._server)
+        llm_gateway_pb2_grpc.add_LLMGatewayServiceServicer_to_server(self._servicer, self._server)
         self._server.add_insecure_port(self._addr)
 
         self._thread: threading.Thread | None = None

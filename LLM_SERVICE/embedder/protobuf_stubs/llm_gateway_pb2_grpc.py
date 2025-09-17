@@ -38,20 +38,10 @@ class LLMGatewayServiceStub(object):
                 request_serializer=llm__gateway__pb2.HealthRequest.SerializeToString,
                 response_deserializer=llm__gateway__pb2.HealthResponse.FromString,
                 _registered_method=True)
-        self.GenerateAnswer = channel.unary_unary(
-                '/llm_gateway.v1.LLMGatewayService/GenerateAnswer',
-                request_serializer=llm__gateway__pb2.GenerateAnswerRequest.SerializeToString,
-                response_deserializer=llm__gateway__pb2.GenerateAnswerResponse.FromString,
-                _registered_method=True)
-        self.GenerateAnswerWithRAG = channel.unary_unary(
-                '/llm_gateway.v1.LLMGatewayService/GenerateAnswerWithRAG',
-                request_serializer=llm__gateway__pb2.GenerateAnswerWithRAGRequest.SerializeToString,
-                response_deserializer=llm__gateway__pb2.GenerateAnswerWithRAGResponse.FromString,
-                _registered_method=True)
-        self.Search = channel.unary_unary(
-                '/llm_gateway.v1.LLMGatewayService/Search',
-                request_serializer=llm__gateway__pb2.SearchRequest.SerializeToString,
-                response_deserializer=llm__gateway__pb2.SearchResponse.FromString,
+        self.Question = channel.unary_unary(
+                '/llm_gateway.v1.LLMGatewayService/Question',
+                request_serializer=llm__gateway__pb2.QuestionRequest.SerializeToString,
+                response_deserializer=llm__gateway__pb2.QuestionResponse.FromString,
                 _registered_method=True)
 
 
@@ -64,19 +54,7 @@ class LLMGatewayServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GenerateAnswer(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def GenerateAnswerWithRAG(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def Search(self, request, context):
+    def Question(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -90,20 +68,10 @@ def add_LLMGatewayServiceServicer_to_server(servicer, server):
                     request_deserializer=llm__gateway__pb2.HealthRequest.FromString,
                     response_serializer=llm__gateway__pb2.HealthResponse.SerializeToString,
             ),
-            'GenerateAnswer': grpc.unary_unary_rpc_method_handler(
-                    servicer.GenerateAnswer,
-                    request_deserializer=llm__gateway__pb2.GenerateAnswerRequest.FromString,
-                    response_serializer=llm__gateway__pb2.GenerateAnswerResponse.SerializeToString,
-            ),
-            'GenerateAnswerWithRAG': grpc.unary_unary_rpc_method_handler(
-                    servicer.GenerateAnswerWithRAG,
-                    request_deserializer=llm__gateway__pb2.GenerateAnswerWithRAGRequest.FromString,
-                    response_serializer=llm__gateway__pb2.GenerateAnswerWithRAGResponse.SerializeToString,
-            ),
-            'Search': grpc.unary_unary_rpc_method_handler(
-                    servicer.Search,
-                    request_deserializer=llm__gateway__pb2.SearchRequest.FromString,
-                    response_serializer=llm__gateway__pb2.SearchResponse.SerializeToString,
+            'Question': grpc.unary_unary_rpc_method_handler(
+                    servicer.Question,
+                    request_deserializer=llm__gateway__pb2.QuestionRequest.FromString,
+                    response_serializer=llm__gateway__pb2.QuestionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -144,7 +112,7 @@ class LLMGatewayService(object):
             _registered_method=True)
 
     @staticmethod
-    def GenerateAnswer(request,
+    def Question(request,
             target,
             options=(),
             channel_credentials=None,
@@ -157,63 +125,9 @@ class LLMGatewayService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/llm_gateway.v1.LLMGatewayService/GenerateAnswer',
-            llm__gateway__pb2.GenerateAnswerRequest.SerializeToString,
-            llm__gateway__pb2.GenerateAnswerResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def GenerateAnswerWithRAG(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/llm_gateway.v1.LLMGatewayService/GenerateAnswerWithRAG',
-            llm__gateway__pb2.GenerateAnswerWithRAGRequest.SerializeToString,
-            llm__gateway__pb2.GenerateAnswerWithRAGResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def Search(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/llm_gateway.v1.LLMGatewayService/Search',
-            llm__gateway__pb2.SearchRequest.SerializeToString,
-            llm__gateway__pb2.SearchResponse.FromString,
+            '/llm_gateway.v1.LLMGatewayService/Question',
+            llm__gateway__pb2.QuestionRequest.SerializeToString,
+            llm__gateway__pb2.QuestionResponse.FromString,
             options,
             channel_credentials,
             insecure,

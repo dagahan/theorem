@@ -85,7 +85,7 @@ class DataBaseConnector:
                 connection_time = time.time() - self.connection_start_time
                 
                 logger.success(f"Database connection established successfully!")
-                logger.info(f"  ➜ Connection time: {connection_time:.2f}s")
+                logger.info(f"  ➜ Connection time: {connection_time * 1000:.2f} ms")
                 return
                 
             except Exception as e:
@@ -278,8 +278,8 @@ class DataBaseConnector:
                 await conn.run_sync(Base.metadata.create_all)
                 await conn.commit()
             
-            creation_time = time.time() - start_time
-            logger.success(f"All tables created successfully in {creation_time:.2f}s")
+            creation_time_ms = (time.time() - start_time) * 1000
+            logger.success(f"All tables created successfully in {creation_time_ms:.2f} ms")
 
         except Exception as ex:
             error_msg = f"Failed to create tables: {str(ex)}"
@@ -308,8 +308,8 @@ class DataBaseConnector:
 
                 await conn.commit()
             
-            drop_time = time.time() - start_time
-            logger.warning(f"All tables dropped successfully in {drop_time:.2f}s")
+            drop_time_ms = (time.time() - start_time) * 1000
+            logger.warning(f"All tables dropped successfully in {drop_time_ms:.2f} ms")
 
         except Exception as ex:
             error_msg = f"Failed to drop tables: {str(ex)}"

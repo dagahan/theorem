@@ -1,12 +1,12 @@
 syntax = "proto3";
-package rag.v1;
+package retriever.v1;
 
 import "third_party/protovalidate/buf/validate/validate.proto";
 
 
-service RAGService {
+service RetrieverService {
   rpc Health(HealthRequest) returns (HealthResponse);
-  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc Retrieve(RetrieveRequest) returns (RetrieveResponse);
 }
 
 
@@ -19,22 +19,29 @@ message HealthResponse {
   string qdrant_status = 5 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
   string embedder_model_id = 6 [(buf.validate.field).string = {min_len: 0, max_len: 256}];
   int32 embedder_dim = 7 [(buf.validate.field).int32 = {gte: -1, lte: 4096}];
-  option (buf.validate.message).cel = {
-    id: "status_enum",
-    message: "status must be healthy or unhealthy",
-    expression: "this.status == 'healthy' || this.status == 'unhealthy'"
-  };
 }
 
 
-message SearchRequest {
+message RetrieveRequest {
   string query = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}]; //any non-space char is required
   string collection_name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128, pattern: "^[a-zA-Z0-9_-]+$"}]; //only latin symbols and numbers, _ and -. at least one symbol
 }
 
 
-message SearchResponse {
-  string result = 1 [(buf.validate.field).string = {min_len: 1}];
+message RetrieveResult {
+  string doc_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  int32 paragraph_id = 2 [(buf.validate.field).int32 = {gte: 0}];
+  int32 chunk_id = 3 [(buf.validate.field).int32 = {gte: 0}];
+  string text = 4 [(buf.validate.field).string = {min_len: 0, max_len: 65536}];
+  repeated int32 pages = 5;
+  double score = 6 [(buf.validate.field).double = {gte: 0.0, lte: 1.0}];
+}
+
+
+message RetrieveResponse {
+  repeated RetrieveResult results = 1;
   bool success = 2;
   string error = 3 [(buf.validate.field).string = {max_len: 2048}];
 }
+
+

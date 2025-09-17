@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 import warnings
-from . import rag_pb2 as rag__pb2
+from . import retriever_pb2 as retriever__pb2
 
 GRPC_GENERATED_VERSION = '1.74.0'
 GRPC_VERSION = grpc.__version__
@@ -17,14 +17,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in rag_pb2_grpc.py depends on'
+        + f' but the generated code in retriever_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class RAGServiceStub(object):
+class RetrieverServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -34,18 +34,18 @@ class RAGServiceStub(object):
             channel: A grpc.Channel.
         """
         self.Health = channel.unary_unary(
-                '/rag.v1.RAGService/Health',
-                request_serializer=rag__pb2.HealthRequest.SerializeToString,
-                response_deserializer=rag__pb2.HealthResponse.FromString,
+                '/retriever.v1.RetrieverService/Health',
+                request_serializer=retriever__pb2.HealthRequest.SerializeToString,
+                response_deserializer=retriever__pb2.HealthResponse.FromString,
                 _registered_method=True)
-        self.Search = channel.unary_unary(
-                '/rag.v1.RAGService/Search',
-                request_serializer=rag__pb2.SearchRequest.SerializeToString,
-                response_deserializer=rag__pb2.SearchResponse.FromString,
+        self.Retrieve = channel.unary_unary(
+                '/retriever.v1.RetrieverService/Retrieve',
+                request_serializer=retriever__pb2.RetrieveRequest.SerializeToString,
+                response_deserializer=retriever__pb2.RetrieveResponse.FromString,
                 _registered_method=True)
 
 
-class RAGServiceServicer(object):
+class RetrieverServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Health(self, request, context):
@@ -54,34 +54,34 @@ class RAGServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def Search(self, request, context):
+    def Retrieve(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_RAGServiceServicer_to_server(servicer, server):
+def add_RetrieverServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Health': grpc.unary_unary_rpc_method_handler(
                     servicer.Health,
-                    request_deserializer=rag__pb2.HealthRequest.FromString,
-                    response_serializer=rag__pb2.HealthResponse.SerializeToString,
+                    request_deserializer=retriever__pb2.HealthRequest.FromString,
+                    response_serializer=retriever__pb2.HealthResponse.SerializeToString,
             ),
-            'Search': grpc.unary_unary_rpc_method_handler(
-                    servicer.Search,
-                    request_deserializer=rag__pb2.SearchRequest.FromString,
-                    response_serializer=rag__pb2.SearchResponse.SerializeToString,
+            'Retrieve': grpc.unary_unary_rpc_method_handler(
+                    servicer.Retrieve,
+                    request_deserializer=retriever__pb2.RetrieveRequest.FromString,
+                    response_serializer=retriever__pb2.RetrieveResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'rag.v1.RAGService', rpc_method_handlers)
+            'retriever.v1.RetrieverService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('rag.v1.RAGService', rpc_method_handlers)
+    server.add_registered_method_handlers('retriever.v1.RetrieverService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class RAGService(object):
+class RetrieverService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -98,9 +98,9 @@ class RAGService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rag.v1.RAGService/Health',
-            rag__pb2.HealthRequest.SerializeToString,
-            rag__pb2.HealthResponse.FromString,
+            '/retriever.v1.RetrieverService/Health',
+            retriever__pb2.HealthRequest.SerializeToString,
+            retriever__pb2.HealthResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -112,7 +112,7 @@ class RAGService(object):
             _registered_method=True)
 
     @staticmethod
-    def Search(request,
+    def Retrieve(request,
             target,
             options=(),
             channel_credentials=None,
@@ -125,9 +125,9 @@ class RAGService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rag.v1.RAGService/Search',
-            rag__pb2.SearchRequest.SerializeToString,
-            rag__pb2.SearchResponse.FromString,
+            '/retriever.v1.RetrieverService/Retrieve',
+            retriever__pb2.RetrieveRequest.SerializeToString,
+            retriever__pb2.RetrieveResponse.FromString,
             options,
             channel_credentials,
             insecure,
