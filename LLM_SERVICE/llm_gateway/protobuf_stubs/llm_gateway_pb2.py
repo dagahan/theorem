@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as third__party_dot_protovalidate_dot_buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11llm_gateway.proto\x12\x0ellm_gateway.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"\xfe\x01\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x1d\n\nllm_status\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x1d\n\nrag_status\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\"\n\x0f\x65mbedder_status\x18\x04 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 :o\xbaHl\x1aj\n\x0bstatus_enum\x12#status must be healthy or unhealthy\x1a\x36this.status == \'healthy\' || this.status == \'unhealthy\'\"\xbc\x01\n\x15GenerateAnswerRequest\x12$\n\x08question\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x1f\n\rsystem_prompt\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80 \x12\x1e\n\nmax_tokens\x18\x03 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\x80 (\x01\x12,\n\x0btemperature\x18\x04 \x01(\x01\x42\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00\x00@)\x00\x00\x00\x00\x00\x00\x00\x00\x12\x0e\n\x06stream\x18\x05 \x01(\x08\"\xa4\x01\n\x16GenerateAnswerResponse\x12\x19\n\x06\x61nswer\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\x12\x1c\n\x0btokens_used\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x12\'\n\x0fgeneration_time\x18\x05 \x01(\x01\x42\x0e\xbaH\x0b\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00\"\xce\x02\n\x1cGenerateAnswerWithRAGRequest\x12$\n\x08question\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x35\n\x0f\x63ollection_name\x18\x02 \x01(\tB\x1c\xbaH\x19r\x17\x10\x01\x18\x80\x01\x32\x10^[a-zA-Z0-9_-]+$\x12\x1f\n\rsystem_prompt\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80 \x12\x1e\n\nmax_tokens\x18\x04 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\x80 (\x01\x12,\n\x0btemperature\x18\x05 \x01(\x01\x42\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00\x00@)\x00\x00\x00\x00\x00\x00\x00\x00\x12\x1c\n\trag_top_k\x18\x06 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18\x14(\x01\x12\x34\n\x13rag_score_threshold\x18\x07 \x01(\x01\x42\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00\xf0?)\x00\x00\x00\x00\x00\x00\x00\x00\x12\x0e\n\x06stream\x18\x08 \x01(\x08\"\x88\x02\n\x1dGenerateAnswerWithRAGResponse\x12\x19\n\x06\x61nswer\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02\x12\x39\n\x0brag_context\x18\x02 \x03(\x0b\x32\x1a.llm_gateway.v1.RAGContextB\x08\xbaH\x05\x92\x01\x02\x10\x14\x12\x0f\n\x07success\x18\x03 \x01(\x08\x12\x17\n\x05\x65rror\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\x12\x1c\n\x0btokens_used\x18\x05 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x12\'\n\x0fgeneration_time\x18\x06 \x01(\x01\x42\x0e\xbaH\x0b\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00\x12 \n\x08rag_time\x18\x07 \x01(\x01\x42\x0e\xbaH\x0b\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00\"\xbe\x01\n\nRAGContext\x12\x1a\n\x06\x64oc_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02\x12\x19\n\x04text\x18\x02 \x01(\tB\x0b\xbaH\x08r\x06\x10\x01\x18\x80\x80\x01\x12&\n\x05score\x18\x03 \x01(\x01\x42\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00\xf0?)\x00\x00\x00\x00\x00\x00\x00\x00\x12\x17\n\x05pages\x18\x04 \x03(\x05\x42\x08\xbaH\x05\x92\x01\x02\x10\n\x12\x1d\n\x0cparagraph_id\x18\x05 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x12\x19\n\x08\x63hunk_id\x18\x06 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\"\xb5\x01\n\rSearchRequest\x12!\n\x05query\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x35\n\x0f\x63ollection_name\x18\x02 \x01(\tB\x1c\xbaH\x19r\x17\x10\x01\x18\x80\x01\x32\x10^[a-zA-Z0-9_-]+$\x12\x18\n\x05limit\x18\x03 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18\x64(\x01\x12\x30\n\x0fscore_threshold\x18\x04 \x01(\x01\x42\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00\xf0?)\x00\x00\x00\x00\x00\x00\x00\x00\"s\n\x0eSearchResponse\x12\x37\n\x07results\x18\x01 \x03(\x0b\x32\x1c.llm_gateway.v1.SearchResultB\x08\xbaH\x05\x92\x01\x02\x10\x64\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\"\xc0\x01\n\x0cSearchResult\x12\x1a\n\x06\x64oc_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02\x12\x19\n\x04text\x18\x02 \x01(\tB\x0b\xbaH\x08r\x06\x10\x01\x18\x80\x80\x01\x12&\n\x05score\x18\x03 \x01(\x01\x42\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00\xf0?)\x00\x00\x00\x00\x00\x00\x00\x00\x12\x17\n\x05pages\x18\x04 \x03(\x05\x42\x08\xbaH\x05\x92\x01\x02\x10\n\x12\x1d\n\x0cparagraph_id\x18\x05 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x12\x19\n\x08\x63hunk_id\x18\x06 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x32\xfc\x02\n\x11LLMGatewayService\x12G\n\x06Health\x12\x1d.llm_gateway.v1.HealthRequest\x1a\x1e.llm_gateway.v1.HealthResponse\x12_\n\x0eGenerateAnswer\x12%.llm_gateway.v1.GenerateAnswerRequest\x1a&.llm_gateway.v1.GenerateAnswerResponse\x12t\n\x15GenerateAnswerWithRAG\x12,.llm_gateway.v1.GenerateAnswerWithRAGRequest\x1a-.llm_gateway.v1.GenerateAnswerWithRAGResponse\x12G\n\x06Search\x12\x1d.llm_gateway.v1.SearchRequest\x1a\x1e.llm_gateway.v1.SearchResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11llm_gateway.proto\x12\x0ellm_gateway.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"\xfe\x01\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x1d\n\nllm_status\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x1d\n\nrag_status\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\"\n\x0f\x65mbedder_status\x18\x04 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 :o\xbaHl\x1aj\n\x0bstatus_enum\x12#status must be healthy or unhealthy\x1a\x36this.status == \'healthy\' || this.status == \'unhealthy\'\"m\n\x15GenerateAnswerRequest\x12$\n\x08question\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x0e\n\x06stream\x18\x05 \x01(\x08\x12\x1e\n\nmax_tokens\x18\x06 \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\x80 (@\"{\n\x16GenerateAnswerResponse\x12\x19\n\x06\x61nswer\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\x12\x1c\n\x0btokens_used\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\"t\n\x1cGenerateAnswerWithRAGRequest\x12$\n\x08question\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x0e\n\x06stream\x18\x08 \x01(\x08\x12\x1e\n\nmax_tokens\x18\t \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\x80 (@\"\x88\x02\n\x1dGenerateAnswerWithRAGResponse\x12\x19\n\x06\x61nswer\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02\x12\x39\n\x0brag_context\x18\x02 \x03(\x0b\x32\x1a.llm_gateway.v1.RAGContextB\x08\xbaH\x05\x92\x01\x02\x10\x14\x12\x0f\n\x07success\x18\x03 \x01(\x08\x12\x17\n\x05\x65rror\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\x12\x1c\n\x0btokens_used\x18\x05 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x12\'\n\x0fgeneration_time\x18\x06 \x01(\x01\x42\x0e\xbaH\x0b\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00\x12 \n\x08rag_time\x18\x07 \x01(\x01\x42\x0e\xbaH\x0b\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00\"\xbe\x01\n\nRAGContext\x12\x1a\n\x06\x64oc_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02\x12\x19\n\x04text\x18\x02 \x01(\tB\x0b\xbaH\x08r\x06\x10\x01\x18\x80\x80\x01\x12&\n\x05score\x18\x03 \x01(\x01\x42\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00\xf0?)\x00\x00\x00\x00\x00\x00\x00\x00\x12\x17\n\x05pages\x18\x04 \x03(\x05\x42\x08\xbaH\x05\x92\x01\x02\x10\n\x12\x1d\n\x0cparagraph_id\x18\x05 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x12\x19\n\x08\x63hunk_id\x18\x06 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\"\xb5\x01\n\rSearchRequest\x12!\n\x05query\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x35\n\x0f\x63ollection_name\x18\x02 \x01(\tB\x1c\xbaH\x19r\x17\x10\x01\x18\x80\x01\x32\x10^[a-zA-Z0-9_-]+$\x12\x18\n\x05limit\x18\x03 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18\x64(\x01\x12\x30\n\x0fscore_threshold\x18\x04 \x01(\x01\x42\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00\xf0?)\x00\x00\x00\x00\x00\x00\x00\x00\"s\n\x0eSearchResponse\x12\x37\n\x07results\x18\x01 \x03(\x0b\x32\x1c.llm_gateway.v1.SearchResultB\x08\xbaH\x05\x92\x01\x02\x10\x64\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\"\xc0\x01\n\x0cSearchResult\x12\x1a\n\x06\x64oc_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02\x12\x19\n\x04text\x18\x02 \x01(\tB\x0b\xbaH\x08r\x06\x10\x01\x18\x80\x80\x01\x12&\n\x05score\x18\x03 \x01(\x01\x42\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00\xf0?)\x00\x00\x00\x00\x00\x00\x00\x00\x12\x17\n\x05pages\x18\x04 \x03(\x05\x42\x08\xbaH\x05\x92\x01\x02\x10\n\x12\x1d\n\x0cparagraph_id\x18\x05 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x12\x19\n\x08\x63hunk_id\x18\x06 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x32\xfc\x02\n\x11LLMGatewayService\x12G\n\x06Health\x12\x1d.llm_gateway.v1.HealthRequest\x1a\x1e.llm_gateway.v1.HealthResponse\x12_\n\x0eGenerateAnswer\x12%.llm_gateway.v1.GenerateAnswerRequest\x1a&.llm_gateway.v1.GenerateAnswerResponse\x12t\n\x15GenerateAnswerWithRAG\x12,.llm_gateway.v1.GenerateAnswerWithRAGRequest\x1a-.llm_gateway.v1.GenerateAnswerWithRAGResponse\x12G\n\x06Search\x12\x1d.llm_gateway.v1.SearchRequest\x1a\x1e.llm_gateway.v1.SearchResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -44,34 +44,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_HEALTHRESPONSE']._serialized_options = b'\272Hl\032j\n\013status_enum\022#status must be healthy or unhealthy\0326this.status == \'healthy\' || this.status == \'unhealthy\''
   _globals['_GENERATEANSWERREQUEST'].fields_by_name['question']._loaded_options = None
   _globals['_GENERATEANSWERREQUEST'].fields_by_name['question']._serialized_options = b'\272H\017r\r\020\001\030\200@2\006.*\\S.*'
-  _globals['_GENERATEANSWERREQUEST'].fields_by_name['system_prompt']._loaded_options = None
-  _globals['_GENERATEANSWERREQUEST'].fields_by_name['system_prompt']._serialized_options = b'\272H\005r\003\030\200 '
   _globals['_GENERATEANSWERREQUEST'].fields_by_name['max_tokens']._loaded_options = None
-  _globals['_GENERATEANSWERREQUEST'].fields_by_name['max_tokens']._serialized_options = b'\272H\007\032\005\030\200 (\001'
-  _globals['_GENERATEANSWERREQUEST'].fields_by_name['temperature']._loaded_options = None
-  _globals['_GENERATEANSWERREQUEST'].fields_by_name['temperature']._serialized_options = b'\272H\024\022\022\031\000\000\000\000\000\000\000@)\000\000\000\000\000\000\000\000'
+  _globals['_GENERATEANSWERREQUEST'].fields_by_name['max_tokens']._serialized_options = b'\272H\007\032\005\030\200 (@'
   _globals['_GENERATEANSWERRESPONSE'].fields_by_name['answer']._loaded_options = None
   _globals['_GENERATEANSWERRESPONSE'].fields_by_name['answer']._serialized_options = b'\272H\006r\004\030\200\200\002'
   _globals['_GENERATEANSWERRESPONSE'].fields_by_name['error']._loaded_options = None
   _globals['_GENERATEANSWERRESPONSE'].fields_by_name['error']._serialized_options = b'\272H\005r\003\030\200\020'
   _globals['_GENERATEANSWERRESPONSE'].fields_by_name['tokens_used']._loaded_options = None
   _globals['_GENERATEANSWERRESPONSE'].fields_by_name['tokens_used']._serialized_options = b'\272H\004\032\002(\000'
-  _globals['_GENERATEANSWERRESPONSE'].fields_by_name['generation_time']._loaded_options = None
-  _globals['_GENERATEANSWERRESPONSE'].fields_by_name['generation_time']._serialized_options = b'\272H\013\022\t)\000\000\000\000\000\000\000\000'
   _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['question']._loaded_options = None
   _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['question']._serialized_options = b'\272H\017r\r\020\001\030\200@2\006.*\\S.*'
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['collection_name']._loaded_options = None
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['collection_name']._serialized_options = b'\272H\031r\027\020\001\030\200\0012\020^[a-zA-Z0-9_-]+$'
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['system_prompt']._loaded_options = None
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['system_prompt']._serialized_options = b'\272H\005r\003\030\200 '
   _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['max_tokens']._loaded_options = None
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['max_tokens']._serialized_options = b'\272H\007\032\005\030\200 (\001'
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['temperature']._loaded_options = None
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['temperature']._serialized_options = b'\272H\024\022\022\031\000\000\000\000\000\000\000@)\000\000\000\000\000\000\000\000'
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['rag_top_k']._loaded_options = None
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['rag_top_k']._serialized_options = b'\272H\006\032\004\030\024(\001'
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['rag_score_threshold']._loaded_options = None
-  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['rag_score_threshold']._serialized_options = b'\272H\024\022\022\031\000\000\000\000\000\000\360?)\000\000\000\000\000\000\000\000'
+  _globals['_GENERATEANSWERWITHRAGREQUEST'].fields_by_name['max_tokens']._serialized_options = b'\272H\007\032\005\030\200 (@'
   _globals['_GENERATEANSWERWITHRAGRESPONSE'].fields_by_name['answer']._loaded_options = None
   _globals['_GENERATEANSWERWITHRAGRESPONSE'].fields_by_name['answer']._serialized_options = b'\272H\006r\004\030\200\200\002'
   _globals['_GENERATEANSWERWITHRAGRESPONSE'].fields_by_name['rag_context']._loaded_options = None
@@ -124,22 +108,22 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_HEALTHREQUEST']._serialized_end=107
   _globals['_HEALTHRESPONSE']._serialized_start=110
   _globals['_HEALTHRESPONSE']._serialized_end=364
-  _globals['_GENERATEANSWERREQUEST']._serialized_start=367
-  _globals['_GENERATEANSWERREQUEST']._serialized_end=555
-  _globals['_GENERATEANSWERRESPONSE']._serialized_start=558
-  _globals['_GENERATEANSWERRESPONSE']._serialized_end=722
-  _globals['_GENERATEANSWERWITHRAGREQUEST']._serialized_start=725
-  _globals['_GENERATEANSWERWITHRAGREQUEST']._serialized_end=1059
-  _globals['_GENERATEANSWERWITHRAGRESPONSE']._serialized_start=1062
-  _globals['_GENERATEANSWERWITHRAGRESPONSE']._serialized_end=1326
-  _globals['_RAGCONTEXT']._serialized_start=1329
-  _globals['_RAGCONTEXT']._serialized_end=1519
-  _globals['_SEARCHREQUEST']._serialized_start=1522
-  _globals['_SEARCHREQUEST']._serialized_end=1703
-  _globals['_SEARCHRESPONSE']._serialized_start=1705
-  _globals['_SEARCHRESPONSE']._serialized_end=1820
-  _globals['_SEARCHRESULT']._serialized_start=1823
-  _globals['_SEARCHRESULT']._serialized_end=2015
-  _globals['_LLMGATEWAYSERVICE']._serialized_start=2018
-  _globals['_LLMGATEWAYSERVICE']._serialized_end=2398
+  _globals['_GENERATEANSWERREQUEST']._serialized_start=366
+  _globals['_GENERATEANSWERREQUEST']._serialized_end=475
+  _globals['_GENERATEANSWERRESPONSE']._serialized_start=477
+  _globals['_GENERATEANSWERRESPONSE']._serialized_end=600
+  _globals['_GENERATEANSWERWITHRAGREQUEST']._serialized_start=602
+  _globals['_GENERATEANSWERWITHRAGREQUEST']._serialized_end=718
+  _globals['_GENERATEANSWERWITHRAGRESPONSE']._serialized_start=721
+  _globals['_GENERATEANSWERWITHRAGRESPONSE']._serialized_end=985
+  _globals['_RAGCONTEXT']._serialized_start=988
+  _globals['_RAGCONTEXT']._serialized_end=1178
+  _globals['_SEARCHREQUEST']._serialized_start=1181
+  _globals['_SEARCHREQUEST']._serialized_end=1362
+  _globals['_SEARCHRESPONSE']._serialized_start=1364
+  _globals['_SEARCHRESPONSE']._serialized_end=1479
+  _globals['_SEARCHRESULT']._serialized_start=1482
+  _globals['_SEARCHRESULT']._serialized_end=1674
+  _globals['_LLMGATEWAYSERVICE']._serialized_start=1677
+  _globals['_LLMGATEWAYSERVICE']._serialized_end=2057
 # @@protoc_insertion_point(module_scope)

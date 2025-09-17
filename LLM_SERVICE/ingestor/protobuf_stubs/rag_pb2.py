@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as third__party_dot_protovalidate_dot_buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\trag.proto\x12\x06rag.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"\xb4\x02\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\"\n\x0f\x65mbedder_status\x18\x04 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12 \n\rqdrant_status\x18\x05 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12%\n\x11\x65mbedder_model_id\x18\x06 \x01(\tB\n\xbaH\x07r\x05\x10\x00\x18\x80\x02\x12)\n\x0c\x65mbedder_dim\x18\x07 \x01(\x05\x42\x13\xbaH\x10\x1a\x0e\x18\x80 (\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01:o\xbaHl\x1aj\n\x0bstatus_enum\x12#status must be healthy or unhealthy\x1a\x36this.status == \'healthy\' || this.status == \'unhealthy\'\"i\n\rSearchRequest\x12!\n\x05query\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x35\n\x0f\x63ollection_name\x18\x02 \x01(\tB\x1c\xbaH\x19r\x17\x10\x01\x18\x80\x01\x32\x10^[a-zA-Z0-9_-]+$\"k\n\x0eSearchResponse\x12/\n\x07results\x18\x01 \x03(\x0b\x32\x14.rag.v1.SearchResultB\x08\xbaH\x05\x92\x01\x02\x10\x64\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\"\xbc\x01\n\x0cSearchResult\x12\x1a\n\x06\x64oc_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02\x12\x15\n\x04text\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\x12&\n\x05score\x18\x03 \x01(\x01\x42\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00\xf0?)\x00\x00\x00\x00\x00\x00\x00\x00\x12\x17\n\x05pages\x18\x04 \x03(\x05\x42\x08\xbaH\x05\x92\x01\x02\x10\n\x12\x1d\n\x0cparagraph_id\x18\x05 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x12\x19\n\x08\x63hunk_id\x18\x06 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00\x32~\n\nRAGService\x12\x37\n\x06Health\x12\x15.rag.v1.HealthRequest\x1a\x16.rag.v1.HealthResponse\x12\x37\n\x06Search\x12\x15.rag.v1.SearchRequest\x1a\x16.rag.v1.SearchResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\trag.proto\x12\x06rag.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"\xb4\x02\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\"\n\x0f\x65mbedder_status\x18\x04 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12 \n\rqdrant_status\x18\x05 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12%\n\x11\x65mbedder_model_id\x18\x06 \x01(\tB\n\xbaH\x07r\x05\x10\x00\x18\x80\x02\x12)\n\x0c\x65mbedder_dim\x18\x07 \x01(\x05\x42\x13\xbaH\x10\x1a\x0e\x18\x80 (\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01:o\xbaHl\x1aj\n\x0bstatus_enum\x12#status must be healthy or unhealthy\x1a\x36this.status == \'healthy\' || this.status == \'unhealthy\'\"i\n\rSearchRequest\x12!\n\x05query\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x35\n\x0f\x63ollection_name\x18\x02 \x01(\tB\x1c\xbaH\x19r\x17\x10\x01\x18\x80\x01\x32\x10^[a-zA-Z0-9_-]+$\"S\n\x0eSearchResponse\x12\x17\n\x06result\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\x32~\n\nRAGService\x12\x37\n\x06Health\x12\x15.rag.v1.HealthRequest\x1a\x16.rag.v1.HealthResponse\x12\x37\n\x06Search\x12\x15.rag.v1.SearchRequest\x1a\x16.rag.v1.SearchResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -48,22 +48,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SEARCHREQUEST'].fields_by_name['query']._serialized_options = b'\272H\017r\r\020\001\030\200@2\006.*\\S.*'
   _globals['_SEARCHREQUEST'].fields_by_name['collection_name']._loaded_options = None
   _globals['_SEARCHREQUEST'].fields_by_name['collection_name']._serialized_options = b'\272H\031r\027\020\001\030\200\0012\020^[a-zA-Z0-9_-]+$'
-  _globals['_SEARCHRESPONSE'].fields_by_name['results']._loaded_options = None
-  _globals['_SEARCHRESPONSE'].fields_by_name['results']._serialized_options = b'\272H\005\222\001\002\020d'
+  _globals['_SEARCHRESPONSE'].fields_by_name['result']._loaded_options = None
+  _globals['_SEARCHRESPONSE'].fields_by_name['result']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_SEARCHRESPONSE'].fields_by_name['error']._loaded_options = None
   _globals['_SEARCHRESPONSE'].fields_by_name['error']._serialized_options = b'\272H\005r\003\030\200\020'
-  _globals['_SEARCHRESULT'].fields_by_name['doc_id']._loaded_options = None
-  _globals['_SEARCHRESULT'].fields_by_name['doc_id']._serialized_options = b'\272H\007r\005\020\001\030\200\002'
-  _globals['_SEARCHRESULT'].fields_by_name['text']._loaded_options = None
-  _globals['_SEARCHRESULT'].fields_by_name['text']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_SEARCHRESULT'].fields_by_name['score']._loaded_options = None
-  _globals['_SEARCHRESULT'].fields_by_name['score']._serialized_options = b'\272H\024\022\022\031\000\000\000\000\000\000\360?)\000\000\000\000\000\000\000\000'
-  _globals['_SEARCHRESULT'].fields_by_name['pages']._loaded_options = None
-  _globals['_SEARCHRESULT'].fields_by_name['pages']._serialized_options = b'\272H\005\222\001\002\020\n'
-  _globals['_SEARCHRESULT'].fields_by_name['paragraph_id']._loaded_options = None
-  _globals['_SEARCHRESULT'].fields_by_name['paragraph_id']._serialized_options = b'\272H\004\032\002(\000'
-  _globals['_SEARCHRESULT'].fields_by_name['chunk_id']._loaded_options = None
-  _globals['_SEARCHRESULT'].fields_by_name['chunk_id']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_HEALTHREQUEST']._serialized_start=76
   _globals['_HEALTHREQUEST']._serialized_end=91
   _globals['_HEALTHRESPONSE']._serialized_start=94
@@ -71,9 +59,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SEARCHREQUEST']._serialized_start=404
   _globals['_SEARCHREQUEST']._serialized_end=509
   _globals['_SEARCHRESPONSE']._serialized_start=511
-  _globals['_SEARCHRESPONSE']._serialized_end=618
-  _globals['_SEARCHRESULT']._serialized_start=621
-  _globals['_SEARCHRESULT']._serialized_end=809
-  _globals['_RAGSERVICE']._serialized_start=811
-  _globals['_RAGSERVICE']._serialized_end=937
+  _globals['_SEARCHRESPONSE']._serialized_end=594
+  _globals['_RAGSERVICE']._serialized_start=596
+  _globals['_RAGSERVICE']._serialized_end=722
 # @@protoc_insertion_point(module_scope)

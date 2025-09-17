@@ -118,13 +118,21 @@ class EnvTools:
         logger.warning(f"service is running localy, loaded env/conf files manualy..")
 
         project_root = EnvTools._find_project_root()
+        
+        # Load global .env file first (highest priority)
         env_path = project_root / ".env"
         if env_path.exists():
-            EnvTools._load_variables_from_env_file(path=env_path)
+            EnvTools._load_variables_from_env_file(path=env_path, override=True)
+            logger.info(f"Loaded global .env from {env_path}")
 
+        # Load service-specific .conf file if exists (can override global settings)
         if service_name:
             conf_path = project_root / service_name / conf_filename
-            EnvTools._load_variables_from_env_file(path=conf_path)
+            if conf_path.exists():
+                EnvTools._load_variables_from_env_file(path=conf_path, override=True)
+                logger.info(f"Loaded service-specific .conf from {conf_path}")
+            else:
+                logger.info(f"No service-specific .conf found at {conf_path}, using global .env only")
 
         os.environ.setdefault("RUNNING_INSIDE_DOCKER", "0")
 

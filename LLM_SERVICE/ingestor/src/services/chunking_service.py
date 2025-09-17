@@ -13,7 +13,7 @@ import statistics as st
 
 from src.data_classes.data_classes import Block, Chunk
 from .text_normalize_service import TextNormalizeService
-from .parameters_validation_service import ParametersValidationService
+from .blocking_service import BlockingService
 from src.core.utils import EnvTools
 from src.core.logging import ChunkingLogger
 
@@ -30,13 +30,11 @@ class ChunkingService:
         self.character_overlap_between_chunks: int = int(EnvTools.required_load_env_var("CHUNK_OVERLAP_CHARS"))
 
         self.text_normalizer = TextNormalizeService()
-
-        ParametersValidationService.validate_chunking_parameters(
-            self.minimum_characters_per_chunk,
-            self.target_characters_per_chunk,
-            self.maximum_characters_per_chunk,
-            self.hard_limit_characters_per_chunk,
-            self.character_overlap_between_chunks
+        self.blocking_service = BlockingService(self.text_normalizer)
+        
+        # Create wrapper for text quality function to match expected signature
+        self._is_text_quality_acceptable_wrapper = lambda text, allow_short, is_math: self._is_text_quality_acceptable(
+            text, allow_short_text=allow_short, is_mathematical_formula=is_math
         )
 
 
@@ -251,91 +249,9 @@ class ChunkingService:
         return dict(min=minlen, target=target, max=maxlen, hard=self.hard_limit_characters_per_chunk)
 
 
-    @staticmethod
-    def _find_natural_text_breakpoints(text: str) -> List[int]:
-        """
-        Returns list of indices where text can be naturally split:
-        sentence endings, punctuation, spaces.
-        Example: "Hello. World!" -> [6, 13] (after period and exclamation)
-        """
-        breakpoint_positions: List[int] = []
-        for match in re.finditer(r"[.!?…](?:\)|»|\"|\"|')?\s", text):
-            breakpoint_positions.append(match.end())
-        for match in re.finditer(r"[;:](?:\)|»|\"|\"|')?\s", text):
-            breakpoint_positions.append(match.end())
-        for match in re.finditer(r"\s[-–—]\s", text):  # dash as logical separator
-            breakpoint_positions.append(match.start() + 1)  # cut before dash
-        for match in re.finditer(r"\s", text):
-            breakpoint_positions.append(match.end())
-        # remove duplicates and sort
-        unique_breakpoints = sorted(set(breakpoint_positions))
-        return [position for position in unique_breakpoints if 0 < position < len(text)]
 
 
 
-    def _split_text_at_natural_breakpoint(
-        self,
-        text_to_split: str,
-        preferred_length_limit: int,
-        absolute_length_limit: int,
-    ) -> Tuple[str, str]:
-        """
-        Softly splits text so first part is <= preferred_limit
-        (or slightly more if nearest natural breakpoint is further),
-        but never exceeds absolute_limit.
-        Returns (head, tail).
-        Example: "Hello world! How are you?" with limit=10 -> ("Hello world!", "How are you?")
-        """
-        if len(text_to_split) <= preferred_length_limit:
-            return text_to_split, ""
-
-        if len(text_to_split) > absolute_length_limit:
-            # Search for cut point in window [limit-80, limit+80]
-            search_window_start = max(0, preferred_length_limit - 80)
-            search_window_end = min(len(text_to_split), preferred_length_limit + 80)
-
-            candidate_breakpoints = [position for position in self._find_natural_text_breakpoints(text_to_split[search_window_start:search_window_end])]
-            if candidate_breakpoints:
-                cut_position = search_window_start + self._find_closest_value_to_target(candidate_breakpoints, preferred_length_limit - search_window_start)
-                cut_position = min(cut_position, absolute_length_limit)
-                return text_to_split[:cut_position].rstrip(), text_to_split[cut_position:].lstrip()
-
-            # If not found — hard cut
-            return text_to_split[:absolute_length_limit].rstrip(), text_to_split[absolute_length_limit:].lstrip()
-
-        # len(text) in (limit, hard_limit]
-        # Search for nearest natural breakpoint in window [limit-60, len]
-        search_window_start = max(0, preferred_length_limit - 60)
-        candidate_breakpoints = [position for position in self._find_natural_text_breakpoints(text_to_split[search_window_start:])]
-        if candidate_breakpoints:
-            cut_position = search_window_start + self._find_closest_value_to_target(candidate_breakpoints, preferred_length_limit - search_window_start)
-            cut_position = min(cut_position, absolute_length_limit)
-            return text_to_split[:cut_position].rstrip(), text_to_split[cut_position:].lstrip()
-
-        # Not found — leave as is (within hard_limit)
-        return text_to_split[:min(len(text_to_split), absolute_length_limit)].rstrip(), text_to_split[min(len(text_to_split), absolute_length_limit):].lstrip()
-
-
-
-    @staticmethod
-    def _find_closest_value_to_target(
-        values_array: Sequence[int],
-        target_value: int
-    ) -> int:
-        """
-        Returns element from array closest to target value.
-        Example: [10, 20, 30], target=25 -> 20 (closest)
-        """
-        if not values_array:
-            return 0
-        # binary search not critical, array is small; simple heuristic
-        best_value = values_array[0]
-        best_distance = abs(best_value - target_value)
-        for current_value in values_array[1:]:
-            current_distance = abs(current_value - target_value)
-            if current_distance < best_distance:
-                best_value, best_distance = current_value, current_distance
-        return best_value
 
 
     def _iterate_sentences_from_block(
@@ -463,7 +379,7 @@ class ChunkingService:
                     page_numbers_set.add(block_page_number)
                     continue
 
-                head_part, tail_part = self._split_text_at_natural_breakpoint(remaining_text, preferred_length_limit=available_space, absolute_length_limit=min(hard_limit_characters, maximum_characters))
+                head_part, tail_part = self.blocking_service._split_text_at_natural_breakpoint(remaining_text, preferred_length_limit=available_space, absolute_length_limit=min(hard_limit_characters, maximum_characters))
                 if head_part:
                     text_buffer.append(head_part)
                     buffer_character_count += len(head_part) + (1 if text_buffer else 0)
@@ -472,101 +388,42 @@ class ChunkingService:
                 page_numbers_set.add(block_page_number)
                 remaining_text = tail_part
 
-        # 2) Block iteration and chunk assembly
+        # 2) Block iteration and chunk assembly using BlockingService
+        buffer_state = {
+            "text_buffer": text_buffer,
+            "character_count": buffer_character_count,
+            "page_numbers": page_numbers_set
+        }
+        
+        window_config = {
+            "min": minimum_characters,
+            "target": target_characters,
+            "max": maximum_characters,
+            "hard": hard_limit_characters
+        }
+        
         for current_block in document_blocks:
-            # Headings: treat as context for next text (short)
             if current_block.kind == "heading":
-                # If current buffer is already sufficient — flush to avoid "stuffing" with heading
-                if buffer_character_count >= minimum_characters:
-                    _flush_current_buffer_to_chunk()
-                _ensure_parent_context_exists("heading+next", {"heading": current_block.text})
-                page_numbers_set.add(current_block.page)
-                # Heading might be too long: cut softly
-                heading_head_part, heading_tail_part = self._split_text_at_natural_breakpoint(current_block.text.strip(), preferred_length_limit=target_characters, absolute_length_limit=maximum_characters)
-                if heading_head_part:
-                    _add_text_piece_to_buffer(heading_head_part, current_block.page, "heading+next")
-                if heading_tail_part:
-                    # heading remainder — rare case; put it as separate chunk
-                    _flush_current_buffer_to_chunk()
-                    _ensure_parent_context_exists("heading+next", {"heading_tail": True})
-                    page_numbers_set.add(current_block.page)
-                    _add_text_piece_to_buffer(heading_tail_part, current_block.page, "heading+next")
-                continue
-
-            # Formulas / answers / table rows — atomic, but if > HARD — cut softly
-            if current_block.kind in ("table_row", "answer", "formula"):
-                if buffer_character_count >= minimum_characters:
-                    _flush_current_buffer_to_chunk()
-                block_text_content = current_block.text.strip()
-                if not self._is_text_quality_acceptable(block_text_content, allow_short_text=True, is_mathematical_formula=(current_block.kind == "formula")):
-                    continue
-                _ensure_parent_context_exists(current_block.kind, {**current_block.meta})
-                page_numbers_set.add(current_block.page)
-                # If short — as one piece
-                if len(block_text_content) <= maximum_characters:
-                    _add_text_piece_to_buffer(block_text_content, current_block.page, current_block.kind)
-                    _flush_current_buffer_to_chunk()
-                else:
-                    # Cut by characters into several compact chunks
-                    remaining_formula_text = block_text_content
-                    while remaining_formula_text:
-                        formula_head_part, formula_tail_part = self._split_text_at_natural_breakpoint(remaining_formula_text, preferred_length_limit=target_characters, absolute_length_limit=maximum_characters)
-                        _add_text_piece_to_buffer(formula_head_part, current_block.page, current_block.kind)
-                        _flush_current_buffer_to_chunk()
-                        remaining_formula_text = formula_tail_part
-                continue
-
-            # Regular paragraphs/lists — main text mass
-            if current_block.kind in ("paragraph", "list"):
-                _ensure_parent_context_exists(current_block.kind, {})
-                page_numbers_set.add(current_block.page)
-
-                # Split into sentences; each sentence cut if necessary
-                for sentence_text in self._iterate_sentences_from_block(current_block):
-                    if not self._is_text_quality_acceptable(sentence_text):
-                        continue
-                    sentence_text = sentence_text.strip()
-                    if not sentence_text:
-                        continue
-
-                    # If sentence is longer than can fit in empty chunk — cut into parts.
-                    remaining_sentence_text = sentence_text
-                    while remaining_sentence_text:
-                        available_space_in_buffer = target_characters - buffer_character_count if text_buffer else target_characters
-                        if available_space_in_buffer < 40 and buffer_character_count >= minimum_characters:
-                            # Good chunk formed — flush and continue
-                            _flush_current_buffer_to_chunk()
-                            _ensure_parent_context_exists(current_block.kind, {})
-                            page_numbers_set.add(current_block.page)
-                            available_space_in_buffer = target_characters
-
-                        if len(remaining_sentence_text) <= max(1, maximum_characters - buffer_character_count):
-                            # Fits
-                            text_buffer.append(remaining_sentence_text)
-                            buffer_character_count += len(remaining_sentence_text) + (1 if text_buffer else 0)
-                            break
-
-                        # Doesn't fit — separate piece for current chunk and flush
-                        sentence_head_part, sentence_tail_part = self._split_text_at_natural_breakpoint(
-                            remaining_sentence_text,
-                            preferred_length_limit=max(120, min(available_space_in_buffer, target_characters)),
-                            absolute_length_limit=min(hard_limit_characters, maximum_characters),
-                        )
-                        if sentence_head_part:
-                            text_buffer.append(sentence_head_part)
-                            buffer_character_count += len(sentence_head_part) + (1 if text_buffer else 0)
-                        _flush_current_buffer_to_chunk()
-                        _ensure_parent_context_exists(current_block.kind, {})
-                        page_numbers_set.add(current_block.page)
-                        remaining_sentence_text = sentence_tail_part
-                continue
-
-            # Table title — add to metadata of nearest chunk
-            if current_block.kind == "table_title":
-                _ensure_parent_context_exists("heading+next", {"table_title": current_block.text})
-                page_numbers_set.add(current_block.page)
-                # Table titles usually short; don't force flush
-                continue
+                self.blocking_service.process_heading_block(
+                    current_block, buffer_state, window_config,
+                    _flush_current_buffer_to_chunk, _ensure_parent_context_exists, _add_text_piece_to_buffer
+                )
+            elif current_block.kind in ("table_row", "answer", "formula"):
+                self.blocking_service.process_atomic_block(
+                    current_block, buffer_state, window_config,
+                    _flush_current_buffer_to_chunk, _ensure_parent_context_exists, _add_text_piece_to_buffer,
+                    self._is_text_quality_acceptable_wrapper
+                )
+            elif current_block.kind in ("paragraph", "list"):
+                self.blocking_service.process_text_block(
+                    current_block, buffer_state, window_config,
+                    _flush_current_buffer_to_chunk, _ensure_parent_context_exists, _add_text_piece_to_buffer,
+                    self._iterate_sentences_from_block, self._is_text_quality_acceptable_wrapper
+                )
+            elif current_block.kind == "table_title":
+                self.blocking_service.process_table_title_block(
+                    current_block, buffer_state, _ensure_parent_context_exists
+                )
 
         # Final flush (if something left in buffer)
         if buffer_character_count > 0:

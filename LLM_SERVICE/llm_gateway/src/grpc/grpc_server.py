@@ -9,17 +9,17 @@ import colorama
 import grpc
 from loguru import logger
 
-from protobuf_stubs import embedder_pb2_grpc
+from protobuf_stubs import llm_gateway_pb2_grpc
 from src.core.utils import EnvTools
-from src.services.embedder_service import EmbedderService
+from src.services.llm_gateway_service import LLMGatewayService
 
 
 class GRPCServerRunner:
     def __init__(self) -> None:
-        self._servicer = EmbedderService()
-        self._max_workers = int(EnvTools.required_load_env_var("EMBEDDER_MAX_CONCURRENCY"))
-        self._host: str = EnvTools.get_service_host("embedder")
-        self._port: int = int(EnvTools.get_service_grpc_port("embedder"))
+        self._llm_gateway_servicer = LLMGatewayService()
+        self._max_workers = int(EnvTools.required_load_env_var("LLM_GATEWAY_MAX_CONCURRENCY"))
+        self._host: str = EnvTools.get_service_host("llm_gateway")
+        self._port: int = int(EnvTools.get_service_grpc_port("llm_gateway"))
         self._addr = f"{self._host}:{self._port}"
 
         self._GRPC_OPTIONS = (
@@ -35,7 +35,7 @@ class GRPCServerRunner:
             options=self._GRPC_OPTIONS,
         )
 
-        embedder_pb2_grpc.add_EmbedderServiceServicer_to_server(self._servicer, self._server)
+        llm_gateway_pb2_grpc.add_LLMGatewayServiceServicer_to_server(self._llm_gateway_servicer, self._server)
         self._server.add_insecure_port(self._addr)
 
         self._thread: threading.Thread | None = None
@@ -48,7 +48,7 @@ class GRPCServerRunner:
         self._started.set()
 
         logger.info(
-            f"{colorama.Fore.GREEN}gRPC embedder started at "
+            f"{colorama.Fore.GREEN}gRPC LLM Gateway started at "
             f"{colorama.Fore.YELLOW}{self._addr}{colorama.Style.RESET_ALL}"
         )
 
@@ -62,7 +62,7 @@ class GRPCServerRunner:
 
         self._thread = threading.Thread(
             target=self._serve_blocking,
-            name="gRPC-Embedder",
+            name="gRPC-LLM-Gateway",
             daemon=True)
         self._thread.start()
         loop = asyncio.get_running_loop()
@@ -79,7 +79,7 @@ class GRPCServerRunner:
         if not self._thread:
             return
 
-        logger.info(f"{colorama.Fore.YELLOW}Stopping gRPC embedder{colorama.Style.RESET_ALL}")
+        logger.info(f"{colorama.Fore.YELLOW}Stopping gRPC LLM Gateway{colorama.Style.RESET_ALL}")
 
         fut = self._server.stop(grace=5.0)
         loop = asyncio.get_running_loop()
@@ -88,6 +88,6 @@ class GRPCServerRunner:
         if self._thread.is_alive():
             self._thread.join(timeout=10)
 
-        logger.info(f"{colorama.Fore.GREEN}gRPC embedder stopped{colorama.Style.RESET_ALL}")
+        logger.info(f"{colorama.Fore.GREEN}gRPC LLM Gateway stopped{colorama.Style.RESET_ALL}")
 
 

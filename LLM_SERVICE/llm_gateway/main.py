@@ -27,7 +27,7 @@ class Service:
 
         await self.grpc_runner.start()
 
-        waiter = asyncio.create_task(self.grpc_runner.wait_terminated(), name="gRPC-Embedder")
+        waiter = asyncio.create_task(self.grpc_runner.wait_terminated(), name="gRPC-LLM-Gateway")
         pending = {waiter, stop_future}
 
         try:

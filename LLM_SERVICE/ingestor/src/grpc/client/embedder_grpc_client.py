@@ -18,6 +18,7 @@ class EmbedderGrpcClient:
         self.service_name: str = service_name
         self.stub = embedder_pb2_grpc.EmbedderServiceStub(self.channel)
         self.batch_size: int  = int(EnvTools.required_load_env_var("EMBEDDER_EMBED_BATCH_MAX_SIZE"))
+        self.embed_dims: int  = int(EnvTools.required_load_env_var("EMBEDDER_DIMENSIONS"))
 
 
     async def health_check(self) -> Dict[str, Any]:
@@ -73,7 +74,7 @@ class EmbedderGrpcClient:
                 valid_texts.append(text)
             else:
                 failed_results.append({
-                    "vector": [0.0] * 768,
+                    "vector": [0.0] * self.embed_dims,
                     "success": False,
                     "error": "Text too short or empty"
                 })

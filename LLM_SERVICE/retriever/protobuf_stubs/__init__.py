@@ -1,4 +1,4 @@
-"""Auto-generated protobuf stubs. 2025-09-16 22:58:40.117918"""
+"""Auto-generated protobuf stubs. 2025-09-16 22:58:40.176966"""
 
 from .embedder_pb2 import *
 from .llm_gateway_pb2 import *

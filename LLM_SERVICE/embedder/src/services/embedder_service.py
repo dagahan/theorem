@@ -144,7 +144,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
 
             assert self.embedder_model is not None
             model: SentenceTransformer = self.embedder_model
-            bs = max(1, min(self.embed_batch_size, len(texts)))
+            batch_size = max(1, min(self.embed_batch_size, len(texts)))
             use_amp = torch.cuda.is_available()
 
             while True:
@@ -152,7 +152,7 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
                     with torch.inference_mode(), (torch.cuda.amp.autocast() if use_amp else torch.cpu.amp.autocast(enabled=False)):
                         vectors = model.encode(
                             texts,
-                            batch_size=bs,
+                            batch_size=batch_size,
                             convert_to_numpy=True,
                             normalize_embeddings=request.normalize,
                             show_progress_bar=False,
@@ -161,8 +161,8 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
 
                 except torch.cuda.OutOfMemoryError:
                     torch.cuda.empty_cache()
-                    if bs > 1:
-                        bs = max(1, bs // 2)
+                    if batch_size > 1:
+                        batch_size = max(1, batch_size // 2)
                         continue
 
                     # батч уже 1 — фолбэк на CPU

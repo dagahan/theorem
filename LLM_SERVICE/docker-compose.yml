@@ -10,7 +10,6 @@ services:
     container_name: qdrant-${COMPOSE_PROJECT_NAME}
     env_file: 
       - .env
-      - ./qdrant/.conf
     environment:
       RUNNING_INSIDE_DOCKER: 1
       COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
