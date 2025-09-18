@@ -13,16 +13,12 @@ from protobuf_stubs import llm_gateway_pb2_grpc
 from src.core.utils import EnvTools
 from src.grpc.api.llm_gateway_api import LLMGatewayAPI
 from src.services.orchestrator import LLMGraphOrchestrator
-from src.adapters.vllm_adapter import VLLMAdapter
-from src.adapters.retriever_adapter import RetrieverAdapter
 
 
 class GRPCServerRunner:
     def __init__(self) -> None:
-        vllm_adapter = VLLMAdapter()
-        retriever_adapter = RetrieverAdapter()
         
-        orchestrator = LLMGraphOrchestrator(vllm_adapter, retriever_adapter)
+        orchestrator = LLMGraphOrchestrator()
         
         self._servicer = LLMGatewayAPI(orchestrator)
         self._max_workers = int(EnvTools.required_load_env_var("LLM_GATEWAY_MAX_CONCURRENCY"))

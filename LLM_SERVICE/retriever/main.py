@@ -35,7 +35,7 @@ class Service:
 
         await self.grpc_runner.start()
 
-        waiter = asyncio.create_task(self.grpc_runner.wait_terminated(), name="gRPC-RAG")
+        waiter = asyncio.create_task(self.grpc_runner.wait_terminated(), name="gRPC-Retriever")
 
         pending: set[asyncio.Future] = {waiter, stop_future}
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # loading env variables process for local run of microservice.
     try:
         EnvTools.bootstrap_env(
-            service_name="rag",
+            service_name="retriever",
             conf_filename=".conf"
         )
 

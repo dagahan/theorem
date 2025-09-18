@@ -68,15 +68,15 @@ class VLLMAdapter:
 
 
     def _build_prompt(self, question: str, context: str) -> str:
-        return f"""Ты — эксперт по математике ЕГЭ. Используй предоставленный контекст для ответа на вопрос.
+        return f"""You are an expert in Unified State Exam (EGE) mathematics. Use the provided context to answer the question.
 
 
-Контекст:
+Context:
 {context}
 
-Вопрос: {question}
+Question: {question}
 
-Ответь подробно и точно, используя информацию из контекста."""
+Answer in detail and accurately, using information from the context."""
 
 
 

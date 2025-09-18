@@ -2,6 +2,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 from enum import Enum
+from typing_extensions import TypedDict
+from typing import Dict, Any, List
 
 
 class ServiceStatus(Enum):
@@ -96,5 +98,33 @@ class QuestionResponse:
     answer: str                        # LLM generated answer
     success: bool                       # Whether the generation was successful
     error: Optional[str] = None        # Error message if generation failed
+
+
+
+class GraphState(TypedDict, total=False):
+    question_id: str
+    started_at_ms: float
+    timings_ms: Dict[str, float]
+    collection_name: str
+    max_context_chars: int
+    min_results_required: int
+    request: QuestionRequest
+    normalized_question: str
+    retrieval_success: bool
+    retrieval_error: str
+    context_chunks: List[Any]
+    context_text: str
+    llm_answer: str
+    llm_success: bool
+    llm_error: str
+    success: bool
+    error: str
+
+
+class NodeResult(TypedDict, total=False):
+    success: bool
+    error: str
+    data: Dict[str, Any]
+
 
 

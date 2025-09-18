@@ -18,8 +18,8 @@ class GRPCServerRunner:
     def __init__(self) -> None:
         self._servicer = RetrieverService()
         self._max_workers = 4
-        self._host: str = EnvTools.get_service_host("rag")
-        self._port: int = int(EnvTools.get_service_grpc_port("rag"))
+        self._host: str = EnvTools.get_service_host("retriever")
+        self._port: int = int(EnvTools.get_service_grpc_port("retriever"))
         self._addr = f"{self._host}:{self._port}"
 
         self._GRPC_OPTIONS = (
@@ -48,7 +48,7 @@ class GRPCServerRunner:
         self._started.set()
 
         logger.info(
-            f"{colorama.Fore.GREEN}gRPC RAG started at "
+            f"{colorama.Fore.GREEN}gRPC Retriever started at "
             f"{colorama.Fore.YELLOW}{self._addr}{colorama.Style.RESET_ALL}"
         )
 
@@ -62,7 +62,7 @@ class GRPCServerRunner:
 
         self._thread = threading.Thread(
             target=self._serve_blocking,
-            name="gRPC-RAG",
+            name="gRPC-Retriever",
             daemon=True)
         self._thread.start()
         loop = asyncio.get_running_loop()
@@ -79,7 +79,7 @@ class GRPCServerRunner:
         if not self._thread:
             return
 
-        logger.info(f"{colorama.Fore.YELLOW}Stopping gRPC RAG{colorama.Style.RESET_ALL}")
+        logger.info(f"{colorama.Fore.YELLOW}Stopping gRPC Retriever{colorama.Style.RESET_ALL}")
 
         fut = self._server.stop(grace=5.0)
         loop = asyncio.get_running_loop()
@@ -88,6 +88,6 @@ class GRPCServerRunner:
         if self._thread.is_alive():
             self._thread.join(timeout=10)
 
-        logger.info(f"{colorama.Fore.GREEN}gRPC RAG stopped{colorama.Style.RESET_ALL}")
+        logger.info(f"{colorama.Fore.GREEN}gRPC Retriever stopped{colorama.Style.RESET_ALL}")
 
 

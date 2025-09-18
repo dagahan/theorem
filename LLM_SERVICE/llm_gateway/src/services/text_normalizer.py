@@ -3,13 +3,13 @@ import re
 from typing import Final
 
 
-class TextNormalizeService:
+class TextNormalizer:
     def __init__(self) -> None:
         self._whitespace_pattern: Final[re.Pattern[str]] = re.compile(r'\s+')
         self._punctuation_pattern: Final[re.Pattern[str]] = re.compile(r'[^\w\s\u0400-\u04FF]')
     
 
-    def normalize_query_text(self, text: str) -> str:
+    def normalize_question_text(self, text: str) -> str:
         if not text:
             return ""
         

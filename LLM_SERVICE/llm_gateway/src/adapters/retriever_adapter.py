@@ -7,8 +7,8 @@ from protobuf_stubs import retriever_pb2, retriever_pb2_grpc
 
 class RetrieverAdapter:
     def __init__(self) -> None:
-        self.host = EnvTools.get_service_host("rag")
-        self.port = EnvTools.get_service_grpc_port("rag")
+        self.host = EnvTools.get_service_host("retriever")
+        self.port = EnvTools.get_service_grpc_port("retriever")
         self.channel = grpc.insecure_channel(f"{self.host}:{self.port}")
         self.client = retriever_pb2_grpc.RetrieverServiceStub(self.channel)
 

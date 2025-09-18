@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import threading
 from typing import Any, Dict, TYPE_CHECKING, Callable, Coroutine
 from loguru import logger
 
 if TYPE_CHECKING:
     import grpc  # type: ignore
-    from src.domain.models import RetrieveResult
 
 from protobuf_stubs import retriever_pb2, retriever_pb2_grpc
 from src.grpc.grpc_utils import GrpcTools
@@ -22,7 +20,7 @@ grpc_tools = GrpcTools()
 class RetrieverService(retriever_pb2_grpc.RetrieverServiceServicer):  # type: ignore[misc]
     def __init__(self) -> None:
         self._loop = asyncio.new_event_loop()
-        threading.Thread(target=self._loop_forever, args=(self._loop,), name="rag-async-loop", daemon=True).start()
+        threading.Thread(target=self._loop_forever, args=(self._loop,), name="retriever-async-loop", daemon=True).start()
         self._run: Callable[[Coroutine[Any, Any, Any]], Any] = lambda coro: asyncio.run_coroutine_threadsafe(coro, self._loop).result()
         self.retrieve_orchestrator = RetrieveOrchestrator()
         self.health_checker = HealthService()
