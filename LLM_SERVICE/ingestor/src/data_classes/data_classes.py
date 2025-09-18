@@ -100,15 +100,13 @@ class Chunk:
     Contains processed text with metadata for search and retrieval.
     
     Example: Chunk(id="uuid-123", text="To solve this quadratic equation, we use the discriminant formula...",
-                    tokens_est=45, parent_type="paragraph", pages=[1, 2], 
-                    parent_page_anchor=1, meta={"section_id": 3, "quality_score": 0.85})
+                    parent_type="paragraph", pages=[1, 2], 
+                    meta={"section_id": 3, "quality_score": 0.85})
     """
     id: str                        # Unique identifier for the chunk
     text: str                      # The processed text content
-    tokens_est: int                # Estimated token count for the text
     parent_type: str              # Type of parent block: "paragraph", "task", "answer", "formula", "heading"
     pages: List[int]              # List of page numbers where this chunk appears
-    parent_page_anchor: int | None # Primary page number for this chunk
     meta: Dict[str, Any]          # Additional metadata (quality scores, section info, etc.)
 
 
@@ -124,7 +122,7 @@ class EmbeddedChunk:
     chunk_id: str                    # Unique identifier for the chunk
     text: str                        # The text content of the chunk
     vector: List[float]              # Vector embedding of the text
-    metadata: Dict[str, Any]          # Chunk metadata (quality scores, parent info, etc.)
+    meta: Dict[str, Any]          # Chunk metadata (quality scores, parent info, etc.)
     
     @property
     def success(self) -> bool:
@@ -163,7 +161,7 @@ class PdfFile:
     filename: str                  # Original filename of the PDF
     content_type: str             # MIME type (should be "application/pdf")
     content: bytes                 # Raw PDF file content
-    metadata: Dict[str, Any]       # Additional metadata (source, year, collection info, etc.)
+    meta: Dict[str, Any]       # Additional metadata (source, year, collection info, etc.)
     
     def __post_init__(self) -> None:
         if not self.content_type.startswith("application/pdf"):
@@ -182,7 +180,7 @@ class PdfFile:
         return IdService.make_id_by_filename({
             "filename": self.filename,
             "content_type": self.content_type,
-            **self.metadata
+            **self.meta
         })
 
 

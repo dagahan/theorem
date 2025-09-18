@@ -122,11 +122,10 @@ class EmbedderGrpcClient:
                     chunk_id=chunk.id,
                     text=chunk.text,
                     vector=embedding["vector"],
-                    metadata={
+                    meta={
                         **chunk.meta,
                         "parent_type": chunk.parent_type,
                         "pages": chunk.pages,
-                        "parent_page_anchor": chunk.parent_page_anchor
                     }
                 )
                 result.append(embedded_chunk)
@@ -136,11 +135,10 @@ class EmbedderGrpcClient:
                     chunk_id=chunk.id,
                     text=chunk.text,
                     vector=[],
-                    metadata={
+                    meta={
                         **chunk.meta,
                         "parent_type": chunk.parent_type,
                         "pages": chunk.pages,
-                        "parent_page_anchor": chunk.parent_page_anchor,
                         "error": embedding.get("error", "Unknown embedding error")
                     }
                 )

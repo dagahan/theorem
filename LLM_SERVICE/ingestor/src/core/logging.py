@@ -78,8 +78,6 @@ class ChunkingLogger:
                         "paragraph_id": chunk.get("paragraph_id", ""),
                         "text_length": len(chunk["text"]),
                         "text_preview": chunk["text"][:200] + "..." if len(chunk["text"]) > 200 else chunk["text"],
-                        "tokens_est": chunk.get("tokens_est", 0),
-                        "parent_type": chunk.get("parent_type", ""),
                         "pages": chunk.get("pages", [])
                     }
                     for chunk in chunks

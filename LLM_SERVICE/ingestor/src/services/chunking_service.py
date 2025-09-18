@@ -84,10 +84,8 @@ class ChunkingService:
                     merged_chunk = Chunk(
                         id=str(uuid.uuid4()),
                         text=merged_text,
-                        tokens_est=self._estimate_token_count(merged_text),
                         parent_type=nxt.parent_type,
                         pages=merged_pages,
-                        parent_page_anchor=min(merged_pages) if merged_pages else 1,
                         meta=nxt.meta
                     )
                     out.append(merged_chunk)
@@ -99,10 +97,8 @@ class ChunkingService:
                 updated_chunk = Chunk(
                     id=cur.id,
                     text=cur.text,
-                    tokens_est=cur.tokens_est,
                     parent_type=cur_dict["parent_type"],
                     pages=cur.pages,
-                    parent_page_anchor=cur.parent_page_anchor,
                     meta=cur.meta
                 )
                 out.append(updated_chunk)
@@ -318,10 +314,8 @@ class ChunkingService:
             chunk_object = Chunk(
                 id=str(uuid.uuid4()),
                 text=normalized_text,
-                tokens_est=self._estimate_token_count(normalized_text),
                 parent_type=parent_type,
                 pages=page_numbers_list,
-                parent_page_anchor=min(page_numbers_list) if page_numbers_list else 1,
                 meta={**((current_parent_context or {}).get("meta", {})), **document_metadata},
             )
             
@@ -477,24 +471,13 @@ class ChunkingService:
                 updated_chunk = Chunk(
                     id=chunk.id,
                     text=chunk.text,
-                    tokens_est=chunk.tokens_est,
                     parent_type=chunk.parent_type,
                     pages=[1],
-                    parent_page_anchor=1,
                     meta=chunk.meta
                 )
+
                 final_chunks.append(updated_chunk)
-            elif chunk.parent_page_anchor is None:
-                updated_chunk = Chunk(
-                    id=chunk.id,
-                    text=chunk.text,
-                    tokens_est=chunk.tokens_est,
-                    parent_type=chunk.parent_type,
-                    pages=chunk.pages,
-                    parent_page_anchor=min(chunk.pages),
-                    meta=chunk.meta
-                )
-                final_chunks.append(updated_chunk)
+
             else:
                 final_chunks.append(chunk)
 
@@ -518,34 +501,24 @@ class ChunkingService:
             # Calculate quality metrics
             alpha_count = sum(1 for ch in chunk.text if ch.isalpha())
             alpha_ratio = alpha_count / max(1, len(chunk.text))
-            has_cid = bool(cid_re.search(chunk.text))
-            has_ellipsis = "ELLIPSIS" in chunk.text
-            has_ocr_spacing = bool(ocr_spacing_re.search(chunk.text))
             
             quality_score = 1.0
             if alpha_ratio < 0.4: quality_score -= 0.3
-            if has_cid: quality_score -= 0.4
-            if has_ellipsis: quality_score -= 0.3
-            if has_ocr_spacing: quality_score -= 0.2
             if len(chunk.text) < 200: quality_score -= 0.2
             
             # Create updated chunk with quality metrics
             updated_chunk = Chunk(
                 id=chunk.id,
                 text=chunk.text,
-                tokens_est=chunk.tokens_est,
                 parent_type=chunk.parent_type,
                 pages=chunk.pages,
-                parent_page_anchor=chunk.parent_page_anchor,
                 meta={
                     **chunk.meta,
                     "quality_score": max(0.0, quality_score),
                     "alpha_ratio": alpha_ratio,
-                    "has_cid": has_cid,
-                    "has_ellipsis": has_ellipsis,
-                    "has_ocr_spacing": has_ocr_spacing
                 }
             )
+
             processed_chunks.append(updated_chunk)
 
         return processed_chunks
@@ -595,13 +568,13 @@ class ChunkingService:
                 modified_chunk = Chunk(
                     id=current_chunk.id,
                     text=text_with_overlap,
-                    tokens_est=self._estimate_token_count(text_with_overlap),
                     parent_type=current_chunk.parent_type,
                     pages=current_chunk.pages,
-                    parent_page_anchor=current_chunk.parent_page_anchor,
                     meta=current_chunk.meta
                 )
+
                 chunks_with_overlap.append(modified_chunk)
+
             else:
                 chunks_with_overlap.append(current_chunk)
 

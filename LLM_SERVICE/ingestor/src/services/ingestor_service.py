@@ -61,7 +61,7 @@ class IngestorService:
                     filename=file.filename,
                     content_type=file.content_type or "application/pdf",
                     content=content,
-                    metadata={**metadata, "filename": file.filename}
+                    meta={**metadata}
                 )
                 
                 await self.ingest_file(
@@ -97,7 +97,7 @@ class IngestorService:
         """
         Processes a PDF file through the complete ingestion pipeline with automatic rollback.
         """
-        doc_id: str = IdService.make_id_by_filename(pdf_file.metadata)
+        doc_id: str = IdService.make_id_by_filename(pdf_file.meta)
 
         await self.vector_store_service.ensure_collection_exists(collection_name)
 
@@ -117,7 +117,7 @@ class IngestorService:
 
         chunks: List["Chunk"] = self.chunking_service.chunk_blocks(
             doc_id, blocks,
-            pdf_file.metadata
+            pdf_file.meta
         )
 
         embedded_chunks: List["EmbeddedChunk"] = await self.embedder_grpc_client.embed_chunks(chunks)
@@ -125,7 +125,7 @@ class IngestorService:
         point_structs: List[qm.PointStruct] = self.vector_store_service.build_point_structs_from_embedded_chunks(
             embedded_chunks,
             doc_id,
-            pdf_file.metadata
+            pdf_file.meta
         )
 
         await execute_atomic_step(
@@ -227,6 +227,7 @@ class IngestorService:
                     "status": result["status"],
                     "error": result.get("error")
                 })
+                
             except Exception as ex:
                 logger.error(f"Failed to delete document {doc_id}: {ex}")
                 results.append({

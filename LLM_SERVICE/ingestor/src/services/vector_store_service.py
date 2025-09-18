@@ -57,7 +57,7 @@ class VectorStoreService:
                     "chunk_id": i + 1,
                     "text": embedded_chunk.text,
                     **pdf_metadata,
-                    **embedded_chunk.metadata
+                    **embedded_chunk.meta
                 }
             )
 

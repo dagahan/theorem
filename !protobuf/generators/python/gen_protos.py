@@ -24,14 +24,15 @@ from pathlib import Path
 
 # ---------- PATHS ----------
 SCRIPT_DIR = Path(__file__).resolve().parent
-BUF_DIR = SCRIPT_DIR.parent
+PYTHON_GEN_DIR = SCRIPT_DIR
+BUF_DIR = PYTHON_GEN_DIR.parent.parent
 ROOT = BUF_DIR.parent
 
-PROTOS_DIR = BUF_DIR / "protos"
-BUILD_DIR = BUF_DIR / ".build" / "python"  # temporary folder with compilation results
-VENV_DIR = BUF_DIR / ".venv"
+PROTOS_DIR = BUF_DIR / "contracts" / "llm_service"
+BUILD_DIR = PYTHON_GEN_DIR / ".build"  # temporary folder with compilation results
+VENV_DIR = PYTHON_GEN_DIR / ".venv"
 
-DISTRIBUTOR = SCRIPT_DIR / "distribute_stubs.sh"
+DISTRIBUTOR = PYTHON_GEN_DIR / "distribute_stubs.sh"
 
 
 # ---------- LOGGING UTILITIES ----------
@@ -70,7 +71,7 @@ def ensure_uv_environment() -> Path:
     subprocess.run([
         "uv", "pip", "install", 
         "--python", str(python_bin),
-        "-e", str(BUF_DIR)
+        "-e", str(PYTHON_GEN_DIR)
     ], check=True)
     
     return python_bin

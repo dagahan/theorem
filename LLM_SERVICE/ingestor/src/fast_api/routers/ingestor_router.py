@@ -40,10 +40,17 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
             
             parsed_metadata: Dict[str, Any] = json.loads(metadata) if metadata else {}
             
+            allowed_metadata_fields = {"filename"}
+            
+            filtered_metadata = {
+                k: v for k, v in parsed_metadata.items() 
+                if k in allowed_metadata_fields
+            }
+            
             ingest_results: List[IngestResult] = await ingestor_service.ingest_files(
                 files=files,
                 collection_name=collection_name,
-                metadata=parsed_metadata
+                metadata=filtered_metadata
             )
             
             successful_count: int = len([r for r in ingest_results if r.status == "success"])

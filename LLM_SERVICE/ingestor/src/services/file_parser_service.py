@@ -147,14 +147,14 @@ class FileParserService:
             doc_id=pdf_file.doc_id,
             content_type=pdf_file.content_type,
             blocks=blocks_data,
-            metadata=pdf_file.metadata,
+            metadata=pdf_file.meta,
             success=True
         )
         
         TextNormalizeLogger.log_normalization_results(
             doc_id=pdf_file.doc_id,
             normalized_text="\n\n".join([block.text for block in normalized_blocks]),
-            metadata=pdf_file.metadata,
+            metadata=pdf_file.meta,
             original_length=original_length,
             normalized_length=normalized_length
         )
@@ -163,7 +163,7 @@ class FileParserService:
             doc_id=pdf_file.doc_id,
             content_type=pdf_file.content_type,
             extracted_text="\n\n".join([block.text for block in normalized_blocks]),
-            metadata=pdf_file.metadata,
+            metadata=pdf_file.meta,
             parsing_method="enhanced_pdf_parsing",
             success=True,
             error_message=""

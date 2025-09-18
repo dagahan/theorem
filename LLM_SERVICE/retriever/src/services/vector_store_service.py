@@ -116,9 +116,6 @@ class VectorStoreService:
         filtered = []
         for result in results:
             payload = result.get("payload", result)
-            
-            if self._is_low_quality_chunk(payload):
-                continue
                 
             quality_score = payload.get("meta", {}).get("quality_score", 0.5)
             if quality_score < 0.3:
@@ -131,26 +128,6 @@ class VectorStoreService:
             filtered.append(result)
             
         return filtered
-
-
-    def _is_low_quality_chunk(
-        self,
-        payload: Dict[str, Any]
-    ) -> bool:
-        text = payload.get("text", "")
-        meta = payload.get("meta", {})
-        
-        if meta.get("has_cid", False) or meta.get("has_ellipsis", False) or meta.get("has_ocr_spacing", False):
-            return True
-            
-        alpha_ratio = meta.get("alpha_ratio", 0.5)
-        if alpha_ratio < 0.4:
-            return True
-            
-        if len(text) < 180:
-            return True
-            
-        return False
 
 
     async def get_collection_documents(

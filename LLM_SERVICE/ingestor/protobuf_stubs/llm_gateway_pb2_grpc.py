@@ -4,7 +4,7 @@ import grpc
 import warnings
 from . import llm_gateway_pb2 as llm__gateway__pb2
 
-GRPC_GENERATED_VERSION = '1.74.0'
+GRPC_GENERATED_VERSION = '1.75.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 

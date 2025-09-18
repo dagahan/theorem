@@ -18,7 +18,7 @@ ensure_init() {
 updated=0
 shopt -s nullglob
 
-for service_dir in "${REPO_ROOT}"/*/protobuf_stubs; do
+for service_dir in "${REPO_ROOT}/LLM_SERVICE"/*/protobuf_stubs; do
   service_root="$(dirname "$service_dir")"
 
   rm -rf "${service_dir:?}/"* 2>/dev/null || true
