@@ -1,0 +1,35 @@
+syntax = "proto3";
+package llm_gateway.v1;
+
+import "third_party/protovalidate/buf/validate/validate.proto";
+
+
+service LLMGatewayService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc Question(QuestionRequest) returns (QuestionResponse);
+}
+
+
+message HealthRequest {}
+
+
+message HealthResponse {
+  string status = 1 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string llm_status = 2 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string retriever_status = 3 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string embedder_status = 4 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+}
+
+
+message QuestionRequest {
+  string question = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
+  bool stream = 2;
+}
+
+
+message QuestionResponse {
+  string answer = 1;
+  bool success = 2;
+  string error = 3;
+}
+

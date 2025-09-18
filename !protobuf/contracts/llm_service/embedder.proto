@@ -1,0 +1,56 @@
+syntax = "proto3";
+package embedder.v1;
+
+import "third_party/protovalidate/buf/validate/validate.proto";
+
+
+service EmbedderService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+  rpc EmbedBatch(EmbedBatchRequest) returns (EmbedBatchResponse);
+}
+
+
+message HealthRequest {}
+
+
+message HealthResponse {
+  string status   = 1 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string model_id = 2 [(buf.validate.field).string = {min_len: 0, max_len: 256}];
+  int32  dim      = 3 [(buf.validate.field).int32  = {gte: -1, lte: 4096}];
+  option (buf.validate.message).cel = {
+    id: "status_enum",
+    message: "status must be healthy or unhealthy",
+    expression: "this.status == 'healthy' || this.status == 'unhealthy'"
+  };
+}
+
+
+message EmbedRequest {
+  string text = 1 [(buf.validate.field).string = {min_len: 10, max_len: 8192, pattern: ".*\\S.*"}];
+  bool   normalize = 2;
+}
+
+
+message EmbedResponse {
+  repeated float vector = 1 [(buf.validate.field).repeated = {min_items: 1, max_items: 4096}];
+  bool          success = 2;
+  string        error   = 3 [(buf.validate.field).string = {max_len: 2048}];
+}
+
+
+message EmbedBatchRequest {
+  repeated string texts = 1 [(buf.validate.field).repeated = {
+    min_items: 1,
+    max_items: 256,
+    items: { string: { min_len: 10, max_len: 8192, pattern: ".*\\S.*" } }
+  }];
+  bool normalize = 2;
+}
+
+
+message EmbedBatchResponse {
+  repeated EmbedResponse items = 1 [(buf.validate.field).repeated = {min_items: 1, max_items: 256}];
+}
+
+

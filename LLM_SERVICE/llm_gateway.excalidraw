@@ -1,0 +1,275 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "CoZ0r-dCbVEtEr7T5nSql",
+      "type": "freedraw",
+      "x": 602,
+      "y": 333,
+      "width": 336,
+      "height": 155,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "index": "a0",
+      "roundness": null,
+      "seed": 1792084881,
+      "version": 57,
+      "versionNonce": 1131375999,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1756828760149,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          8,
+          13
+        ],
+        [
+          19,
+          26
+        ],
+        [
+          33,
+          42
+        ],
+        [
+          45,
+          55
+        ],
+        [
+          51,
+          64
+        ],
+        [
+          54,
+          73
+        ],
+        [
+          57,
+          83
+        ],
+        [
+          59,
+          93
+        ],
+        [
+          60,
+          103
+        ],
+        [
+          60,
+          115
+        ],
+        [
+          61,
+          124
+        ],
+        [
+          65,
+          134
+        ],
+        [
+          69,
+          141
+        ],
+        [
+          73,
+          145
+        ],
+        [
+          76,
+          146
+        ],
+        [
+          78,
+          147
+        ],
+        [
+          80,
+          147
+        ],
+        [
+          85,
+          145
+        ],
+        [
+          93,
+          139
+        ],
+        [
+          104,
+          132
+        ],
+        [
+          118,
+          122
+        ],
+        [
+          131,
+          113
+        ],
+        [
+          143,
+          105
+        ],
+        [
+          152,
+          97
+        ],
+        [
+          158,
+          88
+        ],
+        [
+          162,
+          76
+        ],
+        [
+          165,
+          60
+        ],
+        [
+          165,
+          46
+        ],
+        [
+          165,
+          36
+        ],
+        [
+          165,
+          30
+        ],
+        [
+          166,
+          24
+        ],
+        [
+          168,
+          19
+        ],
+        [
+          171,
+          15
+        ],
+        [
+          176,
+          12
+        ],
+        [
+          182,
+          11
+        ],
+        [
+          190,
+          13
+        ],
+        [
+          205,
+          20
+        ],
+        [
+          221,
+          29
+        ],
+        [
+          242,
+          44
+        ],
+        [
+          259,
+          57
+        ],
+        [
+          274,
+          73
+        ],
+        [
+          286,
+          90
+        ],
+        [
+          296,
+          108
+        ],
+        [
+          303,
+          125
+        ],
+        [
+          310,
+          141
+        ],
+        [
+          316,
+          150
+        ],
+        [
+          322,
+          154
+        ],
+        [
+          325,
+          155
+        ],
+        [
+          327,
+          155
+        ],
+        [
+          329,
+          153
+        ],
+        [
+          332,
+          149
+        ],
+        [
+          334,
+          142
+        ],
+        [
+          336,
+          137
+        ],
+        [
+          336,
+          137
+        ]
+      ],
+      "pressures": [],
+      "simulatePressure": true,
+      "lastCommittedPoint": [
+        336,
+        137
+      ]
+    }
+  ],
+  "appState": {
+    "gridSize": 20,
+    "gridStep": 5,
+    "gridModeEnabled": false,
+    "viewBackgroundColor": "#ffffff",
+    "lockedMultiSelections": {}
+  },
+  "files": {}
+}

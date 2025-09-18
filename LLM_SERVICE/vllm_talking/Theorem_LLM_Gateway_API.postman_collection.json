@@ -1,0 +1,327 @@
+{
+	"info": {
+		"_postman_id": "theorem-vllm-talking-api",
+		"name": "Theorem vLLM Talking API",
+		"description": "OpenAI-compatible REST API collection for Theorem vLLM server - direct testing with math prompts",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List Models",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/v1/models",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v1",
+						"models"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Chat Completion - Simple Math",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"model\": \"{{model_name}}\",\n    \"messages\": [\n        {\n            \"role\": \"user\",\n            \"content\": \"{{math_problem_1}}\"\n        }\n    ],\n    \"max_tokens\": 1024,\n    \"temperature\": 0.7,\n    \"stream\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/chat/completions",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v1",
+						"chat",
+						"completions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Chat Completion - Complex Algebra",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"model\": \"{{model_name}}\",\n    \"messages\": [\n        {\n            \"role\": \"system\",\n            \"content\": \"You are an expert mathematics teacher. Solve this EGE problem step by step, explaining each step clearly. Show all calculations and reasoning.\"\n        },\n        {\n            \"role\": \"user\",\n            \"content\": \"{{math_problem_2}}\"\n        }\n    ],\n    \"max_tokens\": 2048,\n    \"temperature\": 0.5,\n    \"stream\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/chat/completions",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v1",
+						"chat",
+						"completions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Chat Completion - Geometry Problem",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"model\": \"{{model_name}}\",\n    \"messages\": [\n        {\n            \"role\": \"system\",\n            \"content\": \"You are a geometry expert. Solve this EGE geometry problem step by step. Use proper mathematical notation and explain your reasoning.\"\n        },\n        {\n            \"role\": \"user\",\n            \"content\": \"{{geometry_problem}}\"\n        }\n    ],\n    \"max_tokens\": 2048,\n    \"temperature\": 0.6,\n    \"stream\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/chat/completions",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v1",
+						"chat",
+						"completions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Chat Completion - Calculus Problem",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"model\": \"{{model_name}}\",\n    \"messages\": [\n        {\n            \"role\": \"system\",\n            \"content\": \"You are a calculus expert specializing in EGE problems. Show detailed calculations and explain the methodology step by step.\"\n        },\n        {\n            \"role\": \"user\",\n            \"content\": \"{{calculus_problem}}\"\n        }\n    ],\n    \"max_tokens\": 3072,\n    \"temperature\": 0.4,\n    \"stream\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/chat/completions",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v1",
+						"chat",
+						"completions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Chat Completion - Custom Prompt",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"model\": \"{{model_name}}\",\n    \"messages\": [\n        {\n            \"role\": \"system\",\n            \"content\": \"{{custom_system_prompt}}\"\n        },\n        {\n            \"role\": \"user\",\n            \"content\": \"{{custom_prompt}}\"\n        }\n    ],\n    \"max_tokens\": {{max_tokens}},\n    \"temperature\": {{temperature}},\n    \"stream\": {{stream}}\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/chat/completions",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v1",
+						"chat",
+						"completions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Chat Completion - Streaming",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"model\": \"{{model_name}}\",\n    \"messages\": [\n        {\n            \"role\": \"user\",\n            \"content\": \"{{streaming_prompt}}\"\n        }\n    ],\n    \"max_tokens\": 1024,\n    \"temperature\": 0.7,\n    \"stream\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/chat/completions",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v1",
+						"chat",
+						"completions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Completion - Text Generation",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"model\": \"{{model_name}}\",\n    \"prompt\": \"{{completion_prompt}}\",\n    \"max_tokens\": 1024,\n    \"temperature\": 0.7,\n    \"stream\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/v1/completions",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"v1",
+						"completions"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "model_name",
+			"value": "Llama-3.1-8B-Instruct",
+			"type": "string"
+		},
+		{
+			"key": "math_problem_1",
+			"value": "Решите уравнение: 2x² - 5x + 3 = 0",
+			"type": "string"
+		},
+		{
+			"key": "math_problem_2",
+			"value": "Найдите наибольшее значение функции f(x) = x³ - 3x² + 2 на отрезке [0, 3]",
+			"type": "string"
+		},
+		{
+			"key": "geometry_problem",
+			"value": "В треугольнике ABC угол C равен 90°, AC = 3, BC = 4. Найдите радиус описанной окружности.",
+			"type": "string"
+		},
+		{
+			"key": "calculus_problem",
+			"value": "Вычислите интеграл: ∫₀¹ (x² + 2x + 1) dx",
+			"type": "string"
+		},
+		{
+			"key": "custom_prompt",
+			"value": "Решите систему уравнений: {x + y = 5, x - y = 1}",
+			"type": "string"
+		},
+		{
+			"key": "custom_system_prompt",
+			"value": "You are a mathematics expert. Solve this problem step by step with clear explanations.",
+			"type": "string"
+		},
+		{
+			"key": "max_tokens",
+			"value": "1024",
+			"type": "string"
+		},
+		{
+			"key": "temperature",
+			"value": "0.7",
+			"type": "string"
+		},
+		{
+			"key": "stream",
+			"value": "false",
+			"type": "string"
+		},
+		{
+			"key": "streaming_prompt",
+			"value": "Объясните, как решить квадратное уравнение через дискриминант",
+			"type": "string"
+		},
+		{
+			"key": "completion_prompt",
+			"value": "Математическая задача: Найдите корни уравнения x² - 4x + 3 = 0. Решение:",
+			"type": "string"
+		}
+	]
+}

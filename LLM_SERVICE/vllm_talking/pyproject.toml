@@ -1,0 +1,23 @@
+[project]
+name = "vllm_server"
+version = "0.0.1"
+requires-python = "==3.12.6"
+dependencies = [
+    "vllm==0.10.1.1",
+    "torch==2.7.1",
+]
+
+
+[tool.uv]
+environments = [
+  "sys_platform == 'linux' and platform_machine == 'x86_64' and python_full_version == '3.12.*'"
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
+
