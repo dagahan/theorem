@@ -21,14 +21,16 @@ class LLMGenerationNode:
     ) -> "GraphState":
         execution_start_time = time.time()
 
-        request = graph_state["request"]
+        query = graph_state["query"]
         question_id = graph_state["question_id"]
         context_text = graph_state.get("context_text", "")
 
+        question_for_llm = graph_state.get("original_question", query.raw_text)
+
         llm_generation_response = await self.vllm_adapter_service.generate_answer(
-            request.question,
+            question_for_llm,
             context_text,
-            request.stream
+            query.stream
         )
 
         graph_state["llm_answer"] = llm_generation_response.answer or ""
@@ -36,12 +38,12 @@ class LLMGenerationNode:
         graph_state["llm_error"] = llm_generation_response.error or ""
 
         generation_execution_time_ms = (time.time() - execution_start_time) * 1000
-        
+
         graph_state["timings_ms"]["llm_generation"] = generation_execution_time_ms
 
         LLMGenerationLogger.log_llm_generation(
             question_id=question_id,
-            question=request.question,
+            question=query.raw_text,
             context=context_text,
             llm_response=llm_generation_response.answer,
             generation_time_ms=generation_execution_time_ms,

@@ -29,13 +29,13 @@ class HealthCheck:
 
 
 @dataclass(frozen=True)
-class QuestionRequest:
+class UserQuery:
     """
     Represents a user question request to the LLM Gateway.
     
     Example: QuestionRequest(question="What is the derivative of x²?", stream=False)
     """
-    question: str                      # User's question text
+    raw_text: str                      # User's query raw text
     stream: bool = False               # Whether to stream the response
 
 
@@ -46,7 +46,7 @@ class RetrieveRequest:
     
     Example: RetrieveRequest(query="logarithmic equations", collection_name="fipi_documents")
     """
-    query: str                         # Retrieve query text
+    question: str                         # Retrieve query text (for backward compatibility)
     collection_name: str               # Vector database collection name
 
 
@@ -89,6 +89,33 @@ class RetrieveResponse:
 
 
 @dataclass(frozen=True)
+class QuestionBuilderRequest:
+    """
+    Represents a request to the question builder service.
+    
+    Example: QuestionBuilderRequest(raw_text="реши уравнение x²-5x+6=0")
+    """
+    raw_text: str                  # Raw user question text
+
+
+@dataclass(frozen=True)
+class QuestionBuilderResponse:
+    """
+    Represents the response from the question builder service.
+    
+    Example: QuestionBuilderResponse(original_question="реши уравнение x²-5x+6=0", 
+                                   expanded_question="решить квадратное уравнение x²-5x+6=0, найти корни", 
+                                   semantic_parts=["найти дискриминант", "вычислить корни"], 
+                                   success=True, error=None)
+    """
+    original_question: str                          # Normalized original question
+    expanded_question: str                          # Expanded question for RAG
+    expanded_question_semantic_parts: List[str]     # Semantic parts of the question
+    success: bool                                   # Whether the processing was successful
+    error: Optional[str] = None                     # Error message if processing failed
+
+
+@dataclass(frozen=True)
 class QuestionResponse:
     """
     Represents the final response from the LLM Gateway.
@@ -100,7 +127,6 @@ class QuestionResponse:
     error: Optional[str] = None        # Error message if generation failed
 
 
-
 class GraphState(TypedDict, total=False):
     question_id: str
     started_at_ms: float
@@ -108,8 +134,10 @@ class GraphState(TypedDict, total=False):
     collection_name: str
     max_context_chars: int
     min_results_required: int
-    request: QuestionRequest
-    normalized_question: str
+    query: UserQuery
+    original_question: str
+    expanded_question: str
+    expanded_question_semantic_parts: List[str]
     retrieval_success: bool
     retrieval_error: str
     context_chunks: List[Any]

@@ -35,6 +35,7 @@ class VectorStoreService:
         embeds: List[Dict[str, Any]]
     ) -> List[qm.PointStruct]:
         points: List[qm.PointStruct] = []
+
         for ch, em in zip(chunks, embeds):
             pid = str(uuid5(NAMESPACE_URL, f"{ch['doc_id']}|{ch['paragraph_id']}|{ch['chunk_id']}"))
             points.append(qm.PointStruct(
@@ -86,48 +87,22 @@ class VectorStoreService:
         return await self.qdrant_grpc_client.get_document_texts(collection_name, doc_id)
 
 
-    async def search_documents(
+    async def search_ann_chunks(
         self,
         query_vector: List[float],
         collection_name: str,
-        top_k: int = 25,
-        score_threshold: float = 0.0,
-        quality_filter: bool = True
+        top_k: int,
+        score_threshold: float,
     ) -> List[Dict[str, Any]]:
         result = await self.qdrant_grpc_client.search(
             collection_name=collection_name,
             query_vector=query_vector,
-            top_k=top_k * 2 if quality_filter else top_k,  # Get more results for filtering
+            top_k=top_k,
             score_threshold=score_threshold
         )
 
-        if quality_filter:
-            result = self._filter_by_quality(result)
-
-        result = result[:top_k]  # Limit to requested top_k
         logger.debug(f"Search result: found {len(result)} results in collection '{collection_name}'")
         return result
-
-
-    def _filter_by_quality(
-        self,
-        results: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
-        filtered = []
-        for result in results:
-            payload = result.get("payload", result)
-                
-            quality_score = payload.get("meta", {}).get("quality_score", 0.5)
-            if quality_score < 0.3:
-                continue
-                
-            parent_type = payload.get("meta", {}).get("parent_type", "")
-            if parent_type in {"task", "answer", "heading", "formula"}:
-                result["score"] = result.get("score", 0) * 1.2
-                
-            filtered.append(result)
-            
-        return filtered
 
 
     async def get_collection_documents(

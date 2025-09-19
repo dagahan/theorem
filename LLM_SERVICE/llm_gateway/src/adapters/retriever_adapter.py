@@ -5,6 +5,7 @@ from src.core.utils import EnvTools
 from src.domain.models import RetrieveRequest, RetrieveResponse, RetrieveResult
 from protobuf_stubs import retriever_pb2, retriever_pb2_grpc
 
+
 class RetrieverAdapter:
     def __init__(self) -> None:
         self.host = EnvTools.get_service_host("retriever")
@@ -19,7 +20,7 @@ class RetrieverAdapter:
     ) -> RetrieveResponse:
         try:
             grpc_request = retriever_pb2.RetrieveRequest(
-                query=request.query,
+                question=request.question,
                 collection_name=request.collection_name
             )
             

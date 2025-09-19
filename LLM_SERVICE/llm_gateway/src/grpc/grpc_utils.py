@@ -19,6 +19,7 @@ class GrpcTools:
     def validate_proto(msg: Any, ctx: Any = None) -> None:
         try:
             Validator().validate(msg)
+            
         except ValidationError as e:
             details = []
             for v in getattr(e, "violations", []) or []:

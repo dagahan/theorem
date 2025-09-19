@@ -5,6 +5,8 @@ import httpx
 from loguru import logger
 from src.core.utils import EnvTools
 from src.domain.models import QuestionResponse
+
+
 class VLLMAdapter:
     def __init__(self) -> None:
         self.host = EnvTools.required_load_env_var("VLLM_TALKING_HOST")

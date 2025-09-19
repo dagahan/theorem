@@ -1,17 +1,12 @@
-from typing import Iterator, Any
+from typing import Any
 
-import grpc
 import numpy as np
 import torch
 from loguru import logger
 from sentence_transformers import SentenceTransformer
 
-from protobuf_stubs import embedder_pb2, embedder_pb2_grpc
 from src.core.utils import EnvTools
-from src.grpc.grpc_utils import GrpcTools
-
-
-grpc_tools = GrpcTools()
+from src.domain.models import EmbeddingRequest, EmbeddingResult, BatchEmbeddingRequest, BatchEmbeddingResult, HealthStatus
 
 
 def _to_f32_list(x: np.ndarray) -> list[float]:
@@ -20,7 +15,7 @@ def _to_f32_list(x: np.ndarray) -> list[float]:
     return x.tolist()  # type: ignore[no-any-return]
 
 
-class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignore[misc]
+class EmbedderService:
     def __init__(self) -> None:
         self.model_name: str = EnvTools.required_load_env_var("EMBEDDER_MODEL_NAME")
         self.embed_batch_size: int = int(EnvTools.required_load_env_var("EMBEDDER_EMBED_BATCH_MAX_SIZE"))
@@ -62,49 +57,31 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
             raise
 
 
-    @grpc_tools.log_grpc_request("Health")
-    def Health(
-        self,
-        request: embedder_pb2.HealthRequest,
-        context: grpc.ServicerContext,
-    ) -> embedder_pb2.HealthResponse:
+    def get_health_status(self) -> HealthStatus:
         try:
-            grpc_tools.validate_proto(request, context)
-
             if self.embedder_model is None:
-                response = embedder_pb2.HealthResponse(status="unhealthy", model_id="", dim=0)
-                grpc_tools.validate_proto(response, context)
-                return response
+                return HealthStatus(status="unhealthy", model_id="", dimensions=0)
             else:
                 dim = self.embedder_model.get_sentence_embedding_dimension()
-                response = embedder_pb2.HealthResponse(
+                return HealthStatus(
                     status="healthy",
                     model_id=self.model_name,
-                    dim=dim,
+                    dimensions=dim,
                 )
-                grpc_tools.validate_proto(response, context)
-                return response
 
         except Exception as ex:
             logger.error(f"Health check failed: {ex}")
-            return embedder_pb2.HealthResponse(status="unhealthy", model_id="", dim=0)
+            return HealthStatus(status="unhealthy", model_id="", dimensions=0)
 
 
-    @grpc_tools.log_grpc_request("Embed")
-    def Embed(
-        self,
-        request: embedder_pb2.EmbedRequest,
-        context: grpc.ServicerContext
-    ) -> embedder_pb2.EmbedResponse:
+    def embed_text(self, request: EmbeddingRequest) -> EmbeddingResult:
         try:
-            grpc_tools.validate_proto(request, context)
-
             if not self.embedder_model:
-                return embedder_pb2.EmbedResponse(success=False, error="Model not loaded")
+                return EmbeddingResult(text=request.text, vector=[], success=False, error="Model not loaded")
 
             text = request.text.strip()
             if not text:
-                return embedder_pb2.EmbedResponse(success=False, error="Empty text")
+                return EmbeddingResult(text=request.text, vector=[], success=False, error="Empty text")
 
             assert self.embedder_model is not None
             model: SentenceTransformer = self.embedder_model
@@ -119,28 +96,21 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
                 vector = model.encode(text, batch_size=1, convert_to_numpy=True, normalize_embeddings=request.normalize,
                                    show_progress_bar=False, device="cpu")
 
-            return embedder_pb2.EmbedResponse(vector=_to_f32_list(vector), success=True)
+            return EmbeddingResult(text=request.text, vector=_to_f32_list(vector), success=True)
 
         except Exception as ex:
             logger.exception("Embed failed")
-            return embedder_pb2.EmbedResponse(success=False, error=str(ex))
+            return EmbeddingResult(text=request.text, vector=[], success=False, error=str(ex))
 
 
-    @grpc_tools.log_grpc_request("EmbedBatch")
-    def EmbedBatch(
-        self,
-        request: embedder_pb2.EmbedBatchRequest,
-        context: grpc.ServicerContext
-    ) -> embedder_pb2.EmbedBatchResponse:
+    def embed_batch(self, request: BatchEmbeddingRequest) -> BatchEmbeddingResult:
         try:
-            grpc_tools.validate_proto(request, context)
-
             if not self.embedder_model:
-                context.abort(grpc.StatusCode.FAILED_PRECONDITION, "Model not loaded")
+                return BatchEmbeddingResult(results=[], success=False, error="Model not loaded")
 
             texts = [t.strip() for t in request.texts if t and t.strip()]
             if not texts:
-                return embedder_pb2.EmbedBatchResponse(items=[])
+                return BatchEmbeddingResult(results=[], success=True)
 
             assert self.embedder_model is not None
             model: SentenceTransformer = self.embedder_model
@@ -165,7 +135,6 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
                         batch_size = max(1, batch_size // 2)
                         continue
 
-                    # батч уже 1 — фолбэк на CPU
                     vectors = model.encode(
                         texts,
                         batch_size=1,
@@ -176,12 +145,13 @@ class EmbedderService(embedder_pb2_grpc.EmbedderServiceServicer):  # type: ignor
                     )
                     break
 
-            items = [embedder_pb2.EmbedResponse(vector=_to_f32_list(v), success=True) for v in vectors]
-            return embedder_pb2.EmbedBatchResponse(items=items)
-
-        except grpc.RpcError:
-            raise
+            results = [
+                EmbeddingResult(text=text, vector=_to_f32_list(vector), success=True)
+                for text, vector in zip(texts, vectors)
+            ]
+            return BatchEmbeddingResult(results=results, success=True)
 
         except Exception as ex:
-            context.abort(grpc.StatusCode.INTERNAL, str(ex))
+            logger.exception("Embed batch failed")
+            return BatchEmbeddingResult(results=[], success=False, error=str(ex))
     

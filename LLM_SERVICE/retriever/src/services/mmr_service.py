@@ -24,14 +24,14 @@ class MmrService:
 
     async def reorder(
         self,
-        query_text: str,
+        question: str,
         items: List["Candidate"],
         k: int
     ) -> List["Candidate"]:
         if not items:
             return []
         pool = items[:k]
-        qv = (await self.embedder.embed_text(query_text, normalize=True)).get("vector", [])
+        qv = (await self.embedder.embed_text(question, normalize=True)).get("vector", [])
         c_vecs = [(await self.embedder.embed_text(c.text, normalize=True)).get("vector", []) for c in pool]
 
         selected: List[int] = []

@@ -5,7 +5,7 @@ from typing import Any, TYPE_CHECKING
 from langgraph.graph import StateGraph, END
 from src.domain.models import GraphState
 
-from src.graph.nodes.question_validation_node import QuestionValidationNode
+from src.graph.nodes.question_builder_node import QuestionBuilderNode
 from src.graph.nodes.retrieval_node import RetrievalNode
 from src.graph.nodes.context_builder_node import ContextBuilderNode
 from src.graph.nodes.llm_generation_node import LLMGenerationNode
@@ -15,11 +15,12 @@ from src.graph.nodes.failure_node import FailureNode
 if TYPE_CHECKING:
     from src.adapters.vllm_adapter import VLLMAdapter
     from src.adapters.retriever_adapter import RetrieverAdapter
+    from src.adapters.question_builder_adapter import QuestionBuilderAdapter
 
 
 class GraphBuilder:
-    def __init__(self, vllm_adapter_service: "VLLMAdapter", retriever_adapter: "RetrieverAdapter") -> None:
-        self.question_validation_node = QuestionValidationNode()
+    def __init__(self, vllm_adapter_service: "VLLMAdapter", retriever_adapter: "RetrieverAdapter", question_builder_adapter: "QuestionBuilderAdapter") -> None:
+        self.question_builder_node = QuestionBuilderNode(question_builder_adapter)
         self.retrieval_node = RetrievalNode(retriever_adapter)
         self.context_builder_node = ContextBuilderNode()
         self.llm_generation_node = LLMGenerationNode(vllm_adapter_service)
@@ -33,16 +34,16 @@ class GraphBuilder:
     ) -> Any:
         graph = StateGraph(GraphState)
 
-        graph.add_node("validate_and_prepare", partial(self.question_validation_node.execute_node))
+        graph.add_node("build_question", partial(self.question_builder_node.execute_node))
         graph.add_node("retrieve_context", partial(self.retrieval_node.execute_node))
         graph.add_node("build_context_text", partial(self.context_builder_node.execute_node))
         graph.add_node("llm_generation", partial(self.llm_generation_node.execute_node))
         graph.add_node("finalize", partial(self.finalization_node.execute_node))
         graph.add_node("failure", partial(self.failure_node.execute_node))
 
-        graph.set_entry_point("validate_and_prepare")
+        graph.set_entry_point("build_question")
 
-        graph.add_edge("validate_and_prepare", "retrieve_context")
+        graph.add_edge("build_question", "retrieve_context")
 
         graph.add_conditional_edges(
             "retrieve_context",

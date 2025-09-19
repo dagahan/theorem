@@ -18,7 +18,7 @@ class FailureNode:
         total_ms = (time.time() * 1000) - state.get("started_at_ms", time.time() * 1000)
         QuestionLogger.log_question_processing(
             question_id=state["question_id"],
-            original_question=state["request"].question,
+            original_question=state["query"].raw_text,
             context_chunks=[],
             llm_response="",
             processing_time_ms=total_ms,

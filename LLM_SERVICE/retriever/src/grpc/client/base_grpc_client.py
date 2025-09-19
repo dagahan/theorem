@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, TypeVar, Generic
+from abc import ABC
+from typing import Any, TypeVar, Generic
 
 import grpc  # type: ignore
 from loguru import logger
@@ -16,20 +16,26 @@ class BaseGrpcClient(ABC, Generic[T]):
         self.validator = Validator()
 
 
-    def _validate_request(self, request: T) -> None:
+    def _validate_request(
+        self,
+        request: T
+    ) -> None:
         try:
             self.validator.validate(request)
             
-        except ValidationError as e:
-            logger.error(f"Request validation failed: {e}")
-            raise ValueError(f"Invalid request: {e}")
+        except ValidationError as ex:
+            logger.error(f"Request validation failed: {ex}")
+            raise ValueError(f"Invalid request: {ex}")
 
 
-    def _validate_response(self, response: Any) -> None:
+    def _validate_response(
+        self,
+        response: Any
+    ) -> None:
         try:
             self.validator.validate(response)
 
-        except ValidationError as e:
-            logger.error(f"Response validation failed: {e}")
-            raise ValueError(f"Invalid response: {e}")
+        except ValidationError as ex:
+            logger.error(f"Response validation failed: {ex}")
+            raise ValueError(f"Invalid response: {ex}")
 

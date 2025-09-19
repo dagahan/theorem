@@ -21,13 +21,16 @@ class RetrievalNode:
     @timeout_and_retry(max_attempts=3, timeout_sec=25.0)
     async def execute_node(self, graph_state: "GraphState") -> "GraphState":
         time_start_node = time.time()
-        request = graph_state["request"]
+        query = graph_state["query"]
         question_id = graph_state["question_id"]
         collection_name = graph_state["collection_name"]
 
+        original_question = graph_state.get("original_question", query.raw_text)
+        expanded_question = graph_state.get("expanded_question", query.raw_text)
+        
         retrieve_request = RetrieveRequest(
-            query=request.question,
-            collection_name=collection_name
+            question=expanded_question,
+            collection_name=collection_name,
         )
         
         response = await self.retriever_service.retrieve_context(retrieve_request)
@@ -42,7 +45,7 @@ class RetrievalNode:
 
         ContextRetrievalLogger.log_context_retrieval(
             question_id=question_id,
-            query=request.question,
+            query=query.raw_text,
             retrieved_chunks=[c.to_json() for c in (response.results or [])] if response.success else [],
             retrieval_time_ms=elapsed,
             success=response.success,

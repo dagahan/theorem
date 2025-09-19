@@ -23,8 +23,8 @@ message HealthResponse {
 
 
 message RetrieveRequest {
-  string query = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}]; //any non-space char is required
-  string collection_name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128, pattern: "^[a-zA-Z0-9_-]+$"}]; //only latin symbols and numbers, _ and -. at least one symbol
+  string question = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}]; //any non-space char is required
+  string collection_name = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128, pattern: "^[a-zA-Z0-9_-]+$"}]; //only latin symbols and numbers, _ and -. at least one symbol
 }
 
 

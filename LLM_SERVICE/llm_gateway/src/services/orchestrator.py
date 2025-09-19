@@ -8,12 +8,13 @@ from typing import TYPE_CHECKING, Any, Optional
 from loguru import logger
 
 from src.core.utils import EnvTools
-from src.domain.models import HealthCheck, QuestionRequest, QuestionResponse, ServiceStatus
+from src.domain.models import HealthCheck, UserQuery, QuestionResponse, ServiceStatus
 from src.graph.graph_builder import GraphBuilder
 from langgraph.checkpoint.memory import MemorySaver
 
 from src.adapters.vllm_adapter import VLLMAdapter
 from src.adapters.retriever_adapter import RetrieverAdapter
+from src.adapters.question_builder_adapter import QuestionBuilderAdapter
 
 if TYPE_CHECKING:
     from src.domain.models import GraphState
@@ -23,17 +24,18 @@ class LLMGraphOrchestrator:
     def __init__(self) -> None:
         self.vllm_adapter = VLLMAdapter()
         self.retriever_adapter = RetrieverAdapter()
+        self.question_builder_adapter = QuestionBuilderAdapter()
         self.default_collection = EnvTools.required_load_env_var("DEFAULT_RETRIEVER_COLLECTION")
         self.max_context_chars = int(float(EnvTools.required_load_env_var("VLLM_TALKING_MAX_LEN")) / 2)
         self.min_results_required = int(EnvTools.required_load_env_var("VLLM_TALKING_MIN_RESULTS"))
         self.checkpointer = MemorySaver()
-        self.graph_builder = GraphBuilder(self.vllm_adapter, self.retriever_adapter)
+        self.graph_builder = GraphBuilder(self.vllm_adapter, self.retriever_adapter, self.question_builder_adapter)
         self.graph = self.graph_builder.build_graph(self.checkpointer)
 
 
     async def answer_question(
         self,
-        request: QuestionRequest,
+        query: UserQuery,
         run_id: Optional[str] = None,
     ) -> QuestionResponse:
         initial: "GraphState" = {
@@ -43,7 +45,7 @@ class LLMGraphOrchestrator:
             "collection_name": self.default_collection,
             "max_context_chars": self.max_context_chars,
             "min_results_required": self.min_results_required,
-            "request": request,
+            "query": query,
             "success": False,
         }
 
@@ -61,16 +63,17 @@ class LLMGraphOrchestrator:
 
     async def health_check(self) -> HealthCheck:
         try:
-            llm_healthy, retriever_healthy = await asyncio.gather(
+            llm_healthy, retriever_healthy, question_builder_healthy = await asyncio.gather(
                 self.vllm_adapter.health_check(),
-                self.retriever_adapter.health_check()
+                self.retriever_adapter.health_check(),
+                self.question_builder_adapter.health_check()
             )
 
             return HealthCheck(
-                overall_status=ServiceStatus.HEALTHY if llm_healthy and retriever_healthy else ServiceStatus.UNHEALTHY,
+                overall_status=ServiceStatus.HEALTHY if llm_healthy and retriever_healthy and question_builder_healthy else ServiceStatus.UNHEALTHY,
                 llm_status=ServiceStatus.HEALTHY if llm_healthy else ServiceStatus.UNHEALTHY,
                 retriever_status=ServiceStatus.HEALTHY if retriever_healthy else ServiceStatus.UNHEALTHY,
-                embedder_status=ServiceStatus.HEALTHY
+                embedder_status=ServiceStatus.HEALTHY if question_builder_healthy else ServiceStatus.UNHEALTHY
             )
             
         except Exception as ex:

@@ -46,7 +46,7 @@ class NeuralRerankService:
 
     async def rerank(
         self,
-        query_text: str,
+        question: str,
         candidates: List[Candidate],
         topn: int
     ) -> List[Candidate]:
@@ -55,7 +55,7 @@ class NeuralRerankService:
 
         limited = candidates[:topn]
         if self._backend == "transformers":
-            items = [{"text": query_text, "text_pair": c.text} for c in limited]
+            items = [{"text": question, "text_pair": c.text} for c in limited]
             preds = await asyncio.to_thread(
                 self.pipe, items,
                 batch_size=self.batch, truncation=True,
@@ -65,7 +65,7 @@ class NeuralRerankService:
             scores = [float(o["score"]) for o in preds]
 
         else:
-            pairs = [(query_text, c.text) for c in limited]
+            pairs = [(question, c.text) for c in limited]
             scores = await asyncio.to_thread(
                 self.model.predict, pairs,
                 batch_size=self.batch, show_progress_bar=False

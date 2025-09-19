@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 from protobuf_stubs import llm_gateway_pb2, llm_gateway_pb2_grpc
 from src.grpc.grpc_utils import GrpcTools
-from src.domain.models import QuestionRequest, RetrieveRequest, ServiceStatus
+from src.domain.models import UserQuery, RetrieveRequest, ServiceStatus
 
 grpc_tools = GrpcTools()
 
@@ -59,8 +59,8 @@ class LLMGatewayAPI(llm_gateway_pb2_grpc.LLMGatewayServiceServicer):  # type: ig
         try:
             grpc_tools.validate_proto(request, context)
             
-            question_request = QuestionRequest(
-                question=request.question,
+            question_request = UserQuery(
+                raw_text=request.raw_text,
                 stream=request.stream
             )
             

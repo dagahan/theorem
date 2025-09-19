@@ -4,9 +4,9 @@ version = "0.0.1"
 description = "Protobuf stub generator for LLM_SERVICE microservices"
 requires-python = ">=3.12"
 dependencies = [
-    "grpcio-tools>=1.74.0",
-    "protobuf>=6.32.0",
-    "protovalidate>=0.15.0",
+    "grpcio-tools>=1.75.0",
+    "protobuf>=6.32.1",
+    "protovalidate>=1.0.0",
 ]
 
 [project.optional-dependencies]

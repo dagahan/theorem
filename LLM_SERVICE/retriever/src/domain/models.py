@@ -7,15 +7,14 @@ DocKey = Tuple[str, int, int]  # (doc_id, paragraph_id, chunk_id)
 
 
 @dataclass(frozen=True)
-class RetrievalQuery:
+class RetrievalQuestion:
     """
     Represents a search query with both original and normalized text.
     
     Example: RetrievalQuery(original_text="log₂(x+1) = 3", 
                             normalized_text="log2(x+1) = 3")
     """
-    original_text: str      # Original user query text
-    normalized_text: str     # Cleaned and normalized query text
+    question: str
 
 
 @dataclass(frozen=True)

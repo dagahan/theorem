@@ -22,7 +22,7 @@ message HealthResponse {
 
 
 message QuestionRequest {
-  string question = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
+  string raw_text = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
   bool stream = 2;
 }
 

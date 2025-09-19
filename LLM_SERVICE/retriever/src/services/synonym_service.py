@@ -1,13 +1,12 @@
 from __future__ import annotations
+
 import re
 import unicodedata
 from typing import Dict, Iterable, List, Set, Tuple
-from src.services.text_normalize_service import TextNormalizeService
 
 
 class SynonymService:
     def __init__(self) -> None:
-        self.norm = TextNormalizeService()
         self.word_tokenizer = re.compile(r"[A-Za-zА-Яа-я0-9№%]+", re.UNICODE)
         self.whitespace_normalizer = re.compile(r"\s+")
         self.year_pattern = re.compile(r"\b(19|20)\d{2}\b")
