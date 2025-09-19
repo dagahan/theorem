@@ -43,7 +43,6 @@ exec uv run -m vllm.entrypoints.openai.api_server \
   --tensor-parallel-size "$TP_SIZE" \
   --gpu-memory-utilization "$GPU_UTIL" \
   --dtype "$DTYPE" \
-  --chat-template /app/chat_template_qwen_math.jinja \
   --trust-remote-code \
   --quantization awq
 

@@ -1,59 +1,69 @@
 from __future__ import annotations
+
 import time
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List
+
+from loguru import logger
+
+from src.graph.graph_utils import timeout_and_retry
+from src.domain.models import ContextBuilderRequest, ContextChunk
 
 if TYPE_CHECKING:
+    from src.adapters.context_builder_adapter import ContextBuilderAdapter
     from src.domain.models import GraphState
 
 
 class ContextBuilderNode:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, context_builder_service: "ContextBuilderAdapter") -> None:
+        self.context_builder_service = context_builder_service
 
 
-    async def execute_node(
-        self,
-        graph_state: "GraphState"
-    ) -> "GraphState":
-        execution_start_time = time.time()
-        
-        retrieved_chunks = graph_state.get("context_chunks", [])
-        maximum_context_characters = graph_state["max_context_chars"]
+    @timeout_and_retry(max_attempts=3, timeout_sec=25.0)
+    async def execute_node(self, graph_state: "GraphState") -> "GraphState":
+        t0: float = time.time()
+
+        retrieved_chunks: List[Any] = graph_state.get("context_chunks", []) or []
+        max_context_chars: int = int(graph_state.get("max_context_chars", 4000))
+
+        timings: Dict[str, float] = graph_state.setdefault("timings_ms", {})
 
         if not retrieved_chunks:
-            graph_state["context_text"] = "Context not found."
-            graph_state["timings_ms"]["build_context_text"] = (time.time() - execution_start_time) * 1000
+            graph_state["context_text"] = "CTX snapshot=2024-01-01 | DIGEST: none | EVIDENCE: none"
+            timings["build_context_text"] = (time.time() - t0) * 1000.0
             return graph_state
 
-        formatted_context_sections: List[str] = []
-        total_characters_consumed = 0
+        chunks: List[ContextChunk] = []
+        for r in retrieved_chunks:
+            item: Dict[str, Any] = r.to_json() if hasattr(r, "to_json") else dict(r)
+            chunks.append(
+                ContextChunk(
+                    doc_id=str(item.get("doc_id", "")),
+                    paragraph_id=int(item.get("paragraph_id", 0)),
+                    chunk_id=int(item.get("chunk_id", 0)),
+                    text=str(item.get("text", "")),
+                    pages=[int(p) for p in item.get("pages", [])],
+                    score=float(item.get("score", 0.0)),
+                )
+            )
 
-        for chunk_index, chunk in enumerate(retrieved_chunks, 1):
-            chunk_text = getattr(chunk, 'text', '')
-            doc_id = getattr(chunk, 'doc_id', 'unknown')
-            pages = getattr(chunk, 'pages', [])
-            score = getattr(chunk, 'score', 0.0)
-            
-            chunk_header_info = f"{chunk_index}. doc={doc_id}, pages={pages}, score={score:.5f}"
+        request: ContextBuilderRequest = ContextBuilderRequest(
+            chunks=chunks,
+            max_context_chars=max_context_chars,
+        )
 
-            if total_characters_consumed + len(chunk_header_info) + 1 > maximum_context_characters:
-                break
-                
-            available_characters_for_context = maximum_context_characters - total_characters_consumed - len(chunk_header_info) - 1
+        result = await self.context_builder_service.build_context(request)
 
-            if available_characters_for_context > 0:
-                truncated_chunk_content = chunk_text[:available_characters_for_context] if len(chunk_text) > available_characters_for_context else chunk_text
-                formatted_chunk_line = f"{chunk_header_info}\n{truncated_chunk_content}"
-            else:
-                formatted_chunk_line = chunk_header_info
-                
-            formatted_context_sections.append(formatted_chunk_line)
+        if not result.success:
+            graph_state["context_text"] = "CTX error"
+            graph_state["error"] = f"Context building failed: {result.error}"
+            timings["build_context_text"] = (time.time() - t0) * 1000.0
+            return graph_state
 
-            total_characters_consumed += len(formatted_chunk_line) + 1
+        graph_state["context_text"] = result.context_text
+        timings["build_context_text"] = (time.time() - t0) * 1000.0
 
-        graph_state["context_text"] = "\n".join(formatted_context_sections) if formatted_context_sections else "Context not found."
-        graph_state["timings_ms"]["build_context_text"] = (time.time() - execution_start_time) * 1000
-        
+        logger.info("Context built: {} chars", len(result.context_text))
+
         return graph_state
 
 

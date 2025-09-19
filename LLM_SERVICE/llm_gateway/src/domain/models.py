@@ -116,6 +116,49 @@ class QuestionBuilderResponse:
 
 
 @dataclass(frozen=True)
+class ContextChunk:
+    doc_id: str
+    paragraph_id: int
+    chunk_id: int
+    text: str
+    pages: List[int]
+    score: float
+
+
+@dataclass(frozen=True)
+class ContextBuilderRequest:
+    chunks: List[ContextChunk]
+    max_context_chars: int
+
+
+@dataclass(frozen=True)
+class ContextBuilderResponse:
+    context_text: str
+    success: bool
+    error: str | None = None
+
+
+@dataclass(frozen=True)
+class PolicyRequest:
+    question: str
+    question_type: str
+    difficulty: str
+    streaming: bool
+
+
+@dataclass(frozen=True)
+class PolicyResponse:
+    policy_header: str
+    success: bool
+    error: str | None = None
+
+
+@dataclass(frozen=True)
+class PolicyHeader:
+    policy_header: str
+
+
+@dataclass(frozen=True)
 class QuestionResponse:
     """
     Represents the final response from the LLM Gateway.
@@ -142,6 +185,7 @@ class GraphState(TypedDict, total=False):
     retrieval_error: str
     context_chunks: List[Any]
     context_text: str
+    policy_header: PolicyHeader
     llm_answer: str
     llm_success: bool
     llm_error: str

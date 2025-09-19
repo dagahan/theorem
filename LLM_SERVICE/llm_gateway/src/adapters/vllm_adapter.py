@@ -4,7 +4,7 @@ from typing import Dict, Any
 import httpx
 from loguru import logger
 from src.core.utils import EnvTools
-from src.domain.models import QuestionResponse
+from src.domain.models import QuestionResponse, PolicyHeader
 
 
 class VLLMAdapter:
@@ -20,20 +20,25 @@ class VLLMAdapter:
         self,
         question: str,
         context: str,
+        policy_header: "PolicyHeader",
         stream: bool = False
     ) -> QuestionResponse:
         start_time = time.time()
         try:
-            prompt = self._build_prompt(
-                question,
-                context
-            )
+            system_prompt = f"""{policy_header.policy_header}
+
+You are a mathematics tutor. Use the provided context to answer mathematical questions accurately and comprehensively."""
             
             payload = {
                 "model": self.model_name,
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "context", "content": context},
+                    {"role": "user", "content": question}
+                ],
                 "max_tokens": 2048,
-                "temperature": 0.7,
+                "temperature": 0.2,
+                "stop": ["END", "STOP"],
                 "stream": stream
             }
             
@@ -68,17 +73,6 @@ class VLLMAdapter:
         except Exception:
             return False
 
-
-    def _build_prompt(self, question: str, context: str) -> str:
-        return f"""You are an expert in Unified State Exam (EGE) mathematics. Use the provided context to answer the question.
-
-
-Context:
-{context}
-
-Question: {question}
-
-Answer in detail and accurately, using information from the context."""
 
 
 

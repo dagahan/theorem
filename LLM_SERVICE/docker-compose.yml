@@ -167,6 +167,102 @@ services:
   #         path: ./vllm_math
 
 
+  # context_builder:
+  #   build:
+  #     context: ./context_builder
+  #     dockerfile: dockerfile
+  #   image: context_builder-${COMPOSE_PROJECT_NAME}
+  #   container_name: context_builder-${COMPOSE_PROJECT_NAME}
+  #   env_file: 
+  #     - .env
+  #     - .common-env.conf
+  #     - ./context_builder/.conf
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #   ports:
+  #     - "${CONTEXT_BUILDER_GRPC_PORT}:${CONTEXT_BUILDER_GRPC_PORT}"
+  #   networks:
+  #     - llm_service_network
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./context_builder
+
+
+  # system_prompt_builder:
+  #   build:
+  #     context: ./system_prompt_builder
+  #     dockerfile: dockerfile
+  #   image: system_prompt_builder-${COMPOSE_PROJECT_NAME}
+  #   container_name: system_prompt_builder-${COMPOSE_PROJECT_NAME}
+  #   env_file: 
+  #     - .env
+  #     - .common-env.conf
+  #     - ./system_prompt_builder/.conf
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #   ports:
+  #     - "${SYSTEM_PROMPT_BUILDER_GRPC_PORT}:${SYSTEM_PROMPT_BUILDER_GRPC_PORT}"
+  #   networks:
+  #     - llm_service_network
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./system_prompt_builder
+
+
+  # policy_builder:
+  #   build:
+  #     context: ./policy_builder
+  #     dockerfile: dockerfile
+  #   image: policy_builder-${COMPOSE_PROJECT_NAME}
+  #   container_name: policy_builder-${COMPOSE_PROJECT_NAME}
+  #   env_file: 
+  #     - .env
+  #     - .common-env.conf
+  #     - ./policy_builder/.conf
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #   ports:
+  #     - "${POLICY_BUILDER_GRPC_PORT}:${POLICY_BUILDER_GRPC_PORT}"
+  #   networks:
+  #     - llm_service_network
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./policy_builder
+
+
+  # budget_estimator:
+  #   build:
+  #     context: ./budget_estimator
+  #     dockerfile: dockerfile
+  #   image: budget_estimator-${COMPOSE_PROJECT_NAME}
+  #   container_name: budget_estimator-${COMPOSE_PROJECT_NAME}
+  #   env_file: 
+  #     - .env
+  #     - .common-env.conf
+  #     - ./budget_estimator/.conf
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #   ports:
+  #     - "${BUDGET_ESTIMATOR_GRPC_PORT}:${BUDGET_ESTIMATOR_GRPC_PORT}"
+  #   networks:
+  #     - llm_service_network
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./budget_estimator
+
+
 networks:
   llm_service_network:
     driver: bridge

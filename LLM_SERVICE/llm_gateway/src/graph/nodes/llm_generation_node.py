@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from src.core.logging import LLMGenerationLogger
 from src.graph.graph_utils import timeout_and_retry
+
 if TYPE_CHECKING:
     from src.adapters.vllm_adapter import VLLMAdapter
     from src.domain.models import GraphState
@@ -24,12 +25,20 @@ class LLMGenerationNode:
         query = graph_state["query"]
         question_id = graph_state["question_id"]
         context_text = graph_state.get("context_text", "")
+        policy_header = graph_state.get("policy_header")
 
         question_for_llm = graph_state.get("original_question", query.raw_text)
+
+        if not policy_header:
+            from src.domain.models import PolicyHeader
+            policy_header = PolicyHeader(
+                policy_header="Answer only with lawful, non-harmful, non-sexual, non-violent, and non-hate content; decline and do not facilitate wrongdoing or unsafe acts."
+            )
 
         llm_generation_response = await self.vllm_adapter_service.generate_answer(
             question_for_llm,
             context_text,
+            policy_header,
             query.stream
         )
 
