@@ -2,20 +2,26 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY gateway/go.mod gateway/go.sum ./gateway/
+COPY gen/go.mod gen/go.sum ./gen/
 
+WORKDIR /app/gateway
 RUN go mod download
 
-COPY . .
+WORKDIR /app
+COPY gateway/ ./gateway/
+COPY gen/ ./gen/
+
+WORKDIR /app/gateway
 
 ENV GOCACHE=/root/.cache/go-build
-RUN --mount=type=cache,target="/root/.cache/go-build" go build -o gateway ./cmd/
+RUN --mount=type=cache,target="/root/.cache/go-build" go build -o /app/gateway-bin ./cmd/
 
 FROM scratch AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/gateway ./gateway
+COPY --from=builder /app/gateway-bin ./gateway
 
 USER 1000:1000
 
