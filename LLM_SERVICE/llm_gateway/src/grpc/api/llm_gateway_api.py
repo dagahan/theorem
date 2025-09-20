@@ -32,6 +32,7 @@ class LLMGatewayAPI(llm_gateway_pb2_grpc.LLMGatewayServiceServicer):  # type: ig
     def Health(self, request: llm_gateway_pb2.HealthRequest, context: grpc.ServicerContext) -> llm_gateway_pb2.HealthResponse:
         try:
             grpc_tools.validate_proto(request, context)
+            
             health_check = self._run(self.orchestrator.health_check())
             
             response = llm_gateway_pb2.HealthResponse(
@@ -42,6 +43,7 @@ class LLMGatewayAPI(llm_gateway_pb2_grpc.LLMGatewayServiceServicer):  # type: ig
             )
             
             grpc_tools.validate_proto(response, context)
+
             return response
             
         except Exception as ex:

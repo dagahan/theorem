@@ -34,10 +34,10 @@ class ContextBuilderService:
 
     def get_health_status(self) -> HealthStatus:
         try:
-            return HealthStatus(status="healthy", version="0.0.1")
+            return HealthStatus(status="healthy")
         except Exception as ex:
             logger.error(f"Health check failed: {ex}")
-            return HealthStatus(status="unhealthy", version="0.0.1")
+            return HealthStatus(status="unhealthy")
 
 
     def build_context(

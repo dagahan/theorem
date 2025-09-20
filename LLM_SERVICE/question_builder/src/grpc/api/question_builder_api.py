@@ -38,7 +38,7 @@ class QuestionBuilderAPI(question_builder_pb2_grpc.QuestionBuilderServiceService
         try:
             grpc_tools.validate_proto(request, context)
 
-            llm_status, model_id = self._run(
+            llm_status, _ = self._run(
                 self.health_checker.health_check_service("all")
             )
 
@@ -46,7 +46,7 @@ class QuestionBuilderAPI(question_builder_pb2_grpc.QuestionBuilderServiceService
 
             response = question_builder_pb2.HealthResponse(
                 status=overall,
-                model_id=model_id,
+                llm_status=llm_status,
             )
 
             grpc_tools.validate_proto(response, context)
@@ -57,8 +57,7 @@ class QuestionBuilderAPI(question_builder_pb2_grpc.QuestionBuilderServiceService
             logger.error(f"Health check failed: {ex}")
             return question_builder_pb2.HealthResponse(
                 status="unhealthy",
-                model_id="",
-                version=0
+                llm_status="unknown"
             )
 
 

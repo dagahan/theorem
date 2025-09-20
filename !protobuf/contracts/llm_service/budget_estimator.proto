@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package budget_estimator;
+
+import "third_party/protovalidate/buf/validate/validate.proto";
+
+
+service PolicyBuilderService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc BuildPolicy(BuildPolicyRequest) returns (BuildPolicyResponse);
+}
+
+
+message HealthRequest {}
+
+
+message HealthResponse {
+  string status = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+
+message BuildPolicyRequest {}
+
+
+message BuildPolicyResponse {
+  string policy_header = 1 [(buf.validate.field).string.min_len = 1];
+  bool success = 2;
+  string error = 3;
+}
+

@@ -48,4 +48,3 @@ class ContextBuilderResponse:
 @dataclass(frozen=True)
 class HealthStatus:
     status: str
-    version: str

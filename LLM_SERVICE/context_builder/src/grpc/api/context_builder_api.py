@@ -25,7 +25,7 @@ class ContextBuilderAPI(context_builder_pb2_grpc.ContextBuilderServiceServicer):
         grpc_tools.validate_proto(request, context)
 
         status: HealthStatus = self.context_builder_service.get_health_status()
-        response = context_builder_pb2.HealthResponse(status=status.status, version=status.version)
+        response = context_builder_pb2.HealthResponse(status=status.status)
 
         grpc_tools.validate_proto(response, context)
 

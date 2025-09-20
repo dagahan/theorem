@@ -1,0 +1,30 @@
+FROM python:3.12.6-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
+
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen
+
+COPY . .
+
+RUN uv run python -m grpc_tools.protoc \
+    --proto_path=buf \
+    --python_out=protobuf_stubs \
+    --grpc_python_out=protobuf_stubs \
+    --python_out=protobuf_stubs \
+    buf/policy_builder.proto \
+    buf/validate/validate.proto
+
+RUN chmod +x entrypoint.sh
+
+EXPOSE 50053
+
+CMD ["./entrypoint.sh"]
