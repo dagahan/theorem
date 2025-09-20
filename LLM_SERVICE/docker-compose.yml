@@ -191,52 +191,54 @@ services:
   #         path: ./context_builder
 
 
-  # system_prompt_builder:
-  #   build:
-  #     context: ./system_prompt_builder
-  #     dockerfile: dockerfile
-  #   image: system_prompt_builder-${COMPOSE_PROJECT_NAME}
-  #   container_name: system_prompt_builder-${COMPOSE_PROJECT_NAME}
-  #   env_file: 
-  #     - .env
-  #     - .common-env.conf
-  #     - ./system_prompt_builder/.conf
-  #   environment:
-  #     RUNNING_INSIDE_DOCKER: 1
-  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
-  #   ports:
-  #     - "${SYSTEM_PROMPT_BUILDER_GRPC_PORT}:${SYSTEM_PROMPT_BUILDER_GRPC_PORT}"
-  #   networks:
-  #     - llm_service_network
-  #   restart: ${DOCKER_CONTAINERS_RESTART}
-  #   develop:
-  #     watch:
-  #       - action: rebuild
-  #         path: ./system_prompt_builder
+  system_prompt_builder:
+    build:
+      context: ./system_prompt_builder
+      dockerfile: dockerfile
+    image: system_prompt_builder-${COMPOSE_PROJECT_NAME}
+    container_name: system_prompt_builder-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - .common-env.conf
+      - ./system_prompt_builder/.conf
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${SYSTEM_PROMPT_BUILDER_GRPC_PORT}:${SYSTEM_PROMPT_BUILDER_GRPC_PORT}"
+    networks:
+      - llm_service_network
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    depends_on:
+      - policy_builder
+    develop:
+      watch:
+        - action: rebuild
+          path: ./system_prompt_builder
 
 
-  # policy_builder:
-  #   build:
-  #     context: ./policy_builder
-  #     dockerfile: dockerfile
-  #   image: policy_builder-${COMPOSE_PROJECT_NAME}
-  #   container_name: policy_builder-${COMPOSE_PROJECT_NAME}
-  #   env_file: 
-  #     - .env
-  #     - .common-env.conf
-  #     - ./policy_builder/.conf
-  #   environment:
-  #     RUNNING_INSIDE_DOCKER: 1
-  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
-  #   ports:
-  #     - "${POLICY_BUILDER_GRPC_PORT}:${POLICY_BUILDER_GRPC_PORT}"
-  #   networks:
-  #     - llm_service_network
-  #   restart: ${DOCKER_CONTAINERS_RESTART}
-  #   develop:
-  #     watch:
-  #       - action: rebuild
-  #         path: ./policy_builder
+  policy_builder:
+    build:
+      context: ./policy_builder
+      dockerfile: dockerfile
+    image: policy_builder-${COMPOSE_PROJECT_NAME}
+    container_name: policy_builder-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - .common-env.conf
+      - ./policy_builder/.conf
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${POLICY_BUILDER_GRPC_PORT}:${POLICY_BUILDER_GRPC_PORT}"
+    networks:
+      - llm_service_network
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./policy_builder
 
 
   # budget_estimator:

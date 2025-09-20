@@ -8,7 +8,7 @@ from src.domain.models import GraphState
 from src.graph.nodes.question_builder_node import QuestionBuilderNode
 from src.graph.nodes.retrieval_node import RetrievalNode
 from src.graph.nodes.context_builder_node import ContextBuilderNode
-from src.graph.nodes.policy_builder_node import PolicyBuilderNode
+from src.graph.nodes.system_prompt_builder_node import SystemPromptBuilderNode
 from src.graph.nodes.llm_generation_node import LLMGenerationNode
 from src.graph.nodes.finalization_node import FinalizationNode
 from src.graph.nodes.failure_node import FailureNode
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from src.adapters.retriever_adapter import RetrieverAdapter
     from src.adapters.question_builder_adapter import QuestionBuilderAdapter
     from src.adapters.context_builder_adapter import ContextBuilderAdapter
-    from src.adapters.policy_builder_adapter import PolicyBuilderAdapter
+    from src.adapters.system_prompt_builder_adapter import SystemPromptBuilderAdapter
 
 
 class GraphBuilder:
@@ -28,12 +28,12 @@ class GraphBuilder:
         retriever_adapter: "RetrieverAdapter",
         question_builder_adapter: "QuestionBuilderAdapter",
         context_builder_adapter: "ContextBuilderAdapter",
-        policy_builder_adapter: "PolicyBuilderAdapter",
+        system_prompt_builder_adapter: "SystemPromptBuilderAdapter",
     ) -> None:
         self.question_builder_node = QuestionBuilderNode(question_builder_adapter)
         self.retrieval_node = RetrievalNode(retriever_adapter)
         self.context_builder_node = ContextBuilderNode(context_builder_adapter)
-        self.policy_builder_node = PolicyBuilderNode(policy_builder_adapter)
+        self.system_prompt_builder_node = SystemPromptBuilderNode(system_prompt_builder_adapter)
         self.llm_generation_node = LLMGenerationNode(vllm_adapter_service)
         self.finalization_node = FinalizationNode()
         self.failure_node = FailureNode()
@@ -48,7 +48,7 @@ class GraphBuilder:
         graph.add_node("build_question", partial(self.question_builder_node.execute_node))
         graph.add_node("retrieve_context", partial(self.retrieval_node.execute_node))
         graph.add_node("build_context_text", partial(self.context_builder_node.execute_node))
-        graph.add_node("build_policy", partial(self.policy_builder_node.execute_node))
+        graph.add_node("build_system_prompt", partial(self.system_prompt_builder_node.execute_node))
         graph.add_node("llm_generation", partial(self.llm_generation_node.execute_node))
         graph.add_node("finalize", partial(self.finalization_node.execute_node))
         graph.add_node("failure", partial(self.failure_node.execute_node))
@@ -62,8 +62,8 @@ class GraphBuilder:
             {"ok": "build_context_text", "fail": "failure"},
         )
 
-        graph.add_edge("build_context_text", "build_policy")
-        graph.add_edge("build_policy", "llm_generation")
+        graph.add_edge("build_context_text", "build_system_prompt")
+        graph.add_edge("build_system_prompt", "llm_generation")
         graph.add_edge("llm_generation", "finalize")
         graph.add_edge("failure", "finalize")
         graph.add_edge("finalize", END)

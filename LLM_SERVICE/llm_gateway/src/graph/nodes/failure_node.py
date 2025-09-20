@@ -1,5 +1,6 @@
 from __future__ import annotations
 import time
+from loguru import logger
 from src.core.logging import QuestionLogger
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -11,7 +12,10 @@ class FailureNode:
         pass
 
 
-    async def execute_node(self, state: "GraphState") -> "GraphState":
+    async def execute_node(
+        self,
+        state: "GraphState"
+    ) -> "GraphState":
         state["success"] = False
         state["error"] = state.get("retrieval_error", "Context retrieval failed")
 
@@ -25,5 +29,7 @@ class FailureNode:
             success=False,
             error_message=state["error"]
         )
+
+        logger.error(f"Question failed: {state['error']}, total_time={total_ms:.2f}ms")
 
         return state

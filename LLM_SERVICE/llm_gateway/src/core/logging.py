@@ -73,8 +73,6 @@ class QuestionLogger:
                 "timestamp": int(datetime.now().timestamp()),
                 "question_id": question_id,
                 "original_question": original_question,
-                "question_length": len(original_question),
-                "context_chunks_count": len(context_chunks),
                 "context_chunks": [
                     {
                         "doc_id": chunk.get("doc_id", ""),
@@ -214,3 +212,136 @@ class LLMGenerationLogger:
             
         except Exception as ex:
             logger.error(f"Failed to log LLM generation results: {ex}")
+
+
+class QuestionBuilderLogger:
+    @staticmethod
+    def log_question_building(
+        question_id: str,
+        original_question: str,
+        expanded_question: str,
+        semantic_parts: List[str],
+        building_time_ms: float,
+        success: bool,
+        error_message: str = ""
+    ) -> None:
+        try:
+            debug_dir = "debug/question_building"
+            FileSystemTools.ensure_directory_exists(debug_dir)
+            file_path = os.path.join(debug_dir, f"{question_id}.json")
+            
+            building_entry = {
+                "timestamp": int(datetime.now().timestamp()),
+                "question_id": question_id,
+                "original_question": original_question,
+                "expanded_question": expanded_question,
+                "semantic_parts": semantic_parts,
+                "building_time_ms": building_time_ms,
+                "success": success,
+                "error_message": error_message if not success else None
+            }
+            
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            log_data = {
+                "question_id": question_id,
+                "question_building": [building_entry]
+            }
+            
+            with open(file_path, "w", encoding="utf-8") as file:
+                json.dump(log_data, file, indent=2, ensure_ascii=False)
+            
+            logger.debug(f"Question building logged for {question_id}: {len(semantic_parts)} parts, {building_time_ms:.2f}ms")
+            logger.debug(f"Question building results logged to debug log file: {file_path} for question_id: {question_id}")
+            
+        except Exception as ex:
+            logger.error(f"Failed to log question building results: {ex}")
+
+
+class ContextBuilderLogger:
+    @staticmethod
+    def log_context_building(
+        question_id: str,
+        input_chunks_count: int,
+        context_text: str,
+        building_time_ms: float,
+        success: bool,
+        error_message: str = ""
+    ) -> None:
+        try:
+            debug_dir = "debug/context_building"
+            FileSystemTools.ensure_directory_exists(debug_dir)
+            file_path = os.path.join(debug_dir, f"{question_id}.json")
+            
+            building_entry = {
+                "timestamp": int(datetime.now().timestamp()),
+                "question_id": question_id,
+                "input_chunks_count": input_chunks_count,
+                "context_text": context_text,
+                "context_text_length": len(context_text),
+                "building_time_ms": building_time_ms,
+                "success": success,
+                "error_message": error_message if not success else None
+            }
+            
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            log_data = {
+                "question_id": question_id,
+                "context_building": [building_entry]
+            }
+            
+            with open(file_path, "w", encoding="utf-8") as file:
+                json.dump(log_data, file, indent=2, ensure_ascii=False)
+            
+            logger.debug(f"Context building logged for {question_id}: {input_chunks_count} chunks -> {len(context_text)} chars, {building_time_ms:.2f}ms")
+            logger.debug(f"Context building results logged to debug log file: {file_path} for question_id: {question_id}")
+            
+        except Exception as ex:
+            logger.error(f"Failed to log context building results: {ex}")
+
+
+class SystemPromptBuilderLogger:
+    @staticmethod
+    def log_system_prompt_building(
+        question_id: str,
+        system_prompt: str,
+        building_time_ms: float,
+        success: bool,
+        error_message: str = ""
+    ) -> None:
+        try:
+            debug_dir = "debug/system_prompt_building"
+            FileSystemTools.ensure_directory_exists(debug_dir)
+            file_path = os.path.join(debug_dir, f"{question_id}.json")
+            
+            building_entry = {
+                "timestamp": int(datetime.now().timestamp()),
+                "question_id": question_id,
+                "system_prompt": system_prompt,
+                "system_prompt_length": len(system_prompt),
+                "building_time_ms": building_time_ms,
+                "success": success,
+                "error_message": error_message if not success else None
+            }
+            
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            log_data = {
+                "question_id": question_id,
+                "system_prompt_building": [building_entry]
+            }
+            
+            with open(file_path, "w", encoding="utf-8") as file:
+                json.dump(log_data, file, indent=2, ensure_ascii=False)
+            
+            logger.debug(f"System prompt building logged for {question_id}: {len(system_prompt)} chars, {building_time_ms:.2f}ms")
+            logger.debug(f"System prompt building results logged to debug log file: {file_path} for question_id: {question_id}")
+            
+        except Exception as ex:
+            logger.error(f"Failed to log system prompt building results: {ex}")
+
+

@@ -22,10 +22,10 @@ class PolicyBuilderAPI(policy_builder_pb2_grpc.PolicyBuilderServiceServicer):  #
 
         grpc_tools.validate_proto(request, context)
 
-        status: HealthStatus = self.policy_builder_service.get_health_status()
+        result: HealthStatus = self.policy_builder_service.get_health_status()
 
         response = policy_builder_pb2.HealthResponse(
-            status=status.status
+            status=result.status
         )
 
         grpc_tools.validate_proto(response, context)
