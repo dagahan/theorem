@@ -1,6 +1,8 @@
 syntax = "proto3";
 package llm_gateway.v1;
 
+option go_package = "llm_gateway/v1";
+
 import "third_party/protovalidate/buf/validate/validate.proto";
 
 
