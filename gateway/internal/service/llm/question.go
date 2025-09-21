@@ -21,5 +21,9 @@ func (s *service) Question(ctx context.Context, text string) (string, error) {
 		return "", fmt.Errorf("failed to make a question with llm gateway: %w", err)
 	}
 
+	s.l.Info("successful question",
+		"response", resp,
+	)
+
 	return resp.Answer, err
 }
