@@ -128,7 +128,7 @@ func (x *HealthResponse) GetEmbedderStatus() string {
 
 type QuestionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Question      string                 `protobuf:"bytes,1,opt,name=question,proto3" json:"question,omitempty"`
+	RawText       string                 `protobuf:"bytes,1,opt,name=raw_text,json=rawText,proto3" json:"raw_text,omitempty"`
 	Stream        bool                   `protobuf:"varint,2,opt,name=stream,proto3" json:"stream,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -164,9 +164,9 @@ func (*QuestionRequest) Descriptor() ([]byte, []int) {
 	return file_llm_gateway_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *QuestionRequest) GetQuestion() string {
+func (x *QuestionRequest) GetRawText() string {
 	if x != nil {
-		return x.Question
+		return x.RawText
 	}
 	return ""
 }
@@ -249,9 +249,9 @@ const file_llm_gateway_proto_rawDesc = "" +
 	"\n" +
 	"llm_status\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 R\tllmStatus\x124\n" +
 	"\x10retriever_status\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 R\x0fretrieverStatus\x122\n" +
-	"\x0fembedder_status\x18\x04 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 R\x0eembedderStatus\"Y\n" +
-	"\x0fQuestionRequest\x12.\n" +
-	"\bquestion\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*R\bquestion\x12\x16\n" +
+	"\x0fembedder_status\x18\x04 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 R\x0eembedderStatus\"X\n" +
+	"\x0fQuestionRequest\x12-\n" +
+	"\braw_text\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*R\arawText\x12\x16\n" +
 	"\x06stream\x18\x02 \x01(\bR\x06stream\"Z\n" +
 	"\x10QuestionResponse\x12\x16\n" +
 	"\x06answer\x18\x01 \x01(\tR\x06answer\x12\x18\n" +

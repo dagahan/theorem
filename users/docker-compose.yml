@@ -1,0 +1,49 @@
+services:
+  users:
+    container_name: theorem-users
+    build:
+      context: ../
+      dockerfile: ./users/Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_ADDR: "0.0.0.0:${USERS_SERVER_PORT}"
+      POSTGRES_URL: "postgres://${USERS_PG_USER}:${USERS_PG_PASSWORD}@postgres:5432/${USERS_PG_DB}"
+      VALKEY_ADDR: "valkey:6379"
+      VALKEY_PASSWORD: "${USERS_VALKEY_PASSWORD}"
+      ACCESS_TOKEN_TTL: "${USERS_ACCESS_TOKEN_TTL}"
+      REFRESH_TOKEN_TTL: "${USERS_REFRESH_TOKEN_TTL}"
+      JWT_SECRET: "${USERS_JWT_SECRET}"
+      SESSION_MAX_TTL: "${USERS_SESSION_MAX_TTL}"
+      SESSION_INACTIVE_TTL: "${USERS_SESSION_INACTIVE_TTL}"
+      HASH_COST: "${USERS_HASH_COST}"
+    ports:
+      - "${USERS_SERVER_PORT}:${USERS_SERVER_PORT}"
+
+  postgres:
+    container_name: theorem-users-postgres
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${USERS_PG_USER}"
+      POSTGRES_PASSWORD: "${USERS_PG_PASSWORD}"
+      POSTGRES_DB: "${USERS_PG_DB}"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${USERS_PG_USER} -d ${USERS_PG_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  valkey:
+    container_name: theorem-users-valkey
+    image: valkey/valkey:9.0-alpine3.22
+    restart: unless-stopped
+    environment:
+      VALKEY_PASSWORD: "${USERS_VALKEY_PASSWORD}"
+    healthcheck:
+      test: [ "CMD-SHELL", "valkey-cli -p 6379 ping | grep PONG" ]
+      interval: 1s
+      timeout: 3s
+      retries: 5
