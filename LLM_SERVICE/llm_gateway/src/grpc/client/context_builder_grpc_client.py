@@ -1,5 +1,6 @@
 from __future__ import annotations
 import grpc
+import grpc.aio
 from loguru import logger
 
 from protobuf_stubs import context_builder_pb2, context_builder_pb2_grpc
@@ -8,18 +9,19 @@ from src.domain.models import ContextBuilderRequest, ContextBuilderResponse
 
 
 class ContextBuilderGrpcClient:
-    def __init__(self, channel: grpc.Channel, service_name: str) -> None:
+    def __init__(self, channel: grpc.aio.Channel, service_name: str) -> None:
         self.channel = channel
         self.service_name = service_name
         self.stub = context_builder_pb2_grpc.ContextBuilderServiceStub(self.channel)
 
 
+    @GrpcTools.log_grpc_client_call("context_builder", "Health")
     async def health_check(self) -> bool:
         request = context_builder_pb2.HealthRequest()
         GrpcTools.validate_proto(request)
 
         try:
-            response = self.stub.Health(request, timeout=3)
+            response = await self.stub.Health(request, timeout=3)
             GrpcTools.validate_proto(response)
             return bool(response.status == "healthy")
 
@@ -28,6 +30,7 @@ class ContextBuilderGrpcClient:
             return False
 
 
+    @GrpcTools.log_grpc_client_call("context_builder", "BuildContext")
     async def build_context(
         self,
         request: ContextBuilderRequest
@@ -52,7 +55,7 @@ class ContextBuilderGrpcClient:
         GrpcTools.validate_proto(request)
 
         try:
-            response = self.stub.BuildContext(request, timeout=30)
+            response = await self.stub.BuildContext(request, timeout=30)
 
             if not response.success:
                 return ContextBuilderResponse(

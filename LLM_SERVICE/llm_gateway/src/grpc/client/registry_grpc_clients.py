@@ -1,5 +1,5 @@
 from typing import Any, Dict, Type, TypeVar, cast, Callable
-import grpc
+import grpc.aio
 from loguru import logger
 
 from src.core.utils import EnvTools
@@ -10,7 +10,7 @@ T = TypeVar('T')
 class GrpcClientRegistry:
     _instance: "GrpcClientRegistry | None" = None
     _clients: Dict[str, Any]
-    _channels: Dict[str, grpc.Channel]
+    _channels: Dict[str, grpc.aio.Channel]
     
     def __new__(cls) -> "GrpcClientRegistry":
         if cls._instance is None:
@@ -22,7 +22,7 @@ class GrpcClientRegistry:
     def _get_channel(
         self,
         service_name: str
-    ) -> grpc.Channel:
+    ) -> grpc.aio.Channel:
         if service_name in self._channels:
             return self._channels[service_name]
         
@@ -40,7 +40,7 @@ class GrpcClientRegistry:
             ('grpc.max_send_message_length', 4 * 1024 * 1024),
             ('grpc.enable_http_proxy', 0),
         ]
-        channel = grpc.insecure_channel(address, options=options)
+        channel = grpc.aio.insecure_channel(address, options=options)
 
         self._channels[service_name] = channel
         logger.success(f"gRPC channel created for {service_name}: {address}")
@@ -49,7 +49,7 @@ class GrpcClientRegistry:
     def register_client(
         self,
         service_name: str,
-        client_class: Callable[[grpc.Channel, str], T],
+        client_class: Callable[[grpc.aio.Channel, str], T],
         **kwargs: Any
     ) -> T:
         if service_name in self._clients:

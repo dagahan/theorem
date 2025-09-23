@@ -44,6 +44,8 @@ exec uv run -m vllm.entrypoints.openai.api_server \
   --gpu-memory-utilization "$GPU_UTIL" \
   --dtype "$DTYPE" \
   --trust-remote-code \
-  --quantization awq
+  --quantization awq \
+  --max-num-seqs 50 \
+  --max-num-batched-tokens 8192
 
 

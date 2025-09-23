@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-import grpc
+import grpc.aio
 from loguru import logger
 
 from protobuf_stubs import retriever_pb2, retriever_pb2_grpc
@@ -9,19 +9,20 @@ from src.domain.models import RetrieveRequest, RetrieveResult, RetrieveResponse
 
 
 class RetrieverGrpcClient:
-    def __init__(self, channel: grpc.Channel, service_name: str) -> None:
+    def __init__(self, channel: grpc.aio.Channel, service_name: str) -> None:
         self.channel = channel
         self.service_name = service_name
         self.stub = retriever_pb2_grpc.RetrieverServiceStub(self.channel)
 
 
+    @GrpcTools.log_grpc_client_call("retriever", "Health")
     async def health_check(self) -> RetrieveResponse:
         request = retriever_pb2.HealthRequest()
 
         GrpcTools.validate_proto(request)
 
         try:
-            response = self.stub.Health(request, timeout=3)
+            response = await self.stub.Health(request, timeout=3)
 
             GrpcTools.validate_proto(response)
 
@@ -38,6 +39,7 @@ class RetrieverGrpcClient:
             return RetrieveResponse(results=[], success=False, error=str(ex))
 
 
+    @GrpcTools.log_grpc_client_call("retriever", "Retrieve")
     async def retrieve_context(
         self,
         request: RetrieveRequest
@@ -51,7 +53,7 @@ class RetrieverGrpcClient:
         GrpcTools.validate_proto(pb)
 
         try:
-            response = self.stub.Retrieve(pb, timeout=60)
+            response = await self.stub.Retrieve(pb, timeout=60)
 
             if not response.success:
                 return RetrieveResponse(
@@ -82,5 +84,3 @@ class RetrieverGrpcClient:
         except grpc.RpcError as ex:
             logger.error(f"Retrieve failed: {ex}")
             return RetrieveResponse(results=[], success=False, error=str(ex))
-
-

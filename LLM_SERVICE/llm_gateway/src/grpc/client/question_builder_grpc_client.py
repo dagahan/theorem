@@ -1,5 +1,5 @@
 from __future__ import annotations
-import grpc
+import grpc.aio
 from loguru import logger
 
 from protobuf_stubs import question_builder_pb2, question_builder_pb2_grpc
@@ -8,19 +8,20 @@ from src.domain.models import QuestionBuilderRequest, QuestionBuilderResponse
 
 
 class QuestionBuilderGrpcClient:
-    def __init__(self, channel: grpc.Channel, service_name: str) -> None:
+    def __init__(self, channel: grpc.aio.Channel, service_name: str) -> None:
         self.channel = channel
         self.service_name = service_name
         self.stub = question_builder_pb2_grpc.QuestionBuilderServiceStub(self.channel)
 
 
+    @GrpcTools.log_grpc_client_call("question_builder", "Health")
     async def health_check(self) -> bool:
         request = question_builder_pb2.HealthRequest()
 
         GrpcTools.validate_proto(request)
 
         try:
-            resp = self.stub.Health(request, timeout=3)
+            resp = await self.stub.Health(request, timeout=3)
             GrpcTools.validate_proto(resp)
             return bool(resp.status == "healthy")
 
@@ -29,6 +30,7 @@ class QuestionBuilderGrpcClient:
             return False
 
 
+    @GrpcTools.log_grpc_client_call("question_builder", "ProcessQuestion")
     async def process_question(
         self,
         request: QuestionBuilderRequest
@@ -38,7 +40,7 @@ class QuestionBuilderGrpcClient:
         GrpcTools.validate_proto(request)
 
         try:
-            response = self.stub.ProcessQuestion(request, timeout=30)
+            response = await self.stub.ProcessQuestion(request, timeout=30)
 
             if not response.success:
                 return QuestionBuilderResponse(
@@ -67,5 +69,4 @@ class QuestionBuilderGrpcClient:
                 success=False,
                 error=str(ex)
             )
-
 
