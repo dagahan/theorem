@@ -12,11 +12,13 @@ from loguru import logger
 from protobuf_stubs import embedder_pb2_grpc
 from src.core.utils import EnvTools
 from src.services.embedder_service import EmbedderService
+from src.grpc.api.embedder_api import EmbedderAPI
 
 
 class GRPCServerRunner:
     def __init__(self) -> None:
-        self._servicer = EmbedderService()
+        self._embedder_service = EmbedderService()
+        self._servicer = EmbedderAPI(self._embedder_service)
         self._max_workers = int(EnvTools.required_load_env_var("EMBEDDER_MAX_CONCURRENCY"))
         self._host: str = EnvTools.get_service_host("embedder")
         self._port: int = int(EnvTools.get_service_grpc_port("embedder"))

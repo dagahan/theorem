@@ -7,7 +7,7 @@ variable "PLATFORMS_CPU" { default = ["linux/amd64"] }
 
 
 group "default" {
-  targets = ["qdrant", "embedder", "vllm_math"]
+  targets = ["qdrant", "embedder", "vllm_math", "context_builder", "system_prompt_builder", "policy_builder", "budget_estimator"]
 }
 
 
@@ -50,6 +50,54 @@ target "vllm_math" {
   tags       = [
     "${REGISTRY}/${PROJECT}/vllm_math:${VERSION}",
     "${REGISTRY}/${PROJECT}/vllm_math:${SHA}",
+  ]
+}
+
+
+target "context_builder" {
+  inherits   = ["common"]
+  context    = "./context_builder"
+  dockerfile = "dockerfile"
+  platforms  = var.PLATFORMS_CPU
+  tags       = [
+    "${REGISTRY}/${PROJECT}/context_builder:${VERSION}",
+    "${REGISTRY}/${PROJECT}/context_builder:${SHA}",
+  ]
+}
+
+
+target "system_prompt_builder" {
+  inherits   = ["common"]
+  context    = "./system_prompt_builder"
+  dockerfile = "dockerfile"
+  platforms  = var.PLATFORMS_CPU
+  tags       = [
+    "${REGISTRY}/${PROJECT}/system_prompt_builder:${VERSION}",
+    "${REGISTRY}/${PROJECT}/system_prompt_builder:${SHA}",
+  ]
+}
+
+
+target "policy_builder" {
+  inherits   = ["common"]
+  context    = "./policy_builder"
+  dockerfile = "dockerfile"
+  platforms  = var.PLATFORMS_CPU
+  tags       = [
+    "${REGISTRY}/${PROJECT}/policy_builder:${VERSION}",
+    "${REGISTRY}/${PROJECT}/policy_builder:${SHA}",
+  ]
+}
+
+
+target "budget_estimator" {
+  inherits   = ["common"]
+  context    = "./budget_estimator"
+  dockerfile = "dockerfile"
+  platforms  = var.PLATFORMS_CPU
+  tags       = [
+    "${REGISTRY}/${PROJECT}/budget_estimator:${VERSION}",
+    "${REGISTRY}/${PROJECT}/budget_estimator:${SHA}",
   ]
 }
 

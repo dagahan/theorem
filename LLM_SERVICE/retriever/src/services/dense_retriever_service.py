@@ -1,14 +1,16 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Tuple
+
+from typing import Any, Dict, List
+
 from src.adapters.embedder_adapter import EmbedderAdapter
 from src.adapters.vector_store_adapter import VectorStoreAdapter
-from src.domain.models import Candidate, DocKey, EmbeddingResult, VectorSearchResult
+from src.domain.models import Candidate, EmbeddingResult, VectorSearchResult
 
 
 class DenseRetrieverService:
     def __init__(self) -> None:
-        self.embedder = EmbedderAdapter()
-        self.store = VectorStoreAdapter()
+        self.embedder_adapter = EmbedderAdapter()
+        self.vector_store_adapter = VectorStoreAdapter()
 
 
     async def retrieve_ann_candidates(
@@ -23,7 +25,9 @@ class DenseRetrieverService:
             return []
 
         vector_search_result: VectorSearchResult = await self._search_vectors(
-            collection_name, embedding_result.vector, top_k
+            collection_name,
+            embedding_result.vector,
+            top_k
         )
 
         candidates: List[Candidate] = self._convert_to_candidates(vector_search_result.raw_results)
@@ -36,7 +40,11 @@ class DenseRetrieverService:
         query_text: str
     ) -> EmbeddingResult:
         try:
-            embed_response: Dict[str, Any] = await self.embedder.embed_text(query_text, normalize=True)
+            embed_response: Dict[str, Any] = await self.embedder_adapter.embed_text(
+                query_text,
+                normalize=True
+            )
+
             vector: List[float] = embed_response.get("vector", [])
             
             if not vector:
@@ -69,7 +77,7 @@ class DenseRetrieverService:
         top_k: int
     ) -> VectorSearchResult:
 
-        raw_results: List[Dict[str, Any]] = await self.store.search(
+        raw_results: List[Dict[str, Any]] = await self.vector_store_adapter.search(
             collection_name,
             query_vector,
             top_k

@@ -33,7 +33,9 @@ services:
       dockerfile: dockerfile
     image: postgres-${COMPOSE_PROJECT_NAME}
     container_name: postgres-${COMPOSE_PROJECT_NAME}
-    env_file: .env
+    env_file: 
+     - .env
+     - .common-env.conf
     environment:
       RUNNING_INSIDE_DOCKER: 1
       COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
@@ -64,7 +66,6 @@ services:
   #  env_file: 
   #    - .env
   #    - .common-env.conf
-  #    - ./embedder/.conf
   #  environment:
   #    RUNNING_INSIDE_DOCKER: 1
   #    COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
@@ -79,31 +80,30 @@ services:
   #        path: ./embedder
 
 
- # rag:
- #   build:
- #     context: ./rag
- #     dockerfile: dockerfile
- #   image: rag-${COMPOSE_PROJECT_NAME}
- #   container_name: rag-${COMPOSE_PROJECT_NAME}
- #   env_file: 
- #     - .env
- #     - .common-env.conf
- #     - ./rag/.conf
- #   environment:
- #     RUNNING_INSIDE_DOCKER: 1
- #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
- #   ports:
- #     - "${RAG_PORT}:${RAG_PORT}"
- #   networks:
- #     - llm_service_network
- #   restart: ${DOCKER_CONTAINERS_RESTART}
- #   depends_on:
- #     - qdrant
- #     - embedder
- #   develop:
- #     watch:
- #       - action: rebuild
- #         path: ./rag
+  # retriever:
+  #  build:
+  #    context: ./retriever
+  #    dockerfile: dockerfile
+  #  image: retriever-${COMPOSE_PROJECT_NAME}
+  #  container_name: retriever-${COMPOSE_PROJECT_NAME}
+  #  env_file: 
+  #    - .env
+  #    - .common-env.conf
+  #  environment:
+  #    RUNNING_INSIDE_DOCKER: 1
+  #    COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #  ports:
+  #    - "${RETRIEVER_GRPC_PORT}:${RETRIEVER_GRPC_PORT}"
+  #  networks:
+  #    - llm_service_network
+  #  restart: ${DOCKER_CONTAINERS_RESTART}
+  #  depends_on:
+  #    - qdrant
+  #    - embedder
+  #  develop:
+  #    watch:
+  #     - action: rebuild
+  #       path: ./retriever
 
 
   # ingestor:
@@ -115,7 +115,6 @@ services:
   #  env_file: 
   #    - .env
   #    - .common-env.conf
-  #    - ./ingestor/.conf
   #  environment:
   #    RUNNING_INSIDE_DOCKER: 1
   #    COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
@@ -165,6 +164,101 @@ services:
   #     watch:
   #       - action: rebuild
   #         path: ./vllm_math
+
+
+  # context_builder:
+  #   build:
+  #     context: ./context_builder
+  #     dockerfile: dockerfile
+  #   image: context_builder-${COMPOSE_PROJECT_NAME}
+  #   container_name: context_builder-${COMPOSE_PROJECT_NAME}
+  #   env_file: 
+  #     - .env
+  #     - .common-env.conf
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #   ports:
+  #     - "${CONTEXT_BUILDER_GRPC_PORT}:${CONTEXT_BUILDER_GRPC_PORT}"
+  #   networks:
+  #     - llm_service_network
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./context_builder
+
+
+  # system_prompt_builder:
+  #   build:
+  #     context: ./system_prompt_builder
+  #     dockerfile: dockerfile
+  #   image: system_prompt_builder-${COMPOSE_PROJECT_NAME}
+  #   container_name: system_prompt_builder-${COMPOSE_PROJECT_NAME}
+  #   env_file: 
+  #     - .env
+  #     - .common-env.conf
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #   ports:
+  #     - "${SYSTEM_PROMPT_BUILDER_GRPC_PORT}:${SYSTEM_PROMPT_BUILDER_GRPC_PORT}"
+  #   networks:
+  #     - llm_service_network
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   depends_on:
+  #     - policy_builder
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./system_prompt_builder
+
+
+  # policy_builder:
+  #   build:
+  #     context: ./policy_builder
+  #     dockerfile: dockerfile
+  #   image: policy_builder-${COMPOSE_PROJECT_NAME}
+  #   container_name: policy_builder-${COMPOSE_PROJECT_NAME}
+  #   env_file: 
+  #     - .env
+  #     - .common-env.conf
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #   ports:
+  #     - "${POLICY_BUILDER_GRPC_PORT}:${POLICY_BUILDER_GRPC_PORT}"
+  #   networks:
+  #     - llm_service_network
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./policy_builder
+
+
+  # budget_estimator:
+  #   build:
+  #     context: ./budget_estimator
+  #     dockerfile: dockerfile
+  #   image: budget_estimator-${COMPOSE_PROJECT_NAME}
+  #   container_name: budget_estimator-${COMPOSE_PROJECT_NAME}
+  #   env_file: 
+  #     - .env
+  #     - .common-env.conf
+  #     - ./budget_estimator/.conf
+  #   environment:
+  #     RUNNING_INSIDE_DOCKER: 1
+  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+  #   ports:
+  #     - "${BUDGET_ESTIMATOR_GRPC_PORT}:${BUDGET_ESTIMATOR_GRPC_PORT}"
+  #   networks:
+  #     - llm_service_network
+  #   restart: ${DOCKER_CONTAINERS_RESTART}
+  #   develop:
+  #     watch:
+  #       - action: rebuild
+  #         path: ./budget_estimator
 
 
 networks:

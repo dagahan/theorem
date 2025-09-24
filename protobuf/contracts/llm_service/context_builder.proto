@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package context_builder;
+
+import "third_party/protovalidate/buf/validate/validate.proto";
+
+
+service ContextBuilderService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc BuildContext(BuildContextRequest) returns (BuildContextResponse);
+}
+
+
+message HealthRequest {}
+
+
+message HealthResponse {
+  string status = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+
+message ContextChunk {
+  string doc_id = 1 [(buf.validate.field).string.min_len = 1];
+  int32 paragraph_id = 2;
+  int32 chunk_id = 3;
+  string text = 4 [(buf.validate.field).string.min_len = 1];
+  repeated int32 pages = 5;
+  double score = 6;
+}
+
+
+message BuildContextRequest {
+  repeated ContextChunk chunks = 1 [(buf.validate.field).repeated.min_items = 1];
+  int32 max_context_chars = 2 [(buf.validate.field).int32.gte = 1];
+}
+
+
+message BuildContextResponse {
+  string context_text = 1 [(buf.validate.field).string.min_len = 1];
+  bool success = 2;
+  string error = 3;
+}
+
+

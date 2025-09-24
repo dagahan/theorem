@@ -1,59 +1,60 @@
 from __future__ import annotations
+
 import time
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, List
+from loguru import logger
+from src.core.logging import ContextBuilderLogger
+from src.graph.graph_utils import timeout_and_retry
+from src.domain.models import ContextBuilderRequest, ContextBuilderResponse, ContextChunk
 
 if TYPE_CHECKING:
+    from src.adapters.context_builder_adapter import ContextBuilderAdapter
     from src.domain.models import GraphState
 
 
 class ContextBuilderNode:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, context_builder_adapter: "ContextBuilderAdapter") -> None:
+        self.adapter = context_builder_adapter
 
 
+    @timeout_and_retry(max_attempts=3, timeout_sec=25.0)
     async def execute_node(
         self,
         graph_state: "GraphState"
     ) -> "GraphState":
         execution_start_time = time.time()
-        
-        retrieved_chunks = graph_state.get("context_chunks", [])
-        maximum_context_characters = graph_state["max_context_chars"]
 
-        if not retrieved_chunks:
-            graph_state["context_text"] = "Context not found."
-            graph_state["timings_ms"]["build_context_text"] = (time.time() - execution_start_time) * 1000
+        context_chunks: List[ContextChunk] = graph_state.get("context_chunks", [])
+        max_chars = graph_state.get("max_context_chars", 4000)
+
+        request = ContextBuilderRequest(
+            chunks=context_chunks,
+            max_context_chars=max_chars
+        )
+
+        response: ContextBuilderResponse = await self.adapter.build_context(request)
+
+        if not response.success:
+            graph_state["context_text"] = "CTX error"
+            graph_state["error"] = f"Context building failed: {response.error or 'unknown'}"
+            graph_state.setdefault("timings_ms", {})["build_context_text"] = (time.time() - execution_start_time) * 1000.0
             return graph_state
 
-        formatted_context_sections: List[str] = []
-        total_characters_consumed = 0
+        graph_state["context_text"] = response.context_text
+        elapsed = (time.time() - execution_start_time) * 1000.0
+        graph_state.setdefault("timings_ms", {})["build_context_text"] = elapsed
 
-        for chunk_index, chunk in enumerate(retrieved_chunks, 1):
-            chunk_text = getattr(chunk, 'text', '')
-            doc_id = getattr(chunk, 'doc_id', 'unknown')
-            pages = getattr(chunk, 'pages', [])
-            score = getattr(chunk, 'score', 0.0)
-            
-            chunk_header_info = f"{chunk_index}. doc={doc_id}, pages={pages}, score={score:.5f}"
+        ContextBuilderLogger.log_context_building(
+            question_id=graph_state["question_id"],
+            input_chunks_count=len(context_chunks),
+            context_text=response.context_text,
+            building_time_ms=elapsed,
+            success=True
+        )
 
-            if total_characters_consumed + len(chunk_header_info) + 1 > maximum_context_characters:
-                break
-                
-            available_characters_for_context = maximum_context_characters - total_characters_consumed - len(chunk_header_info) - 1
+        logger.info(f"Context built: {len(context_chunks)} chunks -> {len(response.context_text)} chars in {elapsed:.2f}ms")
 
-            if available_characters_for_context > 0:
-                truncated_chunk_content = chunk_text[:available_characters_for_context] if len(chunk_text) > available_characters_for_context else chunk_text
-                formatted_chunk_line = f"{chunk_header_info}\n{truncated_chunk_content}"
-            else:
-                formatted_chunk_line = chunk_header_info
-                
-            formatted_context_sections.append(formatted_chunk_line)
-
-            total_characters_consumed += len(formatted_chunk_line) + 1
-
-        graph_state["context_text"] = "\n".join(formatted_context_sections) if formatted_context_sections else "Context not found."
-        graph_state["timings_ms"]["build_context_text"] = (time.time() - execution_start_time) * 1000
-        
         return graph_state
+
 
 

@@ -267,10 +267,9 @@ class QdrantGrpcClient:
         top_k: int = 25,
         score_threshold: float = 0.0
     ) -> List[Dict[str, Any]]:
-        # Get raw response before normalization to preserve ScoredPoint objects
-        fn = getattr(self.qdrant_client, "search")
+        function = getattr(self.qdrant_client, "search")
         raw_res = await asyncio.to_thread(
-            fn,
+            function,
             collection_name=collection_name,
             query_vector=query_vector,
             limit=top_k,
@@ -279,11 +278,8 @@ class QdrantGrpcClient:
             with_vectors=False,
         )
         
-        logger.debug(f"Raw search response type: {type(raw_res)}, count: {len(raw_res) if hasattr(raw_res, '__len__') else 'no len'}")
-        
         results: List[Dict[str, Any]] = []
         
-        # Extract data directly from ScoredPoint objects
         if hasattr(raw_res, '__iter__'):
             for scored_point in raw_res:
                 if hasattr(scored_point, "id") and hasattr(scored_point, "score") and hasattr(scored_point, "payload"):
@@ -295,8 +291,7 @@ class QdrantGrpcClient:
                         "score": scored_point.score,
                         "payload": payload
                     })
-        
-        logger.debug(f"Qdrant search: processed {len(results)} results")
+
         return results
 
 

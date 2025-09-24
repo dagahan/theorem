@@ -36,19 +36,25 @@ class RetrieverService(retriever_pb2_grpc.RetrieverServiceServicer):  # type: ig
     def Health(self, request: retriever_pb2.HealthRequest, context: grpc.ServicerContext) -> retriever_pb2.HealthResponse:
         try:
             grpc_tools.validate_proto(request, context)
+
             embedder_status, qdrant_status, embedder_model_id, embedder_dim = self._run(
                 self.health_checker.health_check_service("all")
             )
+
             overall = "healthy" if embedder_status == "healthy" and qdrant_status == "healthy" else "unhealthy"
-            resp = retriever_pb2.HealthResponse(
+
+            response = retriever_pb2.HealthResponse(
                 status=overall,
                 embedder_status=embedder_status,
                 qdrant_status=qdrant_status,
                 embedder_model_id=embedder_model_id,
                 embedder_dim=embedder_dim,
             )
-            grpc_tools.validate_proto(resp, context)
-            return resp
+
+            grpc_tools.validate_proto(response, context)
+
+            return response
+
         except Exception as ex:
             logger.error(f"Health check failed: {ex}")
             return retriever_pb2.HealthResponse(
@@ -64,9 +70,10 @@ class RetrieverService(retriever_pb2_grpc.RetrieverServiceServicer):  # type: ig
     def Retrieve(self, request: retriever_pb2.RetrieveRequest, context: grpc.ServicerContext) -> retriever_pb2.RetrieveResponse:
         try:
             grpc_tools.validate_proto(request, context)
+
             search_result = self._run(
                 self.retrieve_orchestrator.retrieve(
-                    query=request.query,
+                    question=request.question,
                     collection_name=request.collection_name
                 )
             )
@@ -91,6 +98,10 @@ class RetrieverService(retriever_pb2_grpc.RetrieverServiceServicer):  # type: ig
 
         except Exception as ex:
             logger.exception("Search failed")
-            return retriever_pb2.RetrieveResponse(results=[], success=False, error=str(ex))
+            return retriever_pb2.RetrieveResponse(
+                results=[],
+                success=False,
+                error=str(ex)
+            )
 
 

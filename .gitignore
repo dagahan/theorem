@@ -1,5 +1,29 @@
+# Protobuf generated stubs
+# ========================
+
+# Temporary build directories
+protobuf/generators/python/.build/
+protobuf/generators/python/.venv/
+
+# Generated protobuf stubs in microservices
+LLM_SERVICE/*/protobuf_stubs/
+LLM_SERVICE/*/buf/validate/
+
+# Generated validate stubs in protobuf generator
+protobuf/generators/python/validate_gen/
+
+# Virtual environments
 .env
-.venv
-.idea
-.vscode
+.venv/
+venv/
+env/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
 *.log
