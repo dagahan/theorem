@@ -7,6 +7,7 @@
 package v1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -514,17 +515,19 @@ var File_auth_proto protoreflect.FileDescriptor
 const file_auth_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"auth.proto\x12\busers.v1\"C\n" +
-	"\x0fRegisterRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"s\n" +
+	"auth.proto\x12\busers.v1\x1a5third_party/protovalidate/buf/validate/validate.proto\"X\n" +
+	"\x0fRegisterRequest\x12\x1d\n" +
+	"\x05email\x18\x01 \x01(\tB\a\xbaH\x04r\x02`\x01R\x05email\x12&\n" +
+	"\bpassword\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\b\x18\x80\x01R\bpassword\"s\n" +
 	"\x10RegisterResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\faccess_token\x18\x02 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x03 \x01(\tR\frefreshToken\"@\n" +
-	"\fLoginRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"W\n" +
+	"\rrefresh_token\x18\x03 \x01(\tR\frefreshToken\"U\n" +
+	"\fLoginRequest\x12\x1d\n" +
+	"\x05email\x18\x01 \x01(\tB\a\xbaH\x04r\x02`\x01R\x05email\x12&\n" +
+	"\bpassword\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\b\x18\x80\x01R\bpassword\"W\n" +
 	"\rLoginResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"?\n" +
@@ -546,8 +549,8 @@ const file_auth_proto_rawDesc = "" +
 	"\x05Login\x12\x16.users.v1.LoginRequest\x1a\x17.users.v1.LoginResponse\x12b\n" +
 	"\x13AuthenticateRequest\x12$.users.v1.AuthenticateRequestRequest\x1a%.users.v1.AuthenticateRequestResponse\x12P\n" +
 	"\rRefreshTokens\x12\x1e.users.v1.RefreshTokensRequest\x1a\x1f.users.v1.RefreshTokensResponse\x12;\n" +
-	"\x06Logout\x12\x17.users.v1.LogoutRequest\x1a\x18.users.v1.LogoutResponseB\n" +
-	"Z\busers/v1b\x06proto3"
+	"\x06Logout\x12\x17.users.v1.LogoutRequest\x1a\x18.users.v1.LogoutResponseBd\n" +
+	"\fcom.users.v1B\tAuthProtoP\x01Z\busers/v1\xa2\x02\x03UXX\xaa\x02\bUsers.V1\xca\x02\bUsers\\V1\xe2\x02\x14Users\\V1\\GPBMetadata\xea\x02\tUsers::V1b\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once

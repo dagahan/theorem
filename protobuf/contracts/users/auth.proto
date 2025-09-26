@@ -3,6 +3,8 @@ package users.v1;
 
 option go_package = "users/v1";
 
+import "third_party/protovalidate/buf/validate/validate.proto";
+
 service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
@@ -12,8 +14,10 @@ service AuthService {
 }
 
 message RegisterRequest {
-  string email = 1;
-  string password = 2;
+  string email = 1 [(buf.validate.field).string.email = true];
+  string password = 2 [
+    (buf.validate.field).string = {min_len: 8, max_len: 128}
+ ];
 }
 
 message RegisterResponse {
@@ -23,8 +27,10 @@ message RegisterResponse {
 }
 
 message LoginRequest {
-  string email = 1;
-  string password = 2;
+  string email = 1 [(buf.validate.field).string.email = true];
+  string password = 2 [
+    (buf.validate.field).string = {min_len: 8, max_len: 128}
+ ];
 }
 
 message LoginResponse {

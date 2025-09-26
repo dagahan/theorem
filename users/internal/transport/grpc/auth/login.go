@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"buf.build/go/protovalidate"
 	pb "github.com/dagahan/theorem/gen/go/users/v1"
 	"github.com/dagahan/theorem/users/internal/errorz"
 	"github.com/dagahan/theorem/users/internal/models"
@@ -12,6 +13,10 @@ import (
 )
 
 func (h *handler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
+	if err := protovalidate.Validate(req); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
 	inputUser := &models.User{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),

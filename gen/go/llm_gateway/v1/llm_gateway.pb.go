@@ -259,7 +259,8 @@ const file_llm_gateway_proto_rawDesc = "" +
 	"\x05error\x18\x03 \x01(\tR\x05error2\xab\x01\n" +
 	"\x11LLMGatewayService\x12G\n" +
 	"\x06Health\x12\x1d.llm_gateway.v1.HealthRequest\x1a\x1e.llm_gateway.v1.HealthResponse\x12M\n" +
-	"\bQuestion\x12\x1f.llm_gateway.v1.QuestionRequest\x1a .llm_gateway.v1.QuestionResponseB\x10Z\x0ellm_gateway/v1b\x06proto3"
+	"\bQuestion\x12\x1f.llm_gateway.v1.QuestionRequest\x1a .llm_gateway.v1.QuestionResponseB\x8a\x01\n" +
+	"\x12com.llm_gateway.v1B\x0fLlmGatewayProtoP\x01Z\x0ellm_gateway/v1\xa2\x02\x03LXX\xaa\x02\rLlmGateway.V1\xca\x02\rLlmGateway\\V1\xe2\x02\x19LlmGateway\\V1\\GPBMetadata\xea\x02\x0eLlmGateway::V1b\x06proto3"
 
 var (
 	file_llm_gateway_proto_rawDescOnce sync.Once

@@ -7,3 +7,9 @@ plugins:
     out: ../gen/go
 inputs:
   - directory: contracts
+
+managed:
+  enabled: true
+  disable:
+    - file_option: go_package
+      module: buf.build/bufbuild/protovalidate
