@@ -11,6 +11,7 @@ import (
 type userService interface {
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 	GetByID(ctx context.Context, userID uuid.UUID) (*models.User, error)
+	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	VerifyCredentials(ctx context.Context, inputUser *models.User) (bool, error)
 }
 

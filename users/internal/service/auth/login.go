@@ -24,7 +24,7 @@ func (s *service) Login(ctx context.Context, inputUser *models.User) (*LoginResu
 		return nil, errorz.InvalidCredentials
 	}
 
-	user, err := s.userService.GetByID(ctx, inputUser.ID)
+	user, err := s.userService.GetByEmail(ctx, inputUser.Email)
 	switch {
 	case errors.Is(err, errorz.UserNotFound):
 		s.l.Warn("failed to login: user not found", "id", inputUser.ID)
