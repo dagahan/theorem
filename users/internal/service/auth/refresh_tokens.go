@@ -13,13 +13,22 @@ type RefreshTokensResult struct {
 }
 
 func (s *service) RefreshTokens(ctx context.Context, oldRefreshTokenStr string) (*RefreshTokensResult, error) {
+	ok, err := s.tokenService.IsRefreshInvalidated(ctx, oldRefreshTokenStr)
+	if err != nil {
+		s.l.Error("failed to refresh tokens: IsRefreshInvalidated", "error", err)
+		return nil, err
+	}
+	if ok {
+		return nil, errorz.InvalidToken
+	}
+
 	oldRefreshToken, err := s.tokenService.ParseRefresh(oldRefreshTokenStr)
 	if err != nil {
 		s.l.Warn("failed to refresh tokens: parse old refresh token", "error", err)
 		return nil, errorz.InvalidToken
 	}
 
-	ok, err := s.sessionService.IsExists(ctx, oldRefreshToken.SessionID)
+	ok, err = s.sessionService.IsExists(ctx, oldRefreshToken.SessionID)
 	if err != nil {
 		s.l.Error("failed to refresh tokens: check session", "error", err)
 		return nil, err
