@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	pb "github.com/dagahan/theorem/gen/go/users/v1"
 	"github.com/dagahan/theorem/users/internal/errorz"
@@ -14,6 +15,8 @@ func (h *handler) AuthenticateRequest(ctx context.Context, req *pb.AuthenticateR
 
 	result, err := h.service.AuthenticateRequest(ctx, accessToken)
 	switch {
+	case errors.Is(err, errorz.InvalidToken), errors.Is(err, errorz.SessionNotFound):
+		return nil, status.Error(codes.Unauthenticated, err.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, errorz.InternalServerError.Error())
 	}
