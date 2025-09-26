@@ -8,7 +8,7 @@ import (
 )
 
 func (s *service) VerifyCredentials(ctx context.Context, inputUser *models.User) (bool, error) {
-	user, err := s.userRepo.GetByID(ctx, inputUser.ID)
+	user, err := s.userRepo.GetByEmail(ctx, inputUser.Email)
 	if err != nil {
 		return false, fmt.Errorf("failed to find user: %w", err)
 	}
