@@ -15,7 +15,7 @@ type LoginResult struct {
 
 func (s *service) Login(ctx context.Context, inputUser *models.User) (*LoginResult, error) {
 	ok, err := s.userService.VerifyCredentials(ctx, inputUser)
-	if err != nil {
+	if err != nil && !errors.Is(err, errorz.UserNotFound) {
 		s.l.Error("failed to login: verify credentials", "error", err)
 		return nil, err
 	}
