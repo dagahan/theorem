@@ -19,6 +19,7 @@ type sessionService interface {
 	Create(ctx context.Context, userID uuid.UUID) (*models.Session, error)
 	Get(ctx context.Context, id uuid.UUID) (*models.Session, error)
 	RefreshTTL(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type tokenService interface {

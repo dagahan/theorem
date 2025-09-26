@@ -12,6 +12,7 @@ type sessionRepo interface {
 	Create(ctx context.Context, session *models.Session) error
 	Get(ctx context.Context, id uuid.UUID) (*models.Session, error)
 	RefreshTTL(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type Params struct {

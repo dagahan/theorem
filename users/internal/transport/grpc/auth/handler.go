@@ -13,6 +13,7 @@ type service interface {
 	Login(ctx context.Context, inputUser *models.User) (*authservice.LoginResult, error)
 	AuthenticateRequest(ctx context.Context, accessTokenStr string) (*authservice.AuthenticateRequestResult, error)
 	RefreshTokens(ctx context.Context, oldRefreshToken string) (*authservice.RefreshTokensResult, error)
+	Logout(ctx context.Context, accessTokenStr string) error
 }
 
 type handler struct {
