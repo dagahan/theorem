@@ -11,9 +11,10 @@ import (
 )
 
 // CreateRefresh creates refresh token and returns its string representation (JWT)
-func (s *service) CreateRefresh(claims *models.RefreshToken) (string, error) {
+func (s *service) CreateRefresh(claims *models.TokenClaims) (string, error) {
 	claims.IssuedAt = jwt.NewNumericDate(time.Now())
 	claims.ExpiresAt = jwt.NewNumericDate(claims.IssuedAt.Add(s.params.RefreshTTL))
+	claims.Type = "refresh"
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.params.JWTSecret)
 	if err != nil {
@@ -22,12 +23,12 @@ func (s *service) CreateRefresh(claims *models.RefreshToken) (string, error) {
 	return token, nil
 }
 
-func (s *service) ParseRefresh(token string) (*models.RefreshToken, error) {
-	claims := &models.RefreshToken{}
+func (s *service) ParseRefresh(token string) (*models.TokenClaims, error) {
+	claims := &models.TokenClaims{}
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return s.params.JWTSecret, nil
 	})
-	if err != nil {
+	if err != nil || claims.Type != "refresh" {
 		return nil, errorz.InvalidToken
 	}
 

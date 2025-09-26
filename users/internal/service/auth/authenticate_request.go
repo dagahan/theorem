@@ -1,6 +1,11 @@
 package auth
 
-import "context"
+import (
+	"context"
+	"errors"
+
+	"github.com/dagahan/theorem/users/internal/errorz"
+)
 
 type AuthenticateRequestResult struct {
 	Ok     bool
@@ -14,14 +19,14 @@ func (s *service) AuthenticateRequest(ctx context.Context, accessTokenStr string
 		return nil, err
 	}
 
-	ok, err := s.sessionService.IsExists(ctx, token.SessionID)
-	if err != nil {
-		s.l.Error("failed to authenticate request: check session", "error", err)
-		return nil, err
-	}
-	if !ok {
+	_, err = s.sessionService.Get(ctx, token.SessionID)
+	switch {
+	case errors.Is(err, errorz.SessionNotFound):
 		s.l.Warn("failed to authenticate request: session not found")
-		return &AuthenticateRequestResult{Ok: false}, nil
+		return &AuthenticateRequestResult{Ok: false}, err
+	case err != nil:
+		s.l.Error("failed to authenticate request: get session", "error", err)
+		return nil, err
 	}
 
 	return &AuthenticateRequestResult{

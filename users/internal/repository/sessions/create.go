@@ -20,13 +20,13 @@ func (r *repo) Create(ctx context.Context, session *models.Session) error {
 			Hset().Key(key).FieldValue().
 			FieldValue("user_id", session.UserID.String()).
 			FieldValue("iat", strconv.FormatInt(session.IssuedAt.Unix(), 10)).
-			FieldValue("mtl", strconv.FormatInt(session.IssuedAt.Add(session.MaxTTL).Unix(), 10)).
+			FieldValue("max_exp_at", strconv.FormatInt(session.MaxExpiresAt.Unix(), 10)).
 			Build()
 
 		cmdExp := c.B().
 			Expire().
 			Key(key).
-			Seconds(int64(session.InactiveTTL.Seconds())).
+			Seconds(int64(r.params.InactiveTTL.Seconds())).
 			Build()
 
 		for _, resp := range c.DoMulti(ctx,

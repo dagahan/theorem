@@ -32,7 +32,7 @@ func (s *service) Register(ctx context.Context, inputUser *models.User) (*Regist
 	}
 
 	accessToken, err := s.tokenService.CreateAccess(
-		&models.AccessToken{
+		&models.TokenClaims{
 			UserID:    user.ID,
 			SessionID: session.ID,
 		},
@@ -43,7 +43,7 @@ func (s *service) Register(ctx context.Context, inputUser *models.User) (*Regist
 	}
 
 	refreshToken, err := s.tokenService.CreateRefresh(
-		&models.RefreshToken{
+		&models.TokenClaims{
 			UserID:    user.ID,
 			SessionID: session.ID,
 		},

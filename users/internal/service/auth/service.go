@@ -17,15 +17,16 @@ type userService interface {
 
 type sessionService interface {
 	Create(ctx context.Context, userID uuid.UUID) (*models.Session, error)
-	IsExists(ctx context.Context, id uuid.UUID) (bool, error)
+	Get(ctx context.Context, id uuid.UUID) (*models.Session, error)
+	RefreshTTL(ctx context.Context, id uuid.UUID) error
 }
 
 type tokenService interface {
-	CreateAccess(claims *models.AccessToken) (string, error)
-	ParseAccess(token string) (*models.AccessToken, error)
+	CreateAccess(claims *models.TokenClaims) (string, error)
+	ParseAccess(token string) (*models.TokenClaims, error)
 
-	CreateRefresh(claims *models.RefreshToken) (string, error)
-	ParseRefresh(token string) (*models.RefreshToken, error)
+	CreateRefresh(claims *models.TokenClaims) (string, error)
+	ParseRefresh(token string) (*models.TokenClaims, error)
 	InvalidateRefresh(ctx context.Context, tokenStr string) error
 	IsRefreshInvalidated(ctx context.Context, token string) (bool, error)
 }

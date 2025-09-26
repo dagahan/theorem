@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/dagahan/theorem/users/internal/errorz"
 	"github.com/dagahan/theorem/users/internal/models"
@@ -28,17 +30,25 @@ func (s *service) RefreshTokens(ctx context.Context, oldRefreshTokenStr string) 
 		return nil, errorz.InvalidToken
 	}
 
-	ok, err = s.sessionService.IsExists(ctx, oldRefreshToken.SessionID)
-	if err != nil {
-		s.l.Error("failed to refresh tokens: check session", "error", err)
+	session, err := s.sessionService.Get(ctx, oldRefreshToken.SessionID)
+	switch {
+	case errors.Is(err, errorz.SessionNotFound):
+		s.l.Warn("failed to refresh tokens: session not found", "session_id", oldRefreshToken.SessionID)
+		return nil, errorz.SessionNotFound
+	case err != nil:
+		s.l.Error("failed to refresh tokens: get session", "error", err)
 		return nil, err
 	}
-	if !ok {
-		s.l.Warn("failed to refresh tokens: session not found")
+	if time.Now().After(session.MaxExpiresAt) {
+		s.l.Warn("failed to refresh tokens: session expired", "session_id", oldRefreshToken.SessionID)
 		return nil, errorz.SessionNotFound
 	}
 
-	// TODO: update session ttl
+	err = s.sessionService.RefreshTTL(ctx, session.ID)
+	if err != nil {
+		s.l.Error("failed to refresh tokens: refresh ttl", "error", err)
+		return nil, err
+	}
 
 	err = s.tokenService.InvalidateRefresh(ctx, oldRefreshTokenStr)
 	if err != nil {
@@ -47,7 +57,7 @@ func (s *service) RefreshTokens(ctx context.Context, oldRefreshTokenStr string) 
 	}
 
 	accessToken, err := s.tokenService.CreateAccess(
-		&models.AccessToken{
+		&models.TokenClaims{
 			UserID:    oldRefreshToken.UserID,
 			SessionID: oldRefreshToken.SessionID,
 		},
@@ -58,7 +68,7 @@ func (s *service) RefreshTokens(ctx context.Context, oldRefreshTokenStr string) 
 	}
 
 	refreshToken, err := s.tokenService.CreateRefresh(
-		&models.RefreshToken{
+		&models.TokenClaims{
 			UserID:    oldRefreshToken.UserID,
 			SessionID: oldRefreshToken.SessionID,
 		},

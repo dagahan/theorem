@@ -7,9 +7,8 @@ import (
 )
 
 type Session struct {
-	ID          uuid.UUID
-	UserID      uuid.UUID
-	IssuedAt    time.Time
-	MaxTTL      time.Duration
-	InactiveTTL time.Duration
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	IssuedAt     time.Time
+	MaxExpiresAt time.Time
 }

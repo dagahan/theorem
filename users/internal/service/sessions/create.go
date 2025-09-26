@@ -10,12 +10,12 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, userID uuid.UUID) (*models.Session, error) {
+	now := time.Now()
 	session := &models.Session{
-		ID:          uuid.New(),
-		UserID:      userID,
-		IssuedAt:    time.Now(),
-		MaxTTL:      s.params.MaxTTL,
-		InactiveTTL: s.params.InactiveTTL,
+		ID:           uuid.New(),
+		UserID:       userID,
+		IssuedAt:     now,
+		MaxExpiresAt: now.Add(s.params.MaxTTL),
 	}
 
 	err := s.sessionRepo.Create(ctx, session)

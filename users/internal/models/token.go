@@ -7,10 +7,7 @@ import (
 
 type TokenClaims struct {
 	jwt.RegisteredClaims
+	Type      string    `json:"type"`
 	UserID    uuid.UUID `json:"user_id"`
 	SessionID uuid.UUID `json:"session_id"`
 }
-
-type AccessToken TokenClaims
-
-type RefreshToken TokenClaims

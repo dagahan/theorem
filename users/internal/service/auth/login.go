@@ -41,7 +41,7 @@ func (s *service) Login(ctx context.Context, inputUser *models.User) (*LoginResu
 	}
 
 	accessToken, err := s.tokenService.CreateAccess(
-		&models.AccessToken{
+		&models.TokenClaims{
 			UserID:    user.ID,
 			SessionID: session.ID,
 		},
@@ -52,7 +52,7 @@ func (s *service) Login(ctx context.Context, inputUser *models.User) (*LoginResu
 	}
 
 	refreshToken, err := s.tokenService.CreateRefresh(
-		&models.RefreshToken{
+		&models.TokenClaims{
 			UserID:    user.ID,
 			SessionID: session.ID,
 		},

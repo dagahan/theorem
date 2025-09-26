@@ -10,12 +10,12 @@ import (
 
 type sessionRepo interface {
 	Create(ctx context.Context, session *models.Session) error
-	IsExists(ctx context.Context, id uuid.UUID) (bool, error)
+	Get(ctx context.Context, id uuid.UUID) (*models.Session, error)
+	RefreshTTL(ctx context.Context, id uuid.UUID) error
 }
 
 type Params struct {
-	MaxTTL      time.Duration
-	InactiveTTL time.Duration
+	MaxTTL time.Duration
 }
 
 type service struct {

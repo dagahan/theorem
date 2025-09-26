@@ -69,7 +69,12 @@ func New(ctx context.Context, cfg *config.Config, l *slog.Logger) (*App, error) 
 
 	a.initGRPCServer()
 
-	sessionRepo := sessionrepo.New(a.valkeyClient)
+	sessionRepo := sessionrepo.New(
+		a.valkeyClient,
+		sessionrepo.Params{
+			InactiveTTL: a.cfg.Session.InactiveTTL,
+		},
+	)
 	tokenRepo := tokenrepo.New(a.valkeyClient)
 	userRepo := userrepo.NewUserRepo(a.entClient)
 
@@ -78,8 +83,7 @@ func New(ctx context.Context, cfg *config.Config, l *slog.Logger) (*App, error) 
 	sessionService := sessionservice.New(
 		sessionRepo,
 		sessionservice.Params{
-			MaxTTL:      a.cfg.Session.MaxTTL,
-			InactiveTTL: a.cfg.Session.InactiveTTL,
+			MaxTTL: a.cfg.Session.MaxTTL,
 		},
 	)
 	tokenService := tokenservice.New(
