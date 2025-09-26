@@ -1,3 +1,6 @@
+volumes:
+  pg_data:
+
 services:
   users:
     container_name: theorem-users
