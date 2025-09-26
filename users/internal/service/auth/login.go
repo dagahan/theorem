@@ -25,12 +25,12 @@ func (s *service) Login(ctx context.Context, inputUser *models.User) (*LoginResu
 	}
 
 	user, err := s.userService.GetByID(ctx, inputUser.ID)
-	if err != nil {
-		if errors.Is(err, errorz.UserNotFound) {
-			s.l.Warn("failed to login: user not found", "id", inputUser.ID)
-		} else {
-			s.l.Error("failed to login: get user by id", "error", err)
-		}
+	switch {
+	case errors.Is(err, errorz.UserNotFound):
+		s.l.Warn("failed to login: user not found", "id", inputUser.ID)
+		return nil, errorz.InvalidCredentials
+	case err != nil:
+		s.l.Error("failed to login: get user by id", "error", err)
 		return nil, err
 	}
 
