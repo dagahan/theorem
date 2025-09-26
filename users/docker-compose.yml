@@ -21,6 +21,11 @@ services:
       HASH_COST: "${USERS_HASH_COST}"
     ports:
       - "${USERS_SERVER_PORT}:${USERS_SERVER_PORT}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
 
   postgres:
     container_name: theorem-users-postgres
