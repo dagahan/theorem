@@ -17,9 +17,6 @@ func (s *service) VerifyCredentials(ctx context.Context, inputUser *models.User)
 	if err != nil {
 		return false, fmt.Errorf("failed to compare password: %w", err)
 	}
-	if !ok {
-		return false, nil
-	}
 
-	return true, nil
+	return ok, nil
 }
