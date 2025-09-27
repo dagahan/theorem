@@ -126,5 +126,3 @@ class DenseRetrieverService:
             candidates.append(candidate)
 
         return candidates
-
-

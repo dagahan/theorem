@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from loguru import logger
+
 from src.adapters.vllm_adapter import VLLMAdapter
 
 
@@ -101,5 +102,3 @@ class LLMSplittingService:
 
     async def health_check(self) -> bool:
         return await self.vllm_adapter.health_check()
-
-

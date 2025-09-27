@@ -27,5 +27,3 @@ class VLLMAdapter:
     async def health_check(self) -> bool:
         return await self.client.health_check()
 
-
-

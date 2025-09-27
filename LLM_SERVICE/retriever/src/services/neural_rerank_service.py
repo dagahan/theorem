@@ -80,5 +80,3 @@ class NeuralRerankService:
         out.sort(key=lambda x: x.score_nn, reverse=True)
 
         return out
-
-

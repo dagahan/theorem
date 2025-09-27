@@ -1,4 +1,5 @@
 from typing import Any, Dict
+
 import grpc  # type: ignore
 from loguru import logger
 
@@ -16,14 +17,11 @@ class EmbedderGrpcClient:
     async def health_check(self) -> Dict[str, Any]:
         request = embedder_pb2.HealthRequest()
         GrpcTools.validate_proto(request)
-        
+
         try:
             response = self.stub.Health(request, timeout=3)
-            
             GrpcTools.validate_proto(response)
-
             return GrpcTools.proto_to_dict(response)
-
         except grpc.RpcError as ex:
             logger.error(f"{self.service_name} healthcheck failed: {ex}")
             raise
@@ -43,17 +41,11 @@ class EmbedderGrpcClient:
         
         try:
             response = self.stub.Embed(request)
-            
             if not response.success:
-                raise Exception(f"Embedding failed: {response.error}")
-            
+                raise RuntimeError(f"Embedding failed: {response.error}")
+
             GrpcTools.validate_proto(response)
-
-            result = GrpcTools.proto_to_dict(response)
-            return result
-
+            return GrpcTools.proto_to_dict(response)
         except grpc.RpcError as ex:
             logger.error(f"Embed text failed: {ex}")
             raise
-
-

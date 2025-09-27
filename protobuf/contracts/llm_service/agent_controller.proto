@@ -1,0 +1,42 @@
+syntax = "proto3";
+package agent_controller.v1;
+
+import "third_party/protovalidate/buf/validate/validate.proto";
+
+
+service AgentControllerService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc AnswerQuestion(QuestionRequest) returns (QuestionResponse);
+}
+
+
+message HealthRequest {}
+
+
+message ComponentStatus {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  string status = 2 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string details = 3 [(buf.validate.field).string = {max_len: 256}];
+}
+
+
+message HealthResponse {
+  string status = 1 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  repeated ComponentStatus components = 2;
+}
+
+
+message QuestionRequest {
+  string raw_text = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
+  bool stream = 2;
+  string run_id = 3 [(buf.validate.field).string = {min_len: 0, max_len: 64}];
+}
+
+
+message QuestionResponse {
+  string answer = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+

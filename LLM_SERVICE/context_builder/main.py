@@ -6,7 +6,7 @@ import colorama
 from loguru import logger
 
 from src.core.logging import InterceptHandler, LogSetup
-from src.grpc.grpc_server import GRPCServerRunner
+from src.grpc.grpc_server import GrpcContextBuilderServer
 from src.core.utils import EnvTools
 
 
@@ -14,7 +14,7 @@ class Service:
     def __init__(self) -> None:
         self.intercept_handler = InterceptHandler()
         self.logger_setup = LogSetup()
-        self.grpc_runner = GRPCServerRunner()
+        self.grpc_runner = GrpcContextBuilderServer()
 
 
     async def run_service(self) -> None:

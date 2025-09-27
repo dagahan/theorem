@@ -1,77 +1,116 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
-from loguru import logger
 
-if TYPE_CHECKING:
-    import grpc
-    from src.services.orchestrator import LLMGraphOrchestrator
+from typing import TYPE_CHECKING
+
+import grpc
+from loguru import logger
 
 from protobuf_stubs import llm_gateway_pb2, llm_gateway_pb2_grpc
 from src.grpc.grpc_utils import GrpcTools
-from src.domain.models import UserQuery, RetrieveRequest, ServiceStatus
+
+
+if TYPE_CHECKING:
+    from grpc import ServicerContext
+    from src.grpc.client.agent_controller_grpc_client import AgentControllerGrpcClient
+
 
 grpc_tools = GrpcTools()
 
+
 class LLMGatewayAPI(llm_gateway_pb2_grpc.LLMGatewayServiceServicer):  # type: ignore[misc]
-    def __init__(self, orchestrator: "LLMGraphOrchestrator") -> None:
-        self.orchestrator = orchestrator
+    def __init__(self, agent_client: AgentControllerGrpcClient) -> None:
+        self.agent_client = agent_client
 
 
-    @grpc_tools.log_grpc_request("Health")
-    async def Health(self, request: llm_gateway_pb2.HealthRequest, context: grpc.ServicerContext) -> llm_gateway_pb2.HealthResponse:
+    @grpc_tools.log_grpc_request('Health')
+    async def Health(
+        self,
+        request: llm_gateway_pb2.HealthRequest,
+        context: 'ServicerContext',
+    ) -> llm_gateway_pb2.HealthResponse:
         try:
             grpc_tools.validate_proto(request, context)
-            
-            health_check = await self.orchestrator.health_check()
-            
+            agent_response = await self.agent_client.health_check()
+
+            downstream = [
+                llm_gateway_pb2.ComponentStatus(
+                    name=component.name,
+                    status=component.status,
+                    details=component.details,
+                )
+                for component in agent_response.components
+            ]
+
+            unhealthy_components = [
+                f"{component.name}:{component.status}"
+                for component in downstream
+                if component.status != 'healthy'
+            ]
+            agent_details = ', '.join(unhealthy_components) if unhealthy_components else ''
+
             response = llm_gateway_pb2.HealthResponse(
-                status=health_check.overall_status.value,
-                llm_status=health_check.llm_status.value,
-                retriever_status=health_check.retriever_status.value,
-                embedder_status=health_check.embedder_status.value
+                status=agent_response.status,
+                agent_controller=llm_gateway_pb2.ComponentStatus(
+                    name='agent_controller',
+                    status=agent_response.status,
+                    details=agent_details,
+                ),
+                downstream_components=downstream,
             )
-            
+
             grpc_tools.validate_proto(response, context)
-
             return response
-            
-        except Exception as ex:
-            logger.error(f"Health check failed: {ex}")
-            return llm_gateway_pb2.HealthResponse(
-                status=ServiceStatus.UNHEALTHY.value,
-                llm_status=ServiceStatus.UNKNOWN.value,
-                retriever_status=ServiceStatus.UNKNOWN.value,
-                embedder_status=ServiceStatus.UNKNOWN.value
-            )
+        except grpc.RpcError as ex:
+            logger.error(f'Agent controller health check RPC failed: {ex}')
+        except Exception as ex:  # noqa: BLE001
+            logger.error(f'Agent controller health check failed: {ex}')
+
+        return llm_gateway_pb2.HealthResponse(
+            status='unhealthy',
+            agent_controller=llm_gateway_pb2.ComponentStatus(
+                name='agent_controller',
+                status='unhealthy',
+                details='agent controller unreachable',
+            ),
+            downstream_components=[],
+        )
 
 
-    @grpc_tools.log_grpc_request("Question")
-    async def Question(self, request: llm_gateway_pb2.QuestionRequest, context: grpc.ServicerContext) -> llm_gateway_pb2.QuestionResponse:
+    @grpc_tools.log_grpc_request('Question')
+    async def Question(
+        self,
+        request: llm_gateway_pb2.QuestionRequest,
+        context: 'ServicerContext',
+    ) -> llm_gateway_pb2.QuestionResponse:
         try:
             grpc_tools.validate_proto(request, context)
-            
-            question_request = UserQuery(
+
+            agent_response = await self.agent_client.answer_question(
                 raw_text=request.raw_text,
-                stream=request.stream
-            )
-            
-            question_response = await self.orchestrator.answer_question(question_request)
-            
-            response = llm_gateway_pb2.QuestionResponse(
-                answer=question_response.answer,
-                success=question_response.success,
-                error=question_response.error or ""
-            )
-            
-            grpc_tools.validate_proto(response, context)
-            return response
-            
-        except Exception as ex:
-            logger.exception("Answer question failed")
-            return llm_gateway_pb2.QuestionResponse(
-                answer="",
-                success=False,
-                error=str(ex)
+                stream=request.stream,
             )
 
-    
+            response = llm_gateway_pb2.QuestionResponse(
+                answer=agent_response.answer,
+                success=agent_response.success,
+                error=agent_response.error,
+            )
+
+            grpc_tools.validate_proto(response, context)
+            return response
+        except grpc.RpcError as ex:
+            logger.error(f'Agent controller question RPC failed: {ex}')
+            return llm_gateway_pb2.QuestionResponse(
+                answer='',
+                success=False,
+                error='agent controller unavailable',
+            )
+        except Exception as ex:  # noqa: BLE001
+            logger.exception('Answer question failed')
+            return llm_gateway_pb2.QuestionResponse(
+                answer='',
+                success=False,
+                error=str(ex),
+            )
+
+

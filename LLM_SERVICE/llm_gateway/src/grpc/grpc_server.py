@@ -9,7 +9,8 @@ from loguru import logger
 from protobuf_stubs import llm_gateway_pb2_grpc
 from src.core.utils import EnvTools
 from src.grpc.api.llm_gateway_api import LLMGatewayAPI
-from src.services.orchestrator import LLMGraphOrchestrator
+from src.grpc.client.agent_controller_grpc_client import AgentControllerGrpcClient
+from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 
 
 class GrpcLLMGatewayServer:
@@ -26,14 +27,14 @@ class GrpcLLMGatewayServer:
         )
 
         self._grpc_server: grpc.aio.Server | None = None
+        self._servicer: LLMGatewayAPI | None = None
 
-        orchestrator = LLMGraphOrchestrator()
-        self._servicer = LLMGatewayAPI(orchestrator)
 
 
     @property
     def is_running(self) -> bool:
         return self._grpc_server is not None
+
 
 
     async def start(self) -> None:
@@ -45,9 +46,13 @@ class GrpcLLMGatewayServer:
             options=self._options,
         )
 
+        if self._servicer is None:
+            agent_client = GrpcClientRegistry().register_client("agent_controller", AgentControllerGrpcClient)
+            self._servicer = LLMGatewayAPI(agent_client)
+
         self.stub.add_LLMGatewayServiceServicer_to_server(
             self._servicer,
-            self._grpc_server
+            self._grpc_server,
         )
 
         self._grpc_server.add_insecure_port(self._server_addr)
@@ -60,15 +65,17 @@ class GrpcLLMGatewayServer:
         )
 
 
+
     async def wait_terminated(self) -> None:
         if self._grpc_server is None:
             return
         await self._grpc_server.wait_for_termination()
 
 
+
     async def stop(
         self,
-        grace: float = 5.0
+        grace: float = 5.0,
     ) -> None:
         if self._grpc_server is None:
             return
@@ -78,7 +85,5 @@ class GrpcLLMGatewayServer:
 
         self._grpc_server = None
         logger.info(f"{colorama.Fore.GREEN}gRPC LLM Gateway stopped{colorama.Style.RESET_ALL}")
-
-
 
 

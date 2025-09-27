@@ -1,75 +1,58 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Any, Dict
-import time
 from functools import wraps
+from typing import Any, Awaitable, Callable, ParamSpec, TypeVar
+
 import grpc
 from loguru import logger
+from protovalidate import ValidationError, Validator
 
-from protovalidate import Validator, ValidationError
+
+P = ParamSpec('P')
+R = TypeVar('R')
 
 
 class GrpcTools:
     @staticmethod
-    def validate_proto(msg: Any, ctx: Any = None) -> None:
+    def validate_proto(msg: Any, ctx: Any | None = None) -> None:
         try:
             Validator().validate(msg)
-
-        except ValidationError as e:
+        except ValidationError as exc:  # noqa: BLE001
             details = []
-            for v in getattr(e, "violations", []) or []:
-                details.append(f"path={getattr(v,'field_path', '')} msg={getattr(v,'message','')}")
-            text_details_ex = "; ".join(details) or str(e)
+            for violation in getattr(exc, 'violations', []) or []:
+                details.append(
+                    f"path={getattr(violation, 'field_path', '')} msg={getattr(violation, 'message', '')}"
+                )
+            formatted = '; '.join(details) or str(exc)
             if ctx:
-                ctx.abort(grpc.StatusCode.INVALID_ARGUMENT, text_details_ex)
-            else:
-                logger.error(f"Validation failed: {text_details_ex}")
-                raise ValueError(f"Invalid message: {text_details_ex}")
-
+                ctx.abort(grpc.StatusCode.INVALID_ARGUMENT, formatted)
+            logger.error(f"Validation failed: {formatted}")
+            raise ValueError(f"Invalid message: {formatted}") from exc
 
     @staticmethod
-    def proto_to_dict(msg: Any) -> Dict[str, Any]:
-        result: Dict[str, Any] = {}
-        
-        for field in msg.DESCRIPTOR.fields:
-            value = getattr(msg, field.name)
-            
-            if field.type == field.TYPE_MESSAGE:
-                if field.label == field.LABEL_REPEATED:
-                    result[field.name] = [GrpcTools.proto_to_dict(item) for item in value]
-                else:
-                    result[field.name] = GrpcTools.proto_to_dict(value) if value else None
-            elif field.type == field.TYPE_ENUM:
-                result[field.name] = value.name if value else None
-            else:
-                result[field.name] = value
-                
-        return result
-
-
-    @staticmethod
-    def log_grpc_request(method_name: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+    def log_grpc_request(
+        method_name: str,
+    ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+        def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
             @wraps(func)
-            def wrapper(self: Any, request: Any, context: Any) -> Any:
-                start_time = time.time()
-                client_info = f"{context.peer()}" if hasattr(context, 'peer') else "unknown"
-                
-                logger.info(f"gRPC request started: {method_name} from {client_info}")
-                
+            async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+                context: Any | None = kwargs.get('context')
+                if context is None and len(args) >= 3:
+                    context = args[2]
+                peer = context.peer() if context and hasattr(context, 'peer') else 'unknown'
+
+                logger.info(f"gRPC request started: {method_name} from {peer}")
                 try:
-                    result = func(self, request, context)
-                    duration_ms = (time.time() - start_time) * 1000
-                    logger.info(f"gRPC request completed: {method_name} from {client_info} in {duration_ms:.2f} ms")
-                    return result
-                    
-                except Exception as e:
-                    duration_ms = (time.time() - start_time) * 1000
-                    logger.error(f"gRPC request failed: {method_name} from {client_info} in {duration_ms:.2f} ms - {str(e)}")
+                    result = await func(*args, **kwargs)
+                except Exception as exc:  # noqa: BLE001
+                    logger.error(
+                        f"gRPC request failed: {method_name} from {peer} - {exc}"
+                    )
                     raise
-            
+
+                logger.info(f"gRPC request completed: {method_name} from {peer}")
+                return result
+
             return wrapper
 
         return decorator
-
-

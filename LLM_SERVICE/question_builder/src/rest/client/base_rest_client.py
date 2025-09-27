@@ -9,7 +9,7 @@ from loguru import logger
 class BaseRestClient(ABC):
     def __init__(self, base_url: str, timeout: float = 30.0) -> None:
         self.base_url = base_url
-        self.client = httpx.AsyncClient(timeout=timeout)
+        self.client = httpx.AsyncClient(timeout=timeout, trust_env=False)
 
 
     async def _make_request(
@@ -44,6 +44,4 @@ class BaseRestClient(ABC):
 
     async def close(self) -> None:
         await self.client.aclose()
-
-
 

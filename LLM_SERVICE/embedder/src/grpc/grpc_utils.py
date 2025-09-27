@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Any, Generator, Dict
+from typing import Any, Awaitable, Callable, ParamSpec, TypeVar
 import time
 from functools import wraps
+
 import grpc
 from loguru import logger
 
-from protovalidate import Validator, ValidationError
-from src.core.utils import EnvTools
+from protovalidate import ValidationError, Validator
 
-if TYPE_CHECKING:
-    import google.protobuf.message
-    from grpc import ServicerContext
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class GrpcTools:
@@ -30,51 +30,36 @@ class GrpcTools:
                 logger.error(f"Validation failed: {text_details_ex}")
                 raise ValueError(f"Invalid message: {text_details_ex}")
 
-
     @staticmethod
-    def proto_to_dict(msg: Any) -> Dict[str, Any]:
-        result: Dict[str, Any] = {}
-        
-        for field in msg.DESCRIPTOR.fields:
-            value = getattr(msg, field.name)
-            
-            if field.type == field.TYPE_MESSAGE:
-                if field.label == field.LABEL_REPEATED:
-                    result[field.name] = [GrpcTools.proto_to_dict(item) for item in value]
-                else:
-                    result[field.name] = GrpcTools.proto_to_dict(value) if value else None
-            elif field.type == field.TYPE_ENUM:
-                result[field.name] = value.name if value else None
-            else:
-                result[field.name] = value
-                
-        return result
-
-
-    @staticmethod
-    def log_grpc_request(method_name: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+    def log_grpc_request(
+        method_name: str,
+    ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+        def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
             @wraps(func)
-            def wrapper(self: Any, request: Any, context: Any) -> Any:
+            async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
                 start_time = time.time()
-                client_info = f"{context.peer()}" if hasattr(context, 'peer') else "unknown"
-                
+                context: Any | None = kwargs.get("context")
+                if context is None and len(args) >= 3:
+                    context = args[2]
+                client_info = f"{context.peer()}" if context and hasattr(context, "peer") else "unknown"
+
                 logger.info(f"gRPC request started: {method_name} from {client_info}")
-                
+
                 try:
-                    result = func(self, request, context)
+                    result = await func(*args, **kwargs)
                     duration_ms = (time.time() - start_time) * 1000
-                    logger.info(f"gRPC request completed: {method_name} from {client_info} in {duration_ms:.2f} ms")
+                    logger.info(
+                        f"gRPC request completed: {method_name} from {client_info} in {duration_ms:.2f} ms"
+                    )
                     return result
-                    
-                except Exception as e:
+
+                except Exception as e:  # noqa: BLE001
                     duration_ms = (time.time() - start_time) * 1000
-                    logger.error(f"gRPC request failed: {method_name} from {client_info} in {duration_ms:.2f} ms - {str(e)}")
+                    logger.error(
+                        f"gRPC request failed: {method_name} from {client_info} in {duration_ms:.2f} ms - {str(e)}"
+                    )
                     raise
-            
+
             return wrapper
 
         return decorator
-
-
-        

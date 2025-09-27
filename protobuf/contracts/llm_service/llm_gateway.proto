@@ -15,11 +15,17 @@ service LLMGatewayService {
 message HealthRequest {}
 
 
+message ComponentStatus {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  string status = 2 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string details = 3 [(buf.validate.field).string = {max_len: 256}];
+}
+
+
 message HealthResponse {
   string status = 1 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
-  string llm_status = 2 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
-  string retriever_status = 3 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
-  string embedder_status = 4 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  ComponentStatus agent_controller = 2;
+  repeated ComponentStatus downstream_components = 3;
 }
 
 
@@ -34,4 +40,6 @@ message QuestionResponse {
   bool success = 2;
   string error = 3;
 }
+
+
 

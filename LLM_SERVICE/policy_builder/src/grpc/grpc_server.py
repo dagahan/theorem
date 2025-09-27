@@ -1,30 +1,25 @@
 from __future__ import annotations
 
-import asyncio
-import threading
-from concurrent import futures
-from typing import TYPE_CHECKING, Any
+from concurrent.futures import ThreadPoolExecutor
 
 import colorama  # type: ignore
-import grpc  # type: ignore
+import grpc.aio  # type: ignore
 from loguru import logger
 
 from protobuf_stubs import policy_builder_pb2_grpc
 from src.core.utils import EnvTools
-from src.services.policy_builder_service import PolicyBuilderService
 from src.grpc.api.policy_builder_api import PolicyBuilderAPI
+from src.services.policy_builder_service import PolicyBuilderService
 
 
-class GRPCServerRunner:
+class GrpcPolicyBuilderServer:
     def __init__(self) -> None:
-        self._policy_builder_service = PolicyBuilderService()
-        self._servicer = PolicyBuilderAPI(self._policy_builder_service)
+        self.stub = policy_builder_pb2_grpc
+        self._server_addr: str = (
+            f"{EnvTools.get_service_host('policy_builder')}:{EnvTools.get_service_grpc_port('policy_builder')}"
+        )
         self._max_workers: int = 4
-        self._host: str = EnvTools.get_service_host("policy_builder")
-        self._port: int = int(EnvTools.get_service_grpc_port("policy_builder"))
-        self._addr = f"{self._host}:{self._port}"
-
-        self._GRPC_OPTIONS = (
+        self._options: tuple[tuple[str, int], ...] = (
             ("grpc.keepalive_time_ms", 60_000),
             ("grpc.keepalive_timeout_ms", 20_000),
             ("grpc.http2.max_pings_without_data", 0),
@@ -32,65 +27,44 @@ class GRPCServerRunner:
             ("grpc.max_send_message_length", 64 * 1024 * 1024),
         )
 
-        self._server = grpc.server(
-            futures.ThreadPoolExecutor(max_workers=self._max_workers),
-            options=self._GRPC_OPTIONS,
-        )
+        self._grpc_server: grpc.aio.Server | None = None
 
-        policy_builder_pb2_grpc.add_PolicyBuilderServiceServicer_to_server(self._servicer, self._server)
-        self._server.add_insecure_port(self._addr)
+        service = PolicyBuilderService()
+        self._servicer = PolicyBuilderAPI(service)
 
-        self._thread: threading.Thread | None = None
-        self._started = threading.Event()
-        self._stopped = threading.Event()
-
-
-    def _serve_blocking(self) -> None:
-        self._server.start()
-        self._started.set()
-
-        logger.info(
-            f"{colorama.Fore.GREEN}gRPC Policy Builder started at "
-            f"{colorama.Fore.YELLOW}{self._addr}{colorama.Style.RESET_ALL}"
-        )
-
-        self._server.wait_for_termination()
-        self._stopped.set()
-
+    @property
+    def is_running(self) -> bool:
+        return self._grpc_server is not None
 
     async def start(self) -> None:
-        if self._thread and self._thread.is_alive():
+        if self._grpc_server is not None:
             return
 
-        self._thread = threading.Thread(
-            target=self._serve_blocking,
-            name="gRPC-Policy-Builder",
-            daemon=True)
-        self._thread.start()
-        loop = asyncio.get_running_loop()
+        self._grpc_server = grpc.aio.server(
+            ThreadPoolExecutor(max_workers=self._max_workers),
+            options=self._options,
+        )
 
-        await loop.run_in_executor(None, self._started.wait)
+        self.stub.add_PolicyBuilderServiceServicer_to_server(self._servicer, self._grpc_server)
+        self._grpc_server.add_insecure_port(self._server_addr)
 
+        await self._grpc_server.start()
+
+        logger.info(
+            f"{colorama.Fore.GREEN}gRPC policy_builder started at "
+            f"{colorama.Fore.YELLOW}{self._server_addr}{colorama.Style.RESET_ALL}"
+        )
 
     async def wait_terminated(self) -> None:
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, self._stopped.wait)
+        if self._grpc_server is None:
+            return
+        await self._grpc_server.wait_for_termination()
 
-
-    async def stop(self) -> None:
-        if not self._thread:
+    async def stop(self, grace: float = 5.0) -> None:
+        if self._grpc_server is None:
             return
 
-        logger.info(f"{colorama.Fore.YELLOW}Stopping gRPC Policy Builder{colorama.Style.RESET_ALL}")
-
-        fut = self._server.stop(grace=5.0)
-        loop = asyncio.get_running_loop()
-
-        await loop.run_in_executor(None, lambda: fut.wait(timeout=10))
-        if self._thread.is_alive():
-            self._thread.join(timeout=10)
-
-        logger.info(f"{colorama.Fore.GREEN}gRPC Policy Builder stopped{colorama.Style.RESET_ALL}")
-
-
-
+        logger.info(f"{colorama.Fore.YELLOW}Stopping gRPC policy_builder{colorama.Style.RESET_ALL}")
+        await self._grpc_server.stop(grace=grace)
+        self._grpc_server = None
+        logger.info(f"{colorama.Fore.GREEN}gRPC policy_builder stopped{colorama.Style.RESET_ALL}")

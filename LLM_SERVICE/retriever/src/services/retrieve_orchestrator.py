@@ -31,7 +31,6 @@ class RetrieveOrchestrator:
         self.mmr_service = MmrService(self.mmr_params.diversity_lambda)
         self.neighbor_window_size: int = 2
 
-
     async def retrieve(
         self,
         question: str,
@@ -101,6 +100,4 @@ class RetrieveOrchestrator:
         ]
         
         return RetrieveResult(chunks=results_chunks)
-
-
 

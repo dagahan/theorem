@@ -1,67 +1,76 @@
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any
+
+from loguru import logger
 from protobuf_stubs import policy_builder_pb2, policy_builder_pb2_grpc
 from src.grpc.grpc_utils import GrpcTools
 
+
 if TYPE_CHECKING:
-    from src.domain.models import PolicyResponse, HealthStatus
+    from src.domain.models import HealthStatus, PolicyResponse
     from src.services.policy_builder_service import PolicyBuilderService
 
 
-grpc_tools = GrpcTools()
-
-
 class PolicyBuilderAPI(policy_builder_pb2_grpc.PolicyBuilderServiceServicer):  # type: ignore[misc]
-    def __init__(self, policy_builder_service: "PolicyBuilderService") -> None:
+    def __init__(self, policy_builder_service: 'PolicyBuilderService') -> None:
         self.policy_builder_service = policy_builder_service
 
 
-    @grpc_tools.log_grpc_request("Health")  # type: ignore[misc]
-    def Health(self, request: policy_builder_pb2.HealthRequest, context: Any) -> policy_builder_pb2.HealthResponse:
+    @GrpcTools.log_grpc_request('Health')  # type: ignore[misc]
+    async def Health(
+        self,
+        request: policy_builder_pb2.HealthRequest,
+        context: Any,
+    ) -> policy_builder_pb2.HealthResponse:
+        try:
+            GrpcTools.validate_proto(request, context)
 
-        grpc_tools.validate_proto(request, context)
+            result: 'HealthStatus' = await asyncio.to_thread(self.policy_builder_service.get_health_status)
+            response = policy_builder_pb2.HealthResponse(status=result.status)
 
-        result: HealthStatus = self.policy_builder_service.get_health_status()
-
-        response = policy_builder_pb2.HealthResponse(
-            status=result.status
-        )
-
-        grpc_tools.validate_proto(response, context)
-
-        return response
+            GrpcTools.validate_proto(response, context)
+            return response
+        except Exception as ex:  # noqa: BLE001
+            logger.error(f'Health check failed: {ex}')
+            return policy_builder_pb2.HealthResponse(status='unhealthy')
 
 
-    @grpc_tools.log_grpc_request("BuildPolicy")  # type: ignore[misc]
-    def BuildPolicy(self, request: policy_builder_pb2.BuildPolicyRequest, context: Any) -> policy_builder_pb2.BuildPolicyResponse:
-
-        grpc_tools.validate_proto(request, context)
+    @GrpcTools.log_grpc_request('BuildPolicy')  # type: ignore[misc]
+    async def BuildPolicy(
+        self,
+        request: policy_builder_pb2.BuildPolicyRequest,
+        context: Any,
+    ) -> policy_builder_pb2.BuildPolicyResponse:
+        GrpcTools.validate_proto(request, context)
 
         try:
-            policy_result: PolicyResponse = self.policy_builder_service.build_policy()
+            policy_result: 'PolicyResponse' = await asyncio.to_thread(
+                self.policy_builder_service.build_policy
+            )
 
             if policy_result.success:
                 response = policy_builder_pb2.BuildPolicyResponse(
                     policy_header=policy_result.policy_header,
-                    success=True
+                    success=True,
                 )
-
             else:
                 response = policy_builder_pb2.BuildPolicyResponse(
-                    policy_header="",
+                    policy_header='',
                     success=False,
-                    error=policy_result.error or "Unknown error"
+                    error=policy_result.error or 'Unknown error',
                 )
 
-            grpc_tools.validate_proto(response, context)
-
+            GrpcTools.validate_proto(response, context)
+            
             return response
 
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001
+            logger.exception('BuildPolicy failed')
             return policy_builder_pb2.BuildPolicyResponse(
                 success=False,
-                error=str(ex)
+                error=str(ex),
             )
 
 

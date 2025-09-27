@@ -20,6 +20,7 @@ dependencies = [
   "chardet>=5.0.0",
   "sentence-transformers>=2.2.0,<3.0.0",
   "torch>=2.0.0,<2.5.0",
+  "requests[socks]==2.32.5",
 ]
 
 
@@ -79,4 +80,6 @@ ignore_missing_imports = true
 [mypy-sentence_transformers]
 ignore_missing_imports = true
 [mypy-torch]
+ignore_missing_imports = true
+[mypy-colorama]
 ignore_missing_imports = true
