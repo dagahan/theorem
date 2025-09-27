@@ -15,3 +15,7 @@ packages:
   github.com/dagahan/theorem/users/internal/service/users:
     config:
       all: true
+
+  github.com/dagahan/theorem/users/internal/service/auth:
+    config:
+      all: true
