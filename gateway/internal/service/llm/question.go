@@ -9,8 +9,8 @@ import (
 
 func (s *service) Question(ctx context.Context, text string) (string, error) {
 	req := &pb.QuestionRequest{
-		Question: text,
-		Stream:   false,
+		RawText: text,
+		Stream:  false,
 	}
 	resp, err := s.llmClient.Question(ctx, req)
 	if err != nil {
