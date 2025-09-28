@@ -5,7 +5,6 @@ services:
       context: ../
       dockerfile: ./gateway/Dockerfile
     restart: unless-stopped
-    network_mode: host
     environment:
       SERVER_ADDR: "0.0.0.0:${GATEWAY_PORT}"
       CORS_ORIGIN: "${GATEWAY_CORS_ORIGIN}"
