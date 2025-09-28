@@ -16,6 +16,7 @@ import (
 	"github.com/dagahan/theorem/gateway/internal/config"
 	authservice "github.com/dagahan/theorem/gateway/internal/service/auth"
 	llmservice "github.com/dagahan/theorem/gateway/internal/service/llm"
+	authmiddleware "github.com/dagahan/theorem/gateway/internal/transport/http/middleware/auth"
 	authhandler "github.com/dagahan/theorem/gateway/internal/transport/http/v1/auth"
 	llmhandler "github.com/dagahan/theorem/gateway/internal/transport/http/v1/llm"
 	llmpb "github.com/dagahan/theorem/gen/go/llm_gateway/v1"
@@ -50,7 +51,9 @@ func New(cfg *config.Config, l *slog.Logger) (*App, error) {
 	llmService := llmservice.New(a.l, llmGatewayGRPCClient)
 	authService := authservice.New(a.l, authServiceGRPCClient)
 
-	llmHandler := llmhandler.New(llmService)
+	authMiddleware := authmiddleware.New(authService)
+
+	llmHandler := llmhandler.New(llmService, authMiddleware)
 	authHandler := authhandler.New(authService)
 
 	a.initEcho()
