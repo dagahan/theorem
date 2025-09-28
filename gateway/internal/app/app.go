@@ -14,16 +14,20 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/dagahan/theorem/gateway/internal/config"
+	authservice "github.com/dagahan/theorem/gateway/internal/service/auth"
 	llmservice "github.com/dagahan/theorem/gateway/internal/service/llm"
+	authhandler "github.com/dagahan/theorem/gateway/internal/transport/http/v1/auth"
 	llmhandler "github.com/dagahan/theorem/gateway/internal/transport/http/v1/llm"
-	pb "github.com/dagahan/theorem/gen/go/llm_gateway/v1"
+	llmpb "github.com/dagahan/theorem/gen/go/llm_gateway/v1"
+	userpb "github.com/dagahan/theorem/gen/go/users/v1"
 )
 
 type App struct {
-	e                  *echo.Echo
-	llmGatewayGRPCConn *grpc.ClientConn
-	cfg                *config.Config
-	l                  *slog.Logger
+	e                   *echo.Echo
+	llmGatewayGRPCConn  *grpc.ClientConn
+	userServiceGRPCConn *grpc.ClientConn
+	cfg                 *config.Config
+	l                   *slog.Logger
 }
 
 // New creates and initializes a new instance of App
@@ -36,17 +40,27 @@ func New(cfg *config.Config, l *slog.Logger) (*App, error) {
 	if err := a.initLLMGatewayGRPCConn(); err != nil {
 		return nil, fmt.Errorf("failed to init llm service grpc client: %w", err)
 	}
-	llmGatewayGRPCClient := pb.NewLLMGatewayServiceClient(a.llmGatewayGRPCConn)
+	llmGatewayGRPCClient := llmpb.NewLLMGatewayServiceClient(a.llmGatewayGRPCConn)
+
+	if err := a.initUserServiceGRPCConn(); err != nil {
+		return nil, fmt.Errorf("failed to init users service grpc client: %w", err)
+	}
+	authServiceGRPCClient := userpb.NewAuthServiceClient(a.userServiceGRPCConn)
 
 	llmService := llmservice.New(a.l, llmGatewayGRPCClient)
+	authService := authservice.New(a.l, authServiceGRPCClient)
+
 	llmHandler := llmhandler.New(llmService)
+	authHandler := authhandler.New(authService)
 
 	a.initEcho()
 
 	apiGroup := a.e.Group("/api/v1")
 	llmGroup := apiGroup.Group("/llm")
+	authGroup := apiGroup.Group("/auth")
 
 	llmHandler.Setup(llmGroup)
+	authHandler.Setup(authGroup)
 
 	return a, nil
 }
@@ -131,6 +145,17 @@ func (a *App) initLLMGatewayGRPCConn() error {
 	}
 
 	a.llmGatewayGRPCConn = grpcConn
+
+	return nil
+}
+
+func (a *App) initUserServiceGRPCConn() error {
+	grpcConn, err := initGRPCConn(a.cfg.UserService.ServerAddress)
+	if err != nil {
+		return fmt.Errorf("failed to init gRPC connection to user service: %w", err)
+	}
+
+	a.userServiceGRPCConn = grpcConn
 
 	return nil
 }

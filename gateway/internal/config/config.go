@@ -5,8 +5,9 @@ import (
 )
 
 type Config struct {
-	Server     server
-	LLMGateway llmGateway
+	Server      server
+	LLMGateway  llmGateway
+	UserService userService
 }
 
 type server struct {
@@ -16,6 +17,10 @@ type server struct {
 
 type llmGateway struct {
 	ServerAddress string `env:"LLM_GATEWAY_GRPC_SERVER_ADDR" env-required:"true"`
+}
+
+type userService struct {
+	ServerAddress string `env:"USER_SERVICE_GRPC_SERVER_ADDR" env-required:"true"`
 }
 
 func NewConfig() (*Config, error) {

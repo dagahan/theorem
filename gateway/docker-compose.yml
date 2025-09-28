@@ -5,9 +5,11 @@ services:
       context: ../
       dockerfile: ./gateway/Dockerfile
     restart: unless-stopped
+    network_mode: host
     environment:
       SERVER_ADDR: "0.0.0.0:${GATEWAY_PORT}"
       CORS_ORIGIN: "${GATEWAY_CORS_ORIGIN}"
       LLM_GATEWAY_GRPC_SERVER_ADDR: "${LLM_GATEWAY_GRPC_SERVER_ADDR}"
+      USER_SERVICE_GRPC_SERVER_ADDR: "${USER_SERVICE_GRPC_SERVER_ADDR}"
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
