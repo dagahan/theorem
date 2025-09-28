@@ -14,7 +14,7 @@ func TestService_VerifyCredentials(t *testing.T) {
 	tests := []struct {
 		Name       string
 		InputUser  *models.User
-		ExceptedOK bool
+		ExpectedOK bool
 		WantErr    bool
 		SetUpMocks func(inputUser *models.User, userRepo *mockuserRepo, hasher *mockhasher)
 	}{
@@ -25,7 +25,7 @@ func TestService_VerifyCredentials(t *testing.T) {
 				Password:       "somepassword",
 				HashedPassword: "somepasswordhash",
 			},
-			ExceptedOK: true,
+			ExpectedOK: true,
 			WantErr:    false,
 			SetUpMocks: func(inputUser *models.User, userRepo *mockuserRepo, hasher *mockhasher) {
 				userRepo.On("GetByEmail", mock.Anything, inputUser.Email).
@@ -43,7 +43,7 @@ func TestService_VerifyCredentials(t *testing.T) {
 				Password:       "somepassword",
 				HashedPassword: "somepasswordhash",
 			},
-			ExceptedOK: false,
+			ExpectedOK: false,
 			WantErr:    true,
 			SetUpMocks: func(inputUser *models.User, userRepo *mockuserRepo, hasher *mockhasher) {
 				userRepo.On("GetByEmail", mock.Anything, inputUser.Email).
@@ -58,7 +58,7 @@ func TestService_VerifyCredentials(t *testing.T) {
 				Password:       "somepassword",
 				HashedPassword: "somepasswordhash",
 			},
-			ExceptedOK: false,
+			ExpectedOK: false,
 			WantErr:    true,
 			SetUpMocks: func(inputUser *models.User, userRepo *mockuserRepo, hasher *mockhasher) {
 				userRepo.On("GetByEmail", mock.Anything, inputUser.Email).
@@ -84,7 +84,7 @@ func TestService_VerifyCredentials(t *testing.T) {
 			if tt.WantErr {
 				assert.Error(t, err)
 			}
-			assert.Equal(t, tt.ExceptedOK, ok)
+			assert.Equal(t, tt.ExpectedOK, ok)
 
 			mockUserRepo.AssertExpectations(t)
 			mockHasher.AssertExpectations(t)

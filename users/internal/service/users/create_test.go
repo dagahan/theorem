@@ -16,7 +16,7 @@ func TestService_Create(t *testing.T) {
 	tests := []struct {
 		Name         string
 		InputUser    *models.User
-		ExceptedUser *models.User
+		ExpectedUser *models.User
 		WantErr      bool
 		SetUpMocks   func(
 			inputUser *models.User,
@@ -31,7 +31,7 @@ func TestService_Create(t *testing.T) {
 				Email:    "some@test.com",
 				Password: "somepassword",
 			},
-			ExceptedUser: &models.User{
+			ExpectedUser: &models.User{
 				ID:             uuid.New(),
 				Email:          "some@test.com",
 				HashedPassword: "somepasswordhash",
@@ -48,7 +48,7 @@ func TestService_Create(t *testing.T) {
 				Email:    "some@test.com",
 				Password: "somepassword",
 			},
-			ExceptedUser: nil,
+			ExpectedUser: nil,
 			WantErr:      true,
 			SetUpMocks: func(inputUser *models.User, resultUser *models.User, userRepo *mockuserRepo, hasher *mockhasher) {
 				hasher.On("Hash", inputUser.Password).Return("somepasswordhash", nil).Once()
@@ -60,7 +60,7 @@ func TestService_Create(t *testing.T) {
 			InputUser: &models.User{
 				Password: "somepassword",
 			},
-			ExceptedUser: nil,
+			ExpectedUser: nil,
 			WantErr:      true,
 			SetUpMocks: func(inputUser *models.User, resultUser *models.User, userRepo *mockuserRepo, hasher *mockhasher) {
 				hasher.On("Hash", inputUser.Password).Return("", errors.New("some internal error")).Once()
@@ -72,7 +72,7 @@ func TestService_Create(t *testing.T) {
 				Email:    "some@test.com",
 				Password: "somepassword",
 			},
-			ExceptedUser: nil,
+			ExpectedUser: nil,
 			WantErr:      true,
 			SetUpMocks: func(inputUser *models.User, resultUser *models.User, userRepo *mockuserRepo, hasher *mockhasher) {
 				hasher.On("Hash", inputUser.Password).Return("somepasswordhash", nil).Once()
@@ -86,7 +86,7 @@ func TestService_Create(t *testing.T) {
 			mockHasher := &mockhasher{}
 			mockUserRepo := &mockuserRepo{}
 
-			tt.SetUpMocks(tt.InputUser, tt.ExceptedUser, mockUserRepo, mockHasher)
+			tt.SetUpMocks(tt.InputUser, tt.ExpectedUser, mockUserRepo, mockHasher)
 
 			svc := New(mockUserRepo, mockHasher)
 
@@ -94,7 +94,7 @@ func TestService_Create(t *testing.T) {
 			if tt.WantErr {
 				assert.Error(t, err)
 			}
-			assert.Equal(t, tt.ExceptedUser, user)
+			assert.Equal(t, tt.ExpectedUser, user)
 
 			mockHasher.AssertExpectations(t)
 			mockUserRepo.AssertExpectations(t)
