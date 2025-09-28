@@ -13,6 +13,7 @@ type service interface {
 	Register(ctx context.Context, user *models.User) (*authservice.RegisterResult, error)
 	Login(ctx context.Context, user *models.User) (*authservice.LoginResult, error)
 	Logout(ctx context.Context, accessToken string) error
+	RefreshTokens(ctx context.Context, refreshToken string) (*authservice.RefreshTokensResult, error)
 }
 
 type handler struct {
@@ -33,4 +34,5 @@ func (h *handler) Setup(router *echo.Group) {
 	router.POST("/register", h.Register)
 	router.POST("/login", h.Login)
 	router.POST("/logout", h.Logout)
+	router.POST("/tokens/refresh", h.RefreshTokens)
 }
