@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 
 from loguru import logger
 from src.core.utils import FileSystemTools
+from src.domain.models import ContextDigestItem
 
 
 class InterceptHandler(logging.Handler):
@@ -86,8 +87,6 @@ class QuestionLogger:
                     for chunk in context_chunks
                 ],
                 "llm_response": llm_response,
-                "llm_response_length": len(llm_response),
-                "processing_time_ms": processing_time_ms,
                 "success": success,
                 "error_message": error_message if not success else None
             }
@@ -102,9 +101,6 @@ class QuestionLogger:
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
-            
-            logger.debug(f"Question processing logged for {question_id}: {len(context_chunks)} chunks, {processing_time_ms:.2f}ms")
-            logger.debug(f"Question processing results logged to debug log file: {file_path} for question_id: {question_id}")
             
         except Exception as ex:
             logger.error(f"Failed to log question processing results: {ex}")
@@ -129,8 +125,6 @@ class ContextRetrievalLogger:
                 "timestamp": int(datetime.now().timestamp()),
                 "question_id": question_id,
                 "query": query,
-                "query_length": len(query),
-                "retrieved_chunks_count": len(retrieved_chunks),
                 "retrieved_chunks": [
                     {
                         "doc_id": chunk.get("doc_id", ""),
@@ -143,7 +137,6 @@ class ContextRetrievalLogger:
                     
                     for chunk in retrieved_chunks
                 ],
-                "retrieval_time_ms": retrieval_time_ms,
                 "success": success,
                 "error_message": error_message if not success else None
             }
@@ -158,9 +151,6 @@ class ContextRetrievalLogger:
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
-            
-            logger.debug(f"Context retrieval logged for {question_id}: {len(retrieved_chunks)} chunks, {retrieval_time_ms:.2f}ms")
-            logger.debug(f"Context retrieval results logged to debug log file: {file_path} for question_id: {question_id}")
             
         except Exception as ex:
             logger.error(f"Failed to log context retrieval results: {ex}")
@@ -186,12 +176,8 @@ class LLMGenerationLogger:
                 "timestamp": int(datetime.now().timestamp()),
                 "question_id": question_id,
                 "question": question,
-                "question_length": len(question),
                 "context": context,
-                "context_length": len(context),
                 "llm_response": llm_response,
-                "llm_response_length": len(llm_response),
-                "generation_time_ms": generation_time_ms,
                 "success": success,
                 "error_message": error_message if not success else None
             }
@@ -206,9 +192,6 @@ class LLMGenerationLogger:
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
-            
-            logger.debug(f"LLM generation logged for {question_id}: {len(llm_response)} chars, {generation_time_ms:.2f}ms")
-            logger.debug(f"LLM generation results logged to debug log file: {file_path} for question_id: {question_id}")
             
         except Exception as ex:
             logger.error(f"Failed to log LLM generation results: {ex}")
@@ -236,7 +219,6 @@ class QuestionBuilderLogger:
                 "original_question": original_question,
                 "expanded_question": expanded_question,
                 "semantic_parts": semantic_parts,
-                "building_time_ms": building_time_ms,
                 "success": success,
                 "error_message": error_message if not success else None
             }
@@ -252,9 +234,6 @@ class QuestionBuilderLogger:
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
             
-            logger.debug(f"Question building logged for {question_id}: {len(semantic_parts)} parts, {building_time_ms:.2f}ms")
-            logger.debug(f"Question building results logged to debug log file: {file_path} for question_id: {question_id}")
-            
         except Exception as ex:
             logger.error(f"Failed to log question building results: {ex}")
 
@@ -264,7 +243,7 @@ class ContextBuilderLogger:
     def log_context_building(
         question_id: str,
         input_chunks_count: int,
-        context_text: str,
+        digests: List[ContextDigestItem],
         building_time_ms: float,
         success: bool,
         error_message: str = ""
@@ -274,13 +253,23 @@ class ContextBuilderLogger:
             FileSystemTools.ensure_directory_exists(debug_dir)
             file_path = os.path.join(debug_dir, f"{question_id}.json")
             
+            serialized_digests = [
+                {
+                    "title": digest.title,
+                    "summary": digest.summary,
+                    "doc_id": digest.source_chunk.doc_id,
+                    "paragraph_id": digest.source_chunk.paragraph_id,
+                    "chunk_id": digest.source_chunk.chunk_id,
+                    "score": digest.source_chunk.score,
+                    "pages": list(digest.source_chunk.pages),
+                }
+                for digest in digests
+            ]
+
             building_entry = {
                 "timestamp": int(datetime.now().timestamp()),
                 "question_id": question_id,
-                "input_chunks_count": input_chunks_count,
-                "context_text": context_text,
-                "context_text_length": len(context_text),
-                "building_time_ms": building_time_ms,
+                "digests": serialized_digests,
                 "success": success,
                 "error_message": error_message if not success else None
             }
@@ -295,9 +284,6 @@ class ContextBuilderLogger:
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
-            
-            logger.debug(f"Context building logged for {question_id}: {input_chunks_count} chunks -> {len(context_text)} chars, {building_time_ms:.2f}ms")
-            logger.debug(f"Context building results logged to debug log file: {file_path} for question_id: {question_id}")
             
         except Exception as ex:
             logger.error(f"Failed to log context building results: {ex}")
@@ -321,8 +307,6 @@ class SystemPromptBuilderLogger:
                 "timestamp": int(datetime.now().timestamp()),
                 "question_id": question_id,
                 "system_prompt": system_prompt,
-                "system_prompt_length": len(system_prompt),
-                "building_time_ms": building_time_ms,
                 "success": success,
                 "error_message": error_message if not success else None
             }
@@ -338,10 +322,6 @@ class SystemPromptBuilderLogger:
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
             
-            logger.debug(f"System prompt building logged for {question_id}: {len(system_prompt)} chars, {building_time_ms:.2f}ms")
-            logger.debug(f"System prompt building results logged to debug log file: {file_path} for question_id: {question_id}")
-            
         except Exception as ex:
             logger.error(f"Failed to log system prompt building results: {ex}")
-
 

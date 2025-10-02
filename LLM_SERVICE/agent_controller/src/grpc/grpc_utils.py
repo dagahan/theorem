@@ -30,19 +30,19 @@ class GrpcTools:
         try:
             Validator().validate(msg)
 
-        except ValidationError as exc:  # noqa: BLE001
+        except ValidationError as ex:  # noqa: BLE001
             details = []
-            for violation in getattr(exc, 'violations', []) or []:
+            for violation in getattr(ex, 'violations', []) or []:
                 details.append(
                     f"path={getattr(violation, 'field_path', '')} msg={getattr(violation, 'message', '')}"
                 )
 
-            formatted = '; '.join(details) or str(exc)
+            formatted = '; '.join(details) or str(ex)
             if ctx:
                 ctx.abort(grpc.StatusCode.INVALID_ARGUMENT, formatted)
 
             logger.error(f"Validation failed: {formatted}")
-            raise ValueError(f"Invalid message: {formatted}") from exc
+            raise ValueError(f"Invalid message: {formatted}") from ex
 
 
     @staticmethod
@@ -78,7 +78,7 @@ class GrpcTools:
                     context = args[2]
 
                 peer = context.peer() if context and hasattr(context, 'peer') else 'unknown'
-                
+
                 start_time = time.time()
 
                 logger.info(f"gRPC request started: {method_name} from {peer}")
@@ -148,19 +148,19 @@ class GrpcTools:
                         **kwargs
                     )
 
-                except asyncio.TimeoutError as exc:
+                except asyncio.TimeoutError as ex:
                     duration_ms = (time.time() - start_time) * 1000
                     logger.warning(
                         f"gRPC client timeout: {client_service}.{method_name} -> {address} "
-                        f"in {duration_ms:.2f} ms - {exc}"
+                        f"in {duration_ms:.2f} ms - {ex}"
                     )
                     raise
 
-                except Exception as exc:  # noqa: BLE001
+                except Exception as ex:  # noqa: BLE001
                     duration_ms = (time.time() - start_time) * 1000
                     logger.error(
                         f"gRPC client call failed: {client_service}.{method_name} -> {address} "
-                        f"in {duration_ms:.2f} ms - {exc}"
+                        f"in {duration_ms:.2f} ms - {ex}"
                     )
                     raise
 

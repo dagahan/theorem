@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as third__party_dot_protovalidate_dot_buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x63ontext_builder.proto\x12\x0f\x63ontext_builder\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\")\n\x0eHealthResponse\x12\x17\n\x06status\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\"\x84\x01\n\x0c\x43ontextChunk\x12\x17\n\x06\x64oc_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\x12\x14\n\x0cparagraph_id\x18\x02 \x01(\x05\x12\x10\n\x08\x63hunk_id\x18\x03 \x01(\x05\x12\x15\n\x04text\x18\x04 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\x12\r\n\x05pages\x18\x05 \x03(\x05\x12\r\n\x05score\x18\x06 \x01(\x01\"r\n\x13\x42uildContextRequest\x12\x37\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\x1d.context_builder.ContextChunkB\x08\xbaH\x05\x92\x01\x02\x08\x01\x12\"\n\x11max_context_chars\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x01\"U\n\x14\x42uildContextResponse\x12\x1d\n\x0c\x63ontext_text\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\r\n\x05\x65rror\x18\x03 \x01(\t2\xbf\x01\n\x15\x43ontextBuilderService\x12I\n\x06Health\x12\x1e.context_builder.HealthRequest\x1a\x1f.context_builder.HealthResponse\x12[\n\x0c\x42uildContext\x12$.context_builder.BuildContextRequest\x1a%.context_builder.BuildContextResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x63ontext_builder.proto\x12\x0f\x63ontext_builder\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\")\n\x0eHealthResponse\x12\x17\n\x06status\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\"\x84\x01\n\x0c\x43ontextChunk\x12\x17\n\x06\x64oc_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\x12\x14\n\x0cparagraph_id\x18\x02 \x01(\x05\x12\x10\n\x08\x63hunk_id\x18\x03 \x01(\x05\x12\x15\n\x04text\x18\x04 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\x12\r\n\x05pages\x18\x05 \x03(\x05\x12\r\n\x05score\x18\x06 \x01(\x01\"\x96\x01\n\x13\x42uildContextRequest\x12\x37\n\x06\x63hunks\x18\x01 \x03(\x0b\x32\x1d.context_builder.ContextChunkB\x08\xbaH\x05\x92\x01\x02\x08\x01\x12\"\n\x11max_context_chars\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x01\x12\"\n\x11summarizer_prompt\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\"s\n\nDigestItem\x12\x16\n\x05title\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\x12\x18\n\x07summary\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01\x12\x33\n\x0csource_chunk\x18\x03 \x01(\x0b\x32\x1d.context_builder.ContextChunk\"d\n\x14\x42uildContextResponse\x12,\n\x07\x64igests\x18\x01 \x03(\x0b\x32\x1b.context_builder.DigestItem\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\r\n\x05\x65rror\x18\x03 \x01(\t2\xbf\x01\n\x15\x43ontextBuilderService\x12I\n\x06Health\x12\x1e.context_builder.HealthRequest\x1a\x1f.context_builder.HealthResponse\x12[\n\x0c\x42uildContext\x12$.context_builder.BuildContextRequest\x1a%.context_builder.BuildContextResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,18 +42,24 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_BUILDCONTEXTREQUEST'].fields_by_name['chunks']._serialized_options = b'\272H\005\222\001\002\010\001'
   _globals['_BUILDCONTEXTREQUEST'].fields_by_name['max_context_chars']._loaded_options = None
   _globals['_BUILDCONTEXTREQUEST'].fields_by_name['max_context_chars']._serialized_options = b'\272H\004\032\002(\001'
-  _globals['_BUILDCONTEXTRESPONSE'].fields_by_name['context_text']._loaded_options = None
-  _globals['_BUILDCONTEXTRESPONSE'].fields_by_name['context_text']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_BUILDCONTEXTREQUEST'].fields_by_name['summarizer_prompt']._loaded_options = None
+  _globals['_BUILDCONTEXTREQUEST'].fields_by_name['summarizer_prompt']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_DIGESTITEM'].fields_by_name['title']._loaded_options = None
+  _globals['_DIGESTITEM'].fields_by_name['title']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_DIGESTITEM'].fields_by_name['summary']._loaded_options = None
+  _globals['_DIGESTITEM'].fields_by_name['summary']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_HEALTHREQUEST']._serialized_start=97
   _globals['_HEALTHREQUEST']._serialized_end=112
   _globals['_HEALTHRESPONSE']._serialized_start=114
   _globals['_HEALTHRESPONSE']._serialized_end=155
   _globals['_CONTEXTCHUNK']._serialized_start=158
   _globals['_CONTEXTCHUNK']._serialized_end=290
-  _globals['_BUILDCONTEXTREQUEST']._serialized_start=292
-  _globals['_BUILDCONTEXTREQUEST']._serialized_end=406
-  _globals['_BUILDCONTEXTRESPONSE']._serialized_start=408
-  _globals['_BUILDCONTEXTRESPONSE']._serialized_end=493
-  _globals['_CONTEXTBUILDERSERVICE']._serialized_start=496
-  _globals['_CONTEXTBUILDERSERVICE']._serialized_end=687
+  _globals['_BUILDCONTEXTREQUEST']._serialized_start=293
+  _globals['_BUILDCONTEXTREQUEST']._serialized_end=443
+  _globals['_DIGESTITEM']._serialized_start=445
+  _globals['_DIGESTITEM']._serialized_end=560
+  _globals['_BUILDCONTEXTRESPONSE']._serialized_start=562
+  _globals['_BUILDCONTEXTRESPONSE']._serialized_end=662
+  _globals['_CONTEXTBUILDERSERVICE']._serialized_start=665
+  _globals['_CONTEXTBUILDERSERVICE']._serialized_end=856
 # @@protoc_insertion_point(module_scope)

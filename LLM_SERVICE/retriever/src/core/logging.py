@@ -94,9 +94,6 @@ class SearchLogger:
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(search_entry, file, indent=2, ensure_ascii=False)
             
-            logger.debug(f"Search pipeline logged: {len(final_results)} results in {total_time_ms:.2f}ms")
-            logger.debug(f"Search results logged to: {file_path}")
-            
         except Exception as ex:
             logger.error(f"Failed to log search pipeline: {ex}")
 
@@ -124,8 +121,6 @@ class StepLogger:
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(step_entry, file, indent=2, ensure_ascii=False)
-            
-            logger.debug(f"Step '{step_name}' logged: {execution_time_ms:.2f}ms")
             
         except Exception as ex:
             logger.error(f"Failed to log step '{step_name}': {ex}")
@@ -163,8 +158,6 @@ class ResponseLogger:
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(response_entry, file, indent=2, ensure_ascii=False)
-            
-            logger.debug(f"Response formatting logged: {len(formatted_text)} chars in {formatting_time_ms:.2f}ms")
             
         except Exception as ex:
             logger.error(f"Failed to log response formatting: {ex}")

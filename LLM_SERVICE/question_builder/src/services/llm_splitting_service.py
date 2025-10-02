@@ -96,7 +96,8 @@ class LLMSplittingService:
 
             return filtered_parts
 
-        except Exception:
+        except Exception as ex:
+            logger.error(f"Failed to parse semantic parts from response: {ex}")
             return [response.strip()]
 
 

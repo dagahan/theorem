@@ -4,10 +4,10 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from typing import TYPE_CHECKING, Awaitable, Callable, Optional
+from typing import TYPE_CHECKING, Any
 
-from loguru import logger
 from langgraph.checkpoint.memory import MemorySaver
+from loguru import logger
 
 from src.adapters.context_builder_adapter import ContextBuilderAdapter
 from src.adapters.question_builder_adapter import QuestionBuilderAdapter
@@ -16,11 +16,19 @@ from src.adapters.system_prompt_builder_adapter import SystemPromptBuilderAdapte
 from src.adapters.vllm_adapter import VLLMAdapter
 from src.core.timeouts import TimeoutTools
 from src.core.utils import EnvTools
-from src.domain.models import ComponentHealth, HealthCheck, QuestionResponse, ServiceStatus, UserQuery
-from src.graph.graph_builder import GraphBuilder
+from src.domain.models import (
+    ComponentHealth,
+    GraphState,
+    HealthCheck,
+    QuestionResponse,
+    ServiceStatus,
+    UserQuery,
+)
+
+from src.agents_graphs.graph_builder import GraphBuilder
 
 if TYPE_CHECKING:
-    from src.domain.models import GraphState
+    from collections.abc import Awaitable, Callable
 
 
 class LLMGraphOrchestrator:
@@ -31,7 +39,8 @@ class LLMGraphOrchestrator:
         self.context_builder_adapter = ContextBuilderAdapter()
         self.system_prompt_builder_adapter = SystemPromptBuilderAdapter()
         self.default_collection = EnvTools.required_load_env_var('DEFAULT_RETRIEVER_COLLECTION')
-        self.max_context_chars = int(float(EnvTools.required_load_env_var('VLLM_TALKING_MAX_LEN')) / 2)
+        max_len_env = float(EnvTools.required_load_env_var('VLLM_TALKING_MAX_LEN'))
+        self.max_context_chars = int(max_len_env / 2)
         self.min_results_required = int(EnvTools.required_load_env_var('VLLM_TALKING_MIN_RESULTS'))
         self.checkpointer = MemorySaver()
         self.health_timeout_sec = TimeoutTools.get_health_check_timeout()
@@ -44,15 +53,35 @@ class LLMGraphOrchestrator:
             self.system_prompt_builder_adapter,
         )
 
-        self.graph = self.graph_builder.build_graph(self.checkpointer)
+        self.agents_graphs: dict[str, Any] = {}
 
 
     async def answer_question(
         self,
         query: UserQuery,
-        run_id: Optional[str] = None,
+        run_id: str | None = None,
     ) -> QuestionResponse:
-        initial: 'GraphState' = {
+        try:
+            # user provided agent name in it's query.
+            # we using graph of specific agent here.
+            graph = self.agents_graphs.get(query.agent_name)
+
+            if graph is None:
+                graph = self.graph_builder.build_graph(
+                    query.agent_name,
+                    self.checkpointer
+                )
+
+                self.agents_graphs[query.agent_name] = graph
+
+        except ValueError as exc:
+            return QuestionResponse(
+                answer='',
+                success=False,
+                error=str(exc)
+            )
+
+        initial: GraphState = {
             'question_id': str(uuid.uuid4()),
             'started_at_ms': time.time() * 1000,
             'timings_ms': {},
@@ -60,10 +89,14 @@ class LLMGraphOrchestrator:
             'max_context_chars': self.max_context_chars,
             'min_results_required': self.min_results_required,
             'query': query,
+            'agent_name': query.agent_name,
             'success': False,
+            'personality_prompts': {},
+            'context_digests': [],
+            'system_prompt': '',
         }
 
-        state: 'GraphState' = await self.graph.ainvoke(
+        state: GraphState = await graph.ainvoke(
             initial,
             config={'configurable': {'thread_id': run_id or initial['question_id']}}
         )
@@ -86,7 +119,7 @@ class LLMGraphOrchestrator:
                     timeout=self.health_timeout_sec,
                 )
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 details = f'timeout after {self.health_timeout_sec:.1f}s'
                 return ComponentHealth(name=name, status=ServiceStatus.UNHEALTHY, details=details)
                 
@@ -95,20 +128,23 @@ class LLMGraphOrchestrator:
                 return ComponentHealth(name=name, status=ServiceStatus.UNHEALTHY, details=str(exc))
 
             is_healthy = False
-            detail_text: Optional[str] = None
+            detail_text: str | None = None
 
             if isinstance(result, bool):
                 is_healthy = result
                 if not result:
                     detail_text = 'reported unhealthy'
+
             else:
                 status_value = getattr(result, 'status', '')
                 success_value = getattr(result, 'success', None)
 
                 if isinstance(success_value, bool):
                     is_healthy = success_value
+                    
                 elif isinstance(status_value, str):
                     is_healthy = status_value.lower() == 'healthy'
+
                 else:
                     is_healthy = bool(result)
 
@@ -129,7 +165,11 @@ class LLMGraphOrchestrator:
                     detail_text = ', '.join(detail_parts)
 
             if is_healthy:
-                return ComponentHealth(name=name, status=ServiceStatus.HEALTHY, details=None)
+                return ComponentHealth(
+                    name=name,
+                    status=ServiceStatus.HEALTHY,
+                    details=None
+                )
 
             return ComponentHealth(
                 name=name,
@@ -153,3 +193,6 @@ class LLMGraphOrchestrator:
             overall_status=overall_status,
             components=list(components),
         )
+
+
+

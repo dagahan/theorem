@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as third__party_dot_protovalidate_dot_buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11llm_gateway.proto\x12\x0ellm_gateway.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"`\n\x0f\x43omponentStatus\x12\x17\n\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@\x12\x19\n\x06status\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x19\n\x07\x64\x65tails\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02\"\xa6\x01\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x39\n\x10\x61gent_controller\x18\x02 \x01(\x0b\x32\x1f.llm_gateway.v1.ComponentStatus\x12>\n\x15\x64ownstream_components\x18\x03 \x03(\x0b\x32\x1f.llm_gateway.v1.ComponentStatus\"G\n\x0fQuestionRequest\x12$\n\x08raw_text\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x0e\n\x06stream\x18\x02 \x01(\x08\"B\n\x10QuestionResponse\x12\x0e\n\x06\x61nswer\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\r\n\x05\x65rror\x18\x03 \x01(\t2\xab\x01\n\x11LLMGatewayService\x12G\n\x06Health\x12\x1d.llm_gateway.v1.HealthRequest\x1a\x1e.llm_gateway.v1.HealthResponse\x12M\n\x08Question\x12\x1f.llm_gateway.v1.QuestionRequest\x1a .llm_gateway.v1.QuestionResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11llm_gateway.proto\x12\x0ellm_gateway.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"`\n\x0f\x43omponentStatus\x12\x17\n\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@\x12\x19\n\x06status\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x19\n\x07\x64\x65tails\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02\"\xa6\x01\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x39\n\x10\x61gent_controller\x18\x02 \x01(\x0b\x32\x1f.llm_gateway.v1.ComponentStatus\x12>\n\x15\x64ownstream_components\x18\x03 \x03(\x0b\x32\x1f.llm_gateway.v1.ComponentStatus\"o\n\x0fQuestionRequest\x12$\n\x08raw_text\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x0e\n\x06stream\x18\x02 \x01(\x08\x12&\n\nagent_name\x18\x03 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80\x01\x32\x06.*\\S.*\"B\n\x10QuestionResponse\x12\x0e\n\x06\x61nswer\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\r\n\x05\x65rror\x18\x03 \x01(\t2\xab\x01\n\x11LLMGatewayService\x12G\n\x06Health\x12\x1d.llm_gateway.v1.HealthRequest\x1a\x1e.llm_gateway.v1.HealthResponse\x12M\n\x08Question\x12\x1f.llm_gateway.v1.QuestionRequest\x1a .llm_gateway.v1.QuestionResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,6 +42,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_HEALTHRESPONSE'].fields_by_name['status']._serialized_options = b'\272H\006r\004\020\000\030 '
   _globals['_QUESTIONREQUEST'].fields_by_name['raw_text']._loaded_options = None
   _globals['_QUESTIONREQUEST'].fields_by_name['raw_text']._serialized_options = b'\272H\017r\r\020\001\030\200@2\006.*\\S.*'
+  _globals['_QUESTIONREQUEST'].fields_by_name['agent_name']._loaded_options = None
+  _globals['_QUESTIONREQUEST'].fields_by_name['agent_name']._serialized_options = b'\272H\017r\r\020\001\030\200\0012\006.*\\S.*'
   _globals['_HEALTHREQUEST']._serialized_start=92
   _globals['_HEALTHREQUEST']._serialized_end=107
   _globals['_COMPONENTSTATUS']._serialized_start=109
@@ -49,9 +51,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_HEALTHRESPONSE']._serialized_start=208
   _globals['_HEALTHRESPONSE']._serialized_end=374
   _globals['_QUESTIONREQUEST']._serialized_start=376
-  _globals['_QUESTIONREQUEST']._serialized_end=447
-  _globals['_QUESTIONRESPONSE']._serialized_start=449
-  _globals['_QUESTIONRESPONSE']._serialized_end=515
-  _globals['_LLMGATEWAYSERVICE']._serialized_start=518
-  _globals['_LLMGATEWAYSERVICE']._serialized_end=689
+  _globals['_QUESTIONREQUEST']._serialized_end=487
+  _globals['_QUESTIONRESPONSE']._serialized_start=489
+  _globals['_QUESTIONRESPONSE']._serialized_end=555
+  _globals['_LLMGATEWAYSERVICE']._serialized_start=558
+  _globals['_LLMGATEWAYSERVICE']._serialized_end=729
 # @@protoc_insertion_point(module_scope)

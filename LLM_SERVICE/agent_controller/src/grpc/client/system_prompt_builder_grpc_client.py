@@ -29,7 +29,6 @@ class SystemPromptBuilderGrpcClient:
     @GrpcTools.log_grpc_client_call('system_prompt_builder', 'Health')
     async def health_check(self) -> bool:
         request = system_prompt_builder_pb2.HealthRequest()
-
         GrpcTools.validate_proto(request)
 
         timeout_sec = TimeoutTools.get_health_check_timeout()
@@ -42,15 +41,18 @@ class SystemPromptBuilderGrpcClient:
 
             GrpcTools.validate_proto(response)
 
-            return bool(response.status == 'healthy')
+            return response.status == 'healthy'  # type: ignore
 
-        except grpc.RpcError as ex:
+        except grpc.RpcError:
             return False
 
 
     @GrpcTools.log_grpc_client_call('system_prompt_builder', 'BuildSystemPrompt')
-    async def build_system_prompt(self) -> SystemPromptResponse:
-        request = system_prompt_builder_pb2.BuildSystemPromptRequest()
+    async def build_system_prompt(
+        self,
+        persona_names: list[str],
+    ) -> SystemPromptResponse:
+        request = system_prompt_builder_pb2.BuildSystemPromptRequest(persona_names=persona_names)
 
         GrpcTools.validate_proto(request)
 
@@ -68,49 +70,48 @@ class SystemPromptBuilderGrpcClient:
 
         except grpc.aio.AioRpcError as ex:
             status = ex.code()
-
             if status in (grpc.StatusCode.DEADLINE_EXCEEDED, grpc.StatusCode.CANCELLED):
                 logger.warning(
                     f"{self.service_name} BuildSystemPrompt deadline exceeded for {self.target}"
                 )
+
                 raise asyncio.TimeoutError('system_prompt_builder timeout') from ex
 
-            return SystemPromptResponse(
-                system_prompt='',
-                success=False,
-                error=str(ex)
-            )
+            return SystemPromptResponse(personalities={}, success=False, error=str(ex))
 
         except asyncio.CancelledError as ex:
             if timeout_sec is None:
                 raise
-
             message = (
                 f"{self.service_name} BuildSystemPrompt timed out after {timeout_sec:.1f}s "
                 f"for {self.target}"
             )
 
             logger.warning(message)
-
             raise asyncio.TimeoutError(message) from ex
 
         except grpc.RpcError as ex:
             return SystemPromptResponse(
-                system_prompt='',
+                personalities={},
                 success=False,
                 error=str(ex)
             )
 
+        GrpcTools.validate_proto(response)
+
         if not response.success:
             return SystemPromptResponse(
-                system_prompt='',
+                personalities={},
                 success=False,
                 error=response.error or 'system_prompt_builder error'
             )
 
-        GrpcTools.validate_proto(response)
+        personalities = {item.name: item.prompt for item in response.personalities}
 
         return SystemPromptResponse(
-            system_prompt=response.system_prompt,
+            personalities=personalities,
             success=True
         )
+
+
+

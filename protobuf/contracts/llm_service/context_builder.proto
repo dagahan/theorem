@@ -32,13 +32,19 @@ message ContextChunk {
 message BuildContextRequest {
   repeated ContextChunk chunks = 1 [(buf.validate.field).repeated.min_items = 1];
   int32 max_context_chars = 2 [(buf.validate.field).int32.gte = 1];
+  string summarizer_prompt = 3 [(buf.validate.field).string.min_len = 1];
+}
+
+
+message DigestItem {
+  string title = 1 [(buf.validate.field).string.min_len = 1];
+  string summary = 2 [(buf.validate.field).string.min_len = 1];
+  ContextChunk source_chunk = 3;
 }
 
 
 message BuildContextResponse {
-  string context_text = 1 [(buf.validate.field).string.min_len = 1];
+  repeated DigestItem digests = 1;
   bool success = 2;
   string error = 3;
 }
-
-

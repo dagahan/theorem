@@ -32,6 +32,7 @@ message HealthResponse {
 message QuestionRequest {
   string raw_text = 1 [(buf.validate.field).string = {min_len: 1, max_len: 8192, pattern: ".*\\S.*"}];
   bool stream = 2;
+  string agent_name = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128, pattern: ".*\\S.*"}];
 }
 
 
@@ -40,6 +41,5 @@ message QuestionResponse {
   bool success = 2;
   string error = 3;
 }
-
 
 

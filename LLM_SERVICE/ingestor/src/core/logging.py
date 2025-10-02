@@ -92,9 +92,6 @@ class ChunkingLogger:
                 file.write(json.dumps(log_chunking_entry, indent=2, ensure_ascii=False))
                 file.write("\n\n")
             
-            logger.debug(f"Document {doc_id} chunked: {len(chunks)} chunks, {paragraph_count} paragraphs")
-            logger.debug(f"Processing results logged to debug log file: {file_path} for doc_id: {doc_id}")
-            
         except Exception as ex:
             logger.error(f"Failed to log processing results: {ex}")
 
@@ -133,9 +130,6 @@ class TextNormalizeLogger:
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
-            
-            logger.debug(f"Text normalization logged for {doc_id}: {original_length} -> {normalized_length} chars")
-            logger.debug(f"Normalization results logged to debug log file: {file_path} for doc_id: {doc_id}")
             
         except Exception as ex:
             logger.error(f"Failed to log normalization results: {ex}")
@@ -179,9 +173,6 @@ class FileParserLogger:
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
-            
-            logger.debug(f"File parsing logged for {doc_id}: {len(extracted_text)} chars using {parsing_method}")
-            logger.debug(f"Parsing results logged to debug log file: {file_path} for doc_id: {doc_id}")
             
         except Exception as ex:
             logger.error(f"Failed to log parsing results: {ex}")
@@ -233,9 +224,6 @@ class BlockingLogger:
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
-            
-            logger.debug(f"Blocking logged for {doc_id}: {len(blocks)} blocks")
-            logger.debug(f"Blocking results logged to debug log file: {file_path} for doc_id: {doc_id}")
             
         except Exception as ex:
             logger.error(f"Failed to log blocking results: {ex}")

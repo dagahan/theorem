@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from loguru import logger
+
 from src.adapters.embedder_adapter import EmbedderAdapter
 from src.adapters.vector_store_adapter import VectorStoreAdapter
 from src.domain.models import Candidate, EmbeddingResult, VectorSearchResult
@@ -62,6 +64,7 @@ class DenseRetrieverService:
             )
 
         except Exception as e:
+            logger.error(f"Dense retrieval embedding failed for query '{query_text}': {e}")
             return EmbeddingResult(
                 text=query_text,
                 vector=[],

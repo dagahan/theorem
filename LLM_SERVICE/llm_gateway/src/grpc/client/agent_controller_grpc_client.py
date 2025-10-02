@@ -39,12 +39,14 @@ class AgentControllerGrpcClient:
         self,
         raw_text: str,
         stream: bool,
-        run_id: str | None = None
+        agent_name: str,
+        run_id: str | None = None,
     ) -> agent_controller_pb2.QuestionResponse:
         request = agent_controller_pb2.QuestionRequest(
             raw_text=raw_text,
             stream=stream,
-            run_id=run_id or ''
+            run_id=run_id or '',
+            agent_name=agent_name,
         )
         GrpcTools.validate_proto(request)
 
@@ -64,5 +66,4 @@ class AgentControllerGrpcClient:
 
         GrpcTools.validate_proto(response)
         return response
-
 

@@ -33,6 +33,7 @@ class AgentControllerAPI(agent_controller_pb2_grpc.AgentControllerServiceService
             grpc_tools.validate_proto(request, context)
 
             health_check = await self.orchestrator.health_check()
+            
             components = [
                 agent_controller_pb2.ComponentStatus(
                     name=component.name,
@@ -76,6 +77,7 @@ class AgentControllerAPI(agent_controller_pb2_grpc.AgentControllerServiceService
 
             question_request = UserQuery(
                 raw_text=request.raw_text,
+                agent_name=request.agent_name,
                 stream=request.stream,
             )
 
@@ -110,4 +112,3 @@ class AgentControllerAPI(agent_controller_pb2_grpc.AgentControllerServiceService
                 success=False,
                 error=str(ex),
             )
-

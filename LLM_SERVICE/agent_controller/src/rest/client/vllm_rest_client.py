@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from typing import Dict, Any, List
-from loguru import logger
-
-from src.rest.client.base_rest_client import BaseRestClient
 from src.core.utils import EnvTools
+from src.rest.client.base_rest_client import BaseRestClient
 
 
 class VLLMRestClient(BaseRestClient):
@@ -18,7 +15,10 @@ class VLLMRestClient(BaseRestClient):
         question: str,
         system_prompt: str,
         context: str = "",
-        stream: bool = False
+        stream: bool = False,
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         messages = [
             {"role": "system", "content": system_prompt}
@@ -32,8 +32,8 @@ class VLLMRestClient(BaseRestClient):
         payload = {
             "model": self.model_name,
             "messages": messages,
-            "max_tokens": 2048,
-            "temperature": 0.2,
+            "max_tokens": max_tokens or 2048,
+            "temperature": temperature if temperature is not None else 0.2,
             "stop": ["END", "STOP"],
             "stream": stream
         }
@@ -61,6 +61,4 @@ class VLLMRestClient(BaseRestClient):
 
         except Exception:
             return False
-
-
 

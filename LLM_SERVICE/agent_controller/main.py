@@ -10,6 +10,7 @@ from loguru import logger
 from src.core.logging import InterceptHandler, LogSetup
 from src.core.utils import EnvTools
 from src.grpc.grpc_server import GrpcAgentControllerServer
+from src.services.register_agents import RegisterAgents
 
 
 class Service:
@@ -18,11 +19,16 @@ class Service:
         self.logger_setup = LogSetup()
         self.grpc_server = GrpcAgentControllerServer()
 
+
     async def run_service(self) -> None:
         self.logger_setup.configure()
 
+        # rigister all of agents graphs
+        RegisterAgents().register_agents()
+
         loop = asyncio.get_running_loop()
         stop_future: asyncio.Future[None] = loop.create_future()
+        
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, lambda s=sig: (not stop_future.done()) and stop_future.set_result(None))
 

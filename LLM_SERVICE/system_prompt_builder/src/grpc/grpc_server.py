@@ -9,7 +9,7 @@ from loguru import logger
 from protobuf_stubs import system_prompt_builder_pb2_grpc
 from src.core.utils import EnvTools
 from src.grpc.api.system_prompt_builder_api import SystemPromptBuilderAPI
-from src.services.policy_builder_service import SystemPromptBuilderService
+from src.services.system_prompt_builder_service import SystemPromptBuilderService
 
 
 class GrpcSystemPromptBuilderServer:

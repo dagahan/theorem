@@ -88,6 +88,7 @@ class LLMGatewayAPI(llm_gateway_pb2_grpc.LLMGatewayServiceServicer):  # type: ig
             agent_response = await self.agent_client.answer_question(
                 raw_text=request.raw_text,
                 stream=request.stream,
+                agent_name=request.agent_name,
             )
 
             response = llm_gateway_pb2.QuestionResponse(
@@ -112,5 +113,4 @@ class LLMGatewayAPI(llm_gateway_pb2_grpc.LLMGatewayServiceServicer):  # type: ig
                 success=False,
                 error=str(ex),
             )
-
 

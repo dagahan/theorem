@@ -5,6 +5,17 @@ from typing import Optional
 
 
 @dataclass(frozen=True)
+class PersonaPrompt:
+    name: str
+    prompt: str
+
+
+@dataclass(frozen=True)
+class BuildSystemPromptRequest:
+    persona_names: list[str]
+
+
+@dataclass(frozen=True)
 class PolicyHeaderResponse:
     policy_header: str
     success: bool
@@ -20,7 +31,7 @@ class PolicyHealthResponse:
 
 @dataclass(frozen=True)
 class BuildSystemPromptResponse:
-    system_prompt: str
+    personalities: list[PersonaPrompt]
     success: bool
     error: Optional[str] = None
 
@@ -29,5 +40,3 @@ class BuildSystemPromptResponse:
 class HealthStatus:
     status: str
     policy_builder_status: str
-
-

@@ -7,8 +7,14 @@ import grpc.aio
 from loguru import logger
 
 from protobuf_stubs import context_builder_pb2, context_builder_pb2_grpc
+
 from src.core.timeouts import TimeoutTools
-from src.domain.models import ContextBuilderRequest, ContextBuilderResponse
+from src.domain.models import (
+    ContextBuilderRequest,
+    ContextBuilderResponse,
+    ContextChunk,
+    ContextDigestItem,
+)
 from src.grpc.grpc_utils import GrpcTools
 
 
@@ -29,19 +35,21 @@ class ContextBuilderGrpcClient:
     @GrpcTools.log_grpc_client_call('context_builder', 'Health')
     async def health_check(self) -> bool:
         request = context_builder_pb2.HealthRequest()
-
         GrpcTools.validate_proto(request)
 
         timeout_sec = TimeoutTools.get_health_check_timeout()
 
         try:
-            response = await self.stub.Health(request, timeout=timeout_sec)
-            
+            response = await self.stub.Health(
+                request,
+                timeout=timeout_sec
+            )
+
             GrpcTools.validate_proto(response)
 
-            return bool(response.status == 'healthy')
+            return response.status == 'healthy'  # type: ignore
 
-        except grpc.RpcError as exc:  # includes aio errors
+        except grpc.RpcError:
             return False
 
 
@@ -57,25 +65,27 @@ class ContextBuilderGrpcClient:
                 chunk_id=chunk.chunk_id,
                 text=chunk.text,
                 pages=chunk.pages,
-                score=chunk.score
+                score=chunk.score,
             )
             for chunk in request.chunks
         ]
 
         request_pb = context_builder_pb2.BuildContextRequest(
             chunks=chunks_pb,
-            max_context_chars=request.max_context_chars
+            max_context_chars=request.max_context_chars,
+            summarizer_prompt=request.summarizer_prompt,
         )
 
         GrpcTools.validate_proto(request_pb)
-        
-        timeout_sec = TimeoutTools.resolve_node_rpc_timeout()
+
+        node_timeout = TimeoutTools.get_timeout('CONTEXT_BUILDER_NODE_TIMEOUT_SEC', 180.0)
+        timeout_sec = TimeoutTools.resolve_node_rpc_timeout(node_timeout)
 
         try:
             if timeout_sec is not None:
                 response = await self.stub.BuildContext(
                     request_pb,
-                    timeout=timeout_sec
+                    timeout=timeout_sec,
                 )
 
             else:
@@ -89,13 +99,9 @@ class ContextBuilderGrpcClient:
                     f"{self.service_name} BuildContext deadline exceeded for {self.target}"
                 )
 
-                raise asyncio.TimeoutError('context_builder timeout') from ex
+                raise TimeoutError('context_builder timeout') from ex
 
-            return ContextBuilderResponse(
-                context_text='',
-                success=False,
-                error=str(ex)
-            )
+            return ContextBuilderResponse(digests=[], success=False, error=str(ex))
 
         except asyncio.CancelledError as ex:
             if timeout_sec is None:
@@ -108,28 +114,48 @@ class ContextBuilderGrpcClient:
 
             logger.warning(message)
 
-            raise asyncio.TimeoutError(message) from ex
+            raise TimeoutError(message) from ex
 
         except grpc.RpcError as ex:
             return ContextBuilderResponse(
-                context_text='',
+                digests=[],
                 success=False,
                 error=str(ex)
             )
 
+        if response is None:
+            return ContextBuilderResponse(
+                digests=[],
+                success=False,
+                error='context_builder returned empty response',
+            )
+
         if not response.success:
             return ContextBuilderResponse(
-                context_text='',
+                digests=[],
                 success=False,
-                error=response.error or 'context_builder error'
+                error=response.error or 'context_builder error',
             )
 
         GrpcTools.validate_proto(response)
 
+        digests = [
+            ContextDigestItem(
+                title=item.title,
+                summary=item.summary,
+                source_chunk=ContextChunk(
+                    doc_id=item.source_chunk.doc_id,
+                    paragraph_id=item.source_chunk.paragraph_id,
+                    chunk_id=item.source_chunk.chunk_id,
+                    text=item.source_chunk.text,
+                    pages=list(item.source_chunk.pages),
+                    score=item.source_chunk.score,
+                ),
+            )
+            for item in response.digests
+        ]
+
         return ContextBuilderResponse(
-            context_text=response.context_text,
-            success=True
+            digests=digests,
+            success=True,
         )
-    
-
-

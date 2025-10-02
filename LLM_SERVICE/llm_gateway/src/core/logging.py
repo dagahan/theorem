@@ -103,9 +103,6 @@ class QuestionLogger:
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
             
-            logger.debug(f"Question processing logged for {question_id}: {len(context_chunks)} chunks, {processing_time_ms:.2f}ms")
-            logger.debug(f"Question processing results logged to debug log file: {file_path} for question_id: {question_id}")
-            
         except Exception as ex:
             logger.error(f"Failed to log question processing results: {ex}")
 
@@ -159,9 +156,6 @@ class ContextRetrievalLogger:
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
             
-            logger.debug(f"Context retrieval logged for {question_id}: {len(retrieved_chunks)} chunks, {retrieval_time_ms:.2f}ms")
-            logger.debug(f"Context retrieval results logged to debug log file: {file_path} for question_id: {question_id}")
-            
         except Exception as ex:
             logger.error(f"Failed to log context retrieval results: {ex}")
 
@@ -207,9 +201,6 @@ class LLMGenerationLogger:
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
             
-            logger.debug(f"LLM generation logged for {question_id}: {len(llm_response)} chars, {generation_time_ms:.2f}ms")
-            logger.debug(f"LLM generation results logged to debug log file: {file_path} for question_id: {question_id}")
-            
         except Exception as ex:
             logger.error(f"Failed to log LLM generation results: {ex}")
 
@@ -252,9 +243,6 @@ class QuestionBuilderLogger:
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
             
-            logger.debug(f"Question building logged for {question_id}: {len(semantic_parts)} parts, {building_time_ms:.2f}ms")
-            logger.debug(f"Question building results logged to debug log file: {file_path} for question_id: {question_id}")
-            
         except Exception as ex:
             logger.error(f"Failed to log question building results: {ex}")
 
@@ -296,9 +284,6 @@ class ContextBuilderLogger:
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
             
-            logger.debug(f"Context building logged for {question_id}: {input_chunks_count} chunks -> {len(context_text)} chars, {building_time_ms:.2f}ms")
-            logger.debug(f"Context building results logged to debug log file: {file_path} for question_id: {question_id}")
-            
         except Exception as ex:
             logger.error(f"Failed to log context building results: {ex}")
 
@@ -337,9 +322,6 @@ class SystemPromptBuilderLogger:
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
-            
-            logger.debug(f"System prompt building logged for {question_id}: {len(system_prompt)} chars, {building_time_ms:.2f}ms")
-            logger.debug(f"System prompt building results logged to debug log file: {file_path} for question_id: {question_id}")
             
         except Exception as ex:
             logger.error(f"Failed to log system prompt building results: {ex}")
