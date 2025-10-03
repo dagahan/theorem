@@ -26,9 +26,11 @@ message HealthResponse {
 
 // -------------------------- Dense embeddings --------------------------
 
+
 message DenseEmbedRequest {
-  string text = 1 [(buf.validate.field).string = {min_len: 10, max_len: 8192, pattern: ".*\\S.*"}];
+  string text = 1 [(buf.validate.field).string = {min_len: 10, pattern: ".*\\S.*"}];
 }
+
 
 message DenseEmbedResponse {
   repeated float vector = 1 [(buf.validate.field).repeated = {max_items: 4096}];
@@ -36,13 +38,15 @@ message DenseEmbedResponse {
   string        error   = 3 [(buf.validate.field).string = {max_len: 2048}];
 }
 
+
 message DenseEmbedBatchRequest {
   repeated string texts = 1 [(buf.validate.field).repeated = {
     min_items: 1,
     max_items: 256,
-    items: { string: { min_len: 10, max_len: 8192, pattern: ".*\\S.*" } }
+    items: { string: { min_len: 10, pattern: ".*\\S.*" } }
   }];
 }
+
 
 message DenseEmbedBatchResponse {
   repeated DenseEmbedResponse items = 1 [(buf.validate.field).repeated = {min_items: 1, max_items: 256}];
@@ -51,9 +55,11 @@ message DenseEmbedBatchResponse {
 
 // -------------------------- Sparse embeddings -------------------------
 
+
 message SparseEmbedRequest {
-  string text = 1 [(buf.validate.field).string = {min_len: 10, max_len: 8192, pattern: ".*\\S.*"}];
+  string text = 1 [(buf.validate.field).string = {min_len: 10, pattern: ".*\\S.*"}];
 }
+
 
 message SparseEmbedResponse {
   repeated uint32 indices = 1 [(buf.validate.field).repeated = {min_items: 1}];
@@ -61,6 +67,7 @@ message SparseEmbedResponse {
   bool            success = 3;
   string          error   = 4 [(buf.validate.field).string = {max_len: 2048}];
 }
+
 
 message SparseEmbedBatchRequest {
   repeated string texts = 1 [(buf.validate.field).repeated = {
@@ -70,6 +77,8 @@ message SparseEmbedBatchRequest {
   }];
 }
 
+
 message SparseEmbedBatchResponse {
   repeated SparseEmbedResponse items = 1 [(buf.validate.field).repeated = {min_items: 1, max_items: 256}];
 }
+

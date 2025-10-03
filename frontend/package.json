@@ -1,7 +1,7 @@
 {
-  "name": "eye-math-frontend",
+  "name": "theorem-chat-frontend",
   "version": "1.0.0",
-  "description": "Frontend for eye.math - Open Source AI-powered mathematical problem solver",
+  "description": "Frontend for Theorem - AI-наставник для подготовки к ЕГЭ по математике",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,10 +18,10 @@
   "keywords": [
     "mathematics",
     "ai",
-    "latex",
-    "recognition",
+    "chat",
+    "chatbot",
     "open-source"
   ],
-  "author": "eye.math team",
+  "author": "Theorem team",
   "license": "MIT"
 }

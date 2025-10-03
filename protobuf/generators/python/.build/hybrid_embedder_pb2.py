@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as third__party_dot_protovalidate_dot_buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15hybrid_embedder.proto\x12\x12hybrid_embedder.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"\x98\x01\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x1c\n\x08model_id\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x00\x18\x80\x02\x12 \n\x03\x64im\x18\x03 \x01(\x05\x42\x13\xbaH\x10\x1a\x0e\x18\x80 (\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x12+\n\x11sparse_vocab_size\x18\x04 \x01(\x05\x42\x10\xbaH\r\x1a\x0b(\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\"5\n\x11\x44\x65nseEmbedRequest\x12 \n\x04text\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\n\x18\x80@2\x06.*\\S.*\"Y\n\x12\x44\x65nseEmbedResponse\x12\x19\n\x06vector\x18\x01 \x03(\x02\x42\t\xbaH\x06\x92\x01\x03\x10\x80 \x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\"E\n\x16\x44\x65nseEmbedBatchRequest\x12+\n\x05texts\x18\x01 \x03(\tB\x1c\xbaH\x19\x92\x01\x16\x08\x01\x10\x80\x02\"\x0fr\r\x10\n\x18\x80@2\x06.*\\S.*\"]\n\x17\x44\x65nseEmbedBatchResponse\x12\x42\n\x05items\x18\x01 \x03(\x0b\x32&.hybrid_embedder.v1.DenseEmbedResponseB\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80\x02\"6\n\x12SparseEmbedRequest\x12 \n\x04text\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\n\x18\x80@2\x06.*\\S.*\"t\n\x13SparseEmbedResponse\x12\x19\n\x07indices\x18\x01 \x03(\rB\x08\xbaH\x05\x92\x01\x02\x08\x01\x12\x18\n\x06values\x18\x02 \x03(\x02\x42\x08\xbaH\x05\x92\x01\x02\x08\x01\x12\x0f\n\x07success\x18\x03 \x01(\x08\x12\x17\n\x05\x65rror\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\"F\n\x17SparseEmbedBatchRequest\x12+\n\x05texts\x18\x01 \x03(\tB\x1c\xbaH\x19\x92\x01\x16\x08\x01\x10\x80\x02\"\x0fr\r\x10\n\x18\x80@2\x06.*\\S.*\"_\n\x18SparseEmbedBatchResponse\x12\x43\n\x05items\x18\x01 \x03(\x0b\x32\'.hybrid_embedder.v1.SparseEmbedResponseB\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80\x02\x32\x80\x04\n\x15HybridEmbedderService\x12O\n\x06Health\x12!.hybrid_embedder.v1.HealthRequest\x1a\".hybrid_embedder.v1.HealthResponse\x12[\n\nDenseEmbed\x12%.hybrid_embedder.v1.DenseEmbedRequest\x1a&.hybrid_embedder.v1.DenseEmbedResponse\x12j\n\x0f\x44\x65nseEmbedBatch\x12*.hybrid_embedder.v1.DenseEmbedBatchRequest\x1a+.hybrid_embedder.v1.DenseEmbedBatchResponse\x12^\n\x0bSparseEmbed\x12&.hybrid_embedder.v1.SparseEmbedRequest\x1a\'.hybrid_embedder.v1.SparseEmbedResponse\x12m\n\x10SparseEmbedBatch\x12+.hybrid_embedder.v1.SparseEmbedBatchRequest\x1a,.hybrid_embedder.v1.SparseEmbedBatchResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15hybrid_embedder.proto\x12\x12hybrid_embedder.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"\x98\x01\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x1c\n\x08model_id\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x00\x18\x80\x02\x12 \n\x03\x64im\x18\x03 \x01(\x05\x42\x13\xbaH\x10\x1a\x0e\x18\x80 (\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x12+\n\x11sparse_vocab_size\x18\x04 \x01(\x05\x42\x10\xbaH\r\x1a\x0b(\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\"2\n\x11\x44\x65nseEmbedRequest\x12\x1d\n\x04text\x18\x01 \x01(\tB\x0f\xbaH\x0cr\n\x10\n2\x06.*\\S.*\"Y\n\x12\x44\x65nseEmbedResponse\x12\x19\n\x06vector\x18\x01 \x03(\x02\x42\t\xbaH\x06\x92\x01\x03\x10\x80 \x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x17\n\x05\x65rror\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\"B\n\x16\x44\x65nseEmbedBatchRequest\x12(\n\x05texts\x18\x01 \x03(\tB\x19\xbaH\x16\x92\x01\x13\x08\x01\x10\x80\x02\"\x0cr\n\x10\n2\x06.*\\S.*\"]\n\x17\x44\x65nseEmbedBatchResponse\x12\x42\n\x05items\x18\x01 \x03(\x0b\x32&.hybrid_embedder.v1.DenseEmbedResponseB\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80\x02\"3\n\x12SparseEmbedRequest\x12\x1d\n\x04text\x18\x01 \x01(\tB\x0f\xbaH\x0cr\n\x10\n2\x06.*\\S.*\"t\n\x13SparseEmbedResponse\x12\x19\n\x07indices\x18\x01 \x03(\rB\x08\xbaH\x05\x92\x01\x02\x08\x01\x12\x18\n\x06values\x18\x02 \x03(\x02\x42\x08\xbaH\x05\x92\x01\x02\x08\x01\x12\x0f\n\x07success\x18\x03 \x01(\x08\x12\x17\n\x05\x65rror\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10\"F\n\x17SparseEmbedBatchRequest\x12+\n\x05texts\x18\x01 \x03(\tB\x1c\xbaH\x19\x92\x01\x16\x08\x01\x10\x80\x02\"\x0fr\r\x10\n\x18\x80@2\x06.*\\S.*\"_\n\x18SparseEmbedBatchResponse\x12\x43\n\x05items\x18\x01 \x03(\x0b\x32\'.hybrid_embedder.v1.SparseEmbedResponseB\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80\x02\x32\x80\x04\n\x15HybridEmbedderService\x12O\n\x06Health\x12!.hybrid_embedder.v1.HealthRequest\x1a\".hybrid_embedder.v1.HealthResponse\x12[\n\nDenseEmbed\x12%.hybrid_embedder.v1.DenseEmbedRequest\x1a&.hybrid_embedder.v1.DenseEmbedResponse\x12j\n\x0f\x44\x65nseEmbedBatch\x12*.hybrid_embedder.v1.DenseEmbedBatchRequest\x1a+.hybrid_embedder.v1.DenseEmbedBatchResponse\x12^\n\x0bSparseEmbed\x12&.hybrid_embedder.v1.SparseEmbedRequest\x1a\'.hybrid_embedder.v1.SparseEmbedResponse\x12m\n\x10SparseEmbedBatch\x12+.hybrid_embedder.v1.SparseEmbedBatchRequest\x1a,.hybrid_embedder.v1.SparseEmbedBatchResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,17 +41,17 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_HEALTHRESPONSE'].fields_by_name['sparse_vocab_size']._loaded_options = None
   _globals['_HEALTHRESPONSE'].fields_by_name['sparse_vocab_size']._serialized_options = b'\272H\r\032\013(\377\377\377\377\377\377\377\377\377\001'
   _globals['_DENSEEMBEDREQUEST'].fields_by_name['text']._loaded_options = None
-  _globals['_DENSEEMBEDREQUEST'].fields_by_name['text']._serialized_options = b'\272H\017r\r\020\n\030\200@2\006.*\\S.*'
+  _globals['_DENSEEMBEDREQUEST'].fields_by_name['text']._serialized_options = b'\272H\014r\n\020\n2\006.*\\S.*'
   _globals['_DENSEEMBEDRESPONSE'].fields_by_name['vector']._loaded_options = None
   _globals['_DENSEEMBEDRESPONSE'].fields_by_name['vector']._serialized_options = b'\272H\006\222\001\003\020\200 '
   _globals['_DENSEEMBEDRESPONSE'].fields_by_name['error']._loaded_options = None
   _globals['_DENSEEMBEDRESPONSE'].fields_by_name['error']._serialized_options = b'\272H\005r\003\030\200\020'
   _globals['_DENSEEMBEDBATCHREQUEST'].fields_by_name['texts']._loaded_options = None
-  _globals['_DENSEEMBEDBATCHREQUEST'].fields_by_name['texts']._serialized_options = b'\272H\031\222\001\026\010\001\020\200\002\"\017r\r\020\n\030\200@2\006.*\\S.*'
+  _globals['_DENSEEMBEDBATCHREQUEST'].fields_by_name['texts']._serialized_options = b'\272H\026\222\001\023\010\001\020\200\002\"\014r\n\020\n2\006.*\\S.*'
   _globals['_DENSEEMBEDBATCHRESPONSE'].fields_by_name['items']._loaded_options = None
   _globals['_DENSEEMBEDBATCHRESPONSE'].fields_by_name['items']._serialized_options = b'\272H\010\222\001\005\010\001\020\200\002'
   _globals['_SPARSEEMBEDREQUEST'].fields_by_name['text']._loaded_options = None
-  _globals['_SPARSEEMBEDREQUEST'].fields_by_name['text']._serialized_options = b'\272H\017r\r\020\n\030\200@2\006.*\\S.*'
+  _globals['_SPARSEEMBEDREQUEST'].fields_by_name['text']._serialized_options = b'\272H\014r\n\020\n2\006.*\\S.*'
   _globals['_SPARSEEMBEDRESPONSE'].fields_by_name['indices']._loaded_options = None
   _globals['_SPARSEEMBEDRESPONSE'].fields_by_name['indices']._serialized_options = b'\272H\005\222\001\002\010\001'
   _globals['_SPARSEEMBEDRESPONSE'].fields_by_name['values']._loaded_options = None
@@ -67,21 +67,21 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_HEALTHRESPONSE']._serialized_start=118
   _globals['_HEALTHRESPONSE']._serialized_end=270
   _globals['_DENSEEMBEDREQUEST']._serialized_start=272
-  _globals['_DENSEEMBEDREQUEST']._serialized_end=325
-  _globals['_DENSEEMBEDRESPONSE']._serialized_start=327
-  _globals['_DENSEEMBEDRESPONSE']._serialized_end=416
-  _globals['_DENSEEMBEDBATCHREQUEST']._serialized_start=418
-  _globals['_DENSEEMBEDBATCHREQUEST']._serialized_end=487
-  _globals['_DENSEEMBEDBATCHRESPONSE']._serialized_start=489
-  _globals['_DENSEEMBEDBATCHRESPONSE']._serialized_end=582
-  _globals['_SPARSEEMBEDREQUEST']._serialized_start=584
-  _globals['_SPARSEEMBEDREQUEST']._serialized_end=638
-  _globals['_SPARSEEMBEDRESPONSE']._serialized_start=640
-  _globals['_SPARSEEMBEDRESPONSE']._serialized_end=756
-  _globals['_SPARSEEMBEDBATCHREQUEST']._serialized_start=758
-  _globals['_SPARSEEMBEDBATCHREQUEST']._serialized_end=828
-  _globals['_SPARSEEMBEDBATCHRESPONSE']._serialized_start=830
-  _globals['_SPARSEEMBEDBATCHRESPONSE']._serialized_end=925
-  _globals['_HYBRIDEMBEDDERSERVICE']._serialized_start=928
-  _globals['_HYBRIDEMBEDDERSERVICE']._serialized_end=1440
+  _globals['_DENSEEMBEDREQUEST']._serialized_end=322
+  _globals['_DENSEEMBEDRESPONSE']._serialized_start=324
+  _globals['_DENSEEMBEDRESPONSE']._serialized_end=413
+  _globals['_DENSEEMBEDBATCHREQUEST']._serialized_start=415
+  _globals['_DENSEEMBEDBATCHREQUEST']._serialized_end=481
+  _globals['_DENSEEMBEDBATCHRESPONSE']._serialized_start=483
+  _globals['_DENSEEMBEDBATCHRESPONSE']._serialized_end=576
+  _globals['_SPARSEEMBEDREQUEST']._serialized_start=578
+  _globals['_SPARSEEMBEDREQUEST']._serialized_end=629
+  _globals['_SPARSEEMBEDRESPONSE']._serialized_start=631
+  _globals['_SPARSEEMBEDRESPONSE']._serialized_end=747
+  _globals['_SPARSEEMBEDBATCHREQUEST']._serialized_start=749
+  _globals['_SPARSEEMBEDBATCHREQUEST']._serialized_end=819
+  _globals['_SPARSEEMBEDBATCHRESPONSE']._serialized_start=821
+  _globals['_SPARSEEMBEDBATCHRESPONSE']._serialized_end=916
+  _globals['_HYBRIDEMBEDDERSERVICE']._serialized_start=919
+  _globals['_HYBRIDEMBEDDERSERVICE']._serialized_end=1431
 # @@protoc_insertion_point(module_scope)
