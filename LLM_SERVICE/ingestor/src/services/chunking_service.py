@@ -16,7 +16,10 @@ from src.core.logging import ChunkingLogger
 
 class ChunkingService:
     def __init__(self) -> None:
-        self.docling_chunker = HybridChunker()
+        self.docling_chunker = HybridChunker(
+            max_tokens=480,
+            overlap_tokens=120
+        )
 
 
     def extract_chunks_from_docling_file(

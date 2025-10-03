@@ -17,12 +17,18 @@ class APIClient {
       ...options,
     };
 
+    // Добавляем таймаут для запросов
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), config.apiTimeout);
+    requestConfig.signal = controller.signal;
+
     if (this.accessToken) {
       requestConfig.headers.Authorization = `Bearer ${this.accessToken}`;
     }
 
     try {
       const response = await fetch(url, requestConfig);
+      clearTimeout(timeoutId);
       
       if (response.status === 401 && this.refreshToken) {
         const refreshed = await this.refreshTokens();
@@ -34,15 +40,26 @@ class APIClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new APIError(response.status, errorData.message || 'Request failed');
+        const message = errorData.message || errorData.error || 'Request failed';
+        throw new APIError(response.status, message);
       }
 
       return await response.json();
     } catch (error) {
+      clearTimeout(timeoutId);
+      
       if (error instanceof APIError) {
         throw error;
       }
-      throw new APIError(0, 'Network error');
+      
+      // Обработка различных типов сетевых ошибок
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new APIError(0, 'Ошибка сети. Проверьте подключение к интернету.');
+      } else if (error.name === 'AbortError') {
+        throw new APIError(504, 'Превышено время ожидания ответа.');
+      } else {
+        throw new APIError(0, 'Ошибка сети. Попробуйте еще раз.');
+      }
     }
   }
 

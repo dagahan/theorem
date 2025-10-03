@@ -8,6 +8,7 @@ from loguru import logger
 from src.core.logging import InterceptHandler, LogSetup
 from src.core.utils import EnvTools
 from src.fast_api.fastapi_server import Server as FastAPIServer
+from src.services.docling_runtime import select_device_for_ingestor
 
 
 class Service:
@@ -23,6 +24,8 @@ class Service:
         loop = asyncio.get_running_loop()
         stop_future: asyncio.Future[None] = loop.create_future()
 
+        select_device_for_ingestor()
+        
         for sig in (signal.SIGINT, signal.SIGTERM):
             try:
                 loop.add_signal_handler(
@@ -90,10 +93,12 @@ if __name__ == "__main__":
 
     try:
         asyncio.run(Service().run_service())
+
     except KeyboardInterrupt:
         logger.info(
             f"{colorama.Fore.CYAN}Service stopped by user{colorama.Style.RESET_ALL}"
         )
+
     except Exception as e:
         logger.critical(
             f"{colorama.Fore.RED}Service crashed: {e}{colorama.Style.RESET_ALL}"

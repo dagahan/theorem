@@ -43,21 +43,38 @@ class VectorStoreService:
                 logger.warning(f"Skipping failed embedded chunk {i}")
                 continue
                 
-            if not embedded_chunk.vector:
-                logger.warning(f"No vector found for embedded chunk {i}")
+            if not embedded_chunk.dense_vector or not embedded_chunk.sparse_vector:
+                logger.warning(f"No vectors found for embedded chunk {i}")
                 continue
                 
             point_id = str(uuid5(NAMESPACE_URL, f"{doc_id}|{i+1}|{i+1}"))
+            
+            # Convert sparse vector from dict to indices/values format for payload
+            sparse_dict = embedded_chunk.sparse_vector
+            if sparse_dict:
+                # Sort by index for consistent ordering
+                pairs = sorted((int(k), float(v)) for k, v in sparse_dict.items())
+                sparse_indices = [idx for idx, _ in pairs]
+                sparse_values = [val for _, val in pairs]
+                sparse_data = {
+                    "sparse_indices": sparse_indices,
+                    "sparse_values": sparse_values
+                }
+            else:
+                sparse_data = {"sparse_indices": [], "sparse_values": []}
+            
+            # Create point with dense vector and sparse data in payload
             point_struct = qm.PointStruct(
                 id=point_id,
-                vector=embedded_chunk.vector,
+                vector=embedded_chunk.dense_vector,
                 payload={
                     "doc_id": doc_id,
                     "paragraph_id": i + 1,
                     "chunk_id": i + 1,
                     "text": embedded_chunk.text,
                     **doc_metadata,
-                    **embedded_chunk.meta
+                    **embedded_chunk.meta,
+                    **sparse_data
                 }
             )
 

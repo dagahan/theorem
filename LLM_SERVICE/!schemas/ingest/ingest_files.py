@@ -12,16 +12,17 @@ class Chunk(BaseModel):  # type: ignore[misc]
 class EmbeddedChunk(BaseModel):  # type: ignore[misc]
     chunk_id: str
     text: str
-    vector: List[float]
+    dense_vector: List[float]
+    sparse_vector: Dict[str, float]  # {token_id: weight}
     meta: Dict[str, Any]
 
     @property
     def success(self) -> bool:
-        return len(self.vector) > 0
+        return len(self.dense_vector) > 0 and len(self.sparse_vector) > 0
 
     @property
-    def embedding_dimension(self) -> int:
-        return len(self.vector)
+    def dense_embedding_dimension(self) -> int:
+        return len(self.dense_vector)
 
 
 class IngestResult(BaseModel):  # type: ignore[misc]

@@ -25,6 +25,7 @@ __all__ = [
     "ListCollectionsResponse",
     # Document Management
     "DeleteDocumentRequest",
+    "DeleteDocumentItem",
     "DeleteDocumentResponse",
     "DocumentInfo",
     "GetDocumentResponse",

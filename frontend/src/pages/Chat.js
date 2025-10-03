@@ -1,6 +1,7 @@
 import { createElement } from "../core/utils.js";
 import { apiClient } from "../api/client.js";
 import { authManager } from "../auth.js";
+import { getUserFriendlyError, logError } from "../utils/errorHandler.js";
 
 export default function Chat() {
   const el = createElement("div", "chat-container");
@@ -286,18 +287,18 @@ function setupChatInteractions(container) {
     } catch (error) {
       hideTypingIndicator();
       
-      let errorMessage = 'Произошла ошибка при отправке сообщения.';
+      // Логируем ошибку для разработчиков
+      logError(error, 'Chat.sendMessage');
       
+      // Получаем понятное сообщение для пользователя
+      const errorMessage = getUserFriendlyError(error);
+      
+      // Специальная обработка для истечения сессии
       if (error.status === 401) {
-        errorMessage = 'Сессия истекла. Пожалуйста, войдите заново.';
         setTimeout(() => {
           authManager.logout();
           location.hash = '#/login';
         }, 2000);
-      } else if (error.status === 0) {
-        errorMessage = 'Ошибка сети. Проверьте подключение к интернету.';
-      } else if (error.message) {
-        errorMessage = error.message;
       }
       
       addMessage('assistant', errorMessage);

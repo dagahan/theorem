@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from src.adapters.system_prompt_builder_adapter import SystemPromptBuilderAdapter
     from src.adapters.vllm_adapter import VLLMAdapter
 
-from src.domain.models import GraphState
+from src.pydantic_schemas.agent_controller import GraphState
 
 
 class GraphBuilder:

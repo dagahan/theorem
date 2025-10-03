@@ -61,10 +61,13 @@ class QdrantGrpcClient:
         vector_size: int
     ) -> None:
         try:
+            # Create collection with only dense vector for now
+            vectors_config = qm.VectorParams(size=vector_size, distance=qm.Distance.COSINE)
+            
             await self._call(
                 "create_collection",
                 collection_name=collection_name,
-                vectors_config=qm.VectorParams(size=vector_size, distance=qm.Distance.COSINE),
+                vectors_config=vectors_config,
             )
 
         except Exception as e:

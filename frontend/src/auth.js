@@ -1,4 +1,5 @@
 import { apiClient } from './api/client.js';
+import { getUserFriendlyError, logError } from './utils/errorHandler.js';
 
 class AuthManager {
   constructor() {
@@ -25,9 +26,10 @@ class AuthManager {
       this.notifyListeners();
       return { success: true };
     } catch (error) {
+      logError(error, 'AuthManager.login');
       return { 
         success: false, 
-        error: this.getErrorMessage(error) 
+        error: getUserFriendlyError(error)
       };
     }
   }
@@ -39,9 +41,10 @@ class AuthManager {
       this.notifyListeners();
       return { success: true };
     } catch (error) {
+      logError(error, 'AuthManager.register');
       return { 
         success: false, 
-        error: this.getErrorMessage(error) 
+        error: getUserFriendlyError(error)
       };
     }
   }
@@ -52,20 +55,6 @@ class AuthManager {
     this.notifyListeners();
   }
 
-  getErrorMessage(error) {
-    switch (error.status) {
-      case 400:
-        return 'Неверные данные. Проверьте email и пароль.';
-      case 401:
-        return 'Неверный email или пароль.';
-      case 409:
-        return 'Пользователь с таким email уже существует.';
-      case 0:
-        return 'Ошибка сети. Проверьте подключение к интернету.';
-      default:
-        return 'Произошла ошибка. Попробуйте еще раз.';
-    }
-  }
 }
 
 export const authManager = new AuthManager();

@@ -30,13 +30,16 @@ class _ResponderModel(Model):  # type: ignore[misc]
         self._adapter = adapter
         self._runtime = runtime
 
+
     @property
-    def model_name(self) -> str:
-        return self._config.model_name
+    def model_name(self) -> str: 
+        return str(self._config.model_name)
+
 
     @property
     def system(self) -> str:
         return 'responder'
+
 
     async def request(
         self,
@@ -59,7 +62,7 @@ class _ResponderModel(Model):  # type: ignore[misc]
         )
 
 
-class PersonalityClient(BaseModel):
+class PersonalityClient(BaseModel): # type: ignore[misc]
     model_config = ConfigDict(arbitrary_types_allowed=True)
     
     vllm_adapter: VLLMAdapter
