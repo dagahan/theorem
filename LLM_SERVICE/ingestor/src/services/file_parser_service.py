@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
+import io
 
 from docling.document_converter import DocumentConverter
 from docling.datamodel.document import DocumentStream
@@ -16,15 +17,14 @@ class FileParserService:
     def parse_file_content(
         self,
         file: Any
-    ) -> DoclingDocument:
+    ) -> "DoclingDocument":
         stream = DocumentStream(
             name=getattr(file, "filename", "uploaded-file.pdf"),
-            stream=file.content,
+            stream=io.BytesIO(file.content),
             mime_type=getattr(file, "content_type", None) or "application/pdf",
         )
 
         result = self.docling_doc_converter.convert(stream)
-        
         return result.document
 
 
