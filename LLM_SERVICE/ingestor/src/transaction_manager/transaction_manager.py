@@ -14,7 +14,7 @@ UndoWithResult = Callable[[T], Awaitable[None]]
 _current_transaction: ContextVar["TransactionRecorder | None"] = ContextVar("_current_transaction", default=None)
 
 
-class TransactionRecorder(BaseModel):
+class TransactionRecorder(BaseModel):   # type: ignore[misc]
     model_config = ConfigDict()
     
     rollback_actions: List[UndoAction] = Field(default_factory=list)

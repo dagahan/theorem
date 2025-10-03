@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 from uuid import uuid5, NAMESPACE_URL
 from loguru import logger
 
-from src.data_classes.data_classes import Chunk, EmbeddedChunk  # noqa: TC001
+from pydantic_schemas.ingest import Chunk, EmbeddedChunk  # noqa: TC001
 from src.grpc.client.qdrant_grpc_client import QdrantGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 from src.core.utils import EnvTools

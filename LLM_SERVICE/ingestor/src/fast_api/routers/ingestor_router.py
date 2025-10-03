@@ -5,11 +5,12 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from loguru import logger
 
 from pydantic_schemas import (
-    DeleteDocumentsRequest,
-    DeleteDocumentsItem,
-    DeleteDocumentsResponse,
+    DeleteDocumentRequest,
+    DeleteDocumentItem,
+    DeleteDocumentResponse,
     IngestFilesResponse,
-    IngestResult as PydanticIngestResult,
+    IngestFilesItem,
+    IngestResult
 )
 
 from src.services.ingestor_service import IngestorService
@@ -19,7 +20,6 @@ from src.services.health_service import HealthService
 from typing import TYPE_CHECKING, List, Dict, Any
 if TYPE_CHECKING:
     from src.db.database_connector import DataBaseConnector
-    from src.data_classes.data_classes import IngestResult
 
 
 def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
@@ -58,7 +58,7 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
             failed_count: int = len([r for r in ingest_results if r.status == "failed"])
             
             pydantic_ingest_results = [
-                PydanticIngestResult(
+                IngestFilesItem(
                     filename=result.filename,
                     doc_id=result.doc_id,
                     status=result.status,
@@ -80,10 +80,10 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
             raise HTTPException(status_code=500, detail=str(ex))
 
 
-    @router.delete("/delete_documents", response_model=DeleteDocumentsResponse)  # type: ignore[misc]
+    @router.delete("/delete_documents", response_model=DeleteDocumentResponse)  # type: ignore[misc]
     async def delete_documents(
-        request: DeleteDocumentsRequest
-    ) -> DeleteDocumentsResponse:
+        request: DeleteDocumentRequest
+    ) -> DeleteDocumentResponse:
         try:
             await health_service.ensure_all_healthy()
             
@@ -93,7 +93,7 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
             )
             
             items = [
-                DeleteDocumentsItem(
+                DeleteDocumentItem(
                     doc_id=result["doc_id"],
                     status=result["status"],
                     error=result.get("error")
@@ -104,7 +104,7 @@ def get_ingestor_router(database_connector: "DataBaseConnector") -> APIRouter:
             successful_count = len([item for item in items if item.status == "deleted"])
             failed_count = len([item for item in items if item.status != "deleted"])
             
-            return DeleteDocumentsResponse(
+            return DeleteDocumentResponse(
                 items=items,
                 total_documents=len(items),
                 successful_documents=successful_count,

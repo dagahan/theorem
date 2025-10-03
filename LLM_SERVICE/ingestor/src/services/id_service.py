@@ -8,8 +8,8 @@ from src.services.text_normalizer_service import TextNormalizerService
 
 class IdService:
     @staticmethod
-    def make_id_by_filename(meta: Dict[str, Any]) -> str:
-        name = str(meta.get("filename", "")).strip()
+    def make_id_by_filename(filename: str) -> str:
+        name = str(filename).strip()
         stem = os.path.splitext(os.path.basename(name))[0]
         if not stem:
             raise ValueError("Cannot determine doc_id from filename.")

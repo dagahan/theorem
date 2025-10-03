@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from docling_core.types.doc.document import DoclingDocument
 
-from src.data_classes.data_classes import Chunk
+from pydantic_schemas.ingest import Chunk
 
 from src.core.logging import ChunkingLogger
 

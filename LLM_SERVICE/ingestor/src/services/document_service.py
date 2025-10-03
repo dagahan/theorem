@@ -12,7 +12,7 @@ from src.services.id_service import IdService
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from src.data_classes.data_classes import UploadedFile
+    from pydantic_schemas.ingest import UploadedFile
 
 
 class DocumentService:
@@ -76,10 +76,11 @@ class DocumentService:
     async def required_upload_file_to_s3(
         self,
         document: UploadedFile,
-        collection_name: str
+        collection_name: str,
+        doc_id: str
     ) -> str:
         return await self.upload_file_to_s3(
-            document.doc_id,
+            doc_id,
             collection_name,
             document.content,
             document.content_type

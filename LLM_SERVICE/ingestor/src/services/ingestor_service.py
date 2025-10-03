@@ -1,9 +1,8 @@
 from __future__ import annotations
-from typing import List, Dict, Any, Union
-import re
+from typing import List, Dict, Any
 from loguru import logger
 
-from src.data_classes.data_classes import UploadedFile, IngestResult
+from pydantic_schemas.ingest import UploadedFile, IngestResult
 from src.services.chunking_service import ChunkingService
 from src.services.document_service import DocumentService
 from src.services.health_service import HealthService
@@ -21,7 +20,7 @@ if TYPE_CHECKING:
     from src.db.database_connector import DataBaseConnector
     from qdrant_client.http import models as qm
     from pydantic_schemas import Document
-    from src.data_classes.data_classes import Chunk, EmbeddedChunk
+    from pydantic_schemas.ingest import Chunk, EmbeddedChunk
     from docling_core.types.doc.document import DoclingDocument
 
 
@@ -63,23 +62,29 @@ class IngestorService:
                     meta={**metadata}
                 )
                 
-                await self.ingest_file(
+                doc_id = await self.ingest_file(
                     uploaded_file=uploaded_file,
                     collection_name=collection_name
                 )
                 
                 results.append(IngestResult(
                     filename=file.filename,
-                    doc_id=uploaded_file.doc_id,
+                    doc_id=doc_id,
                     status="success",
                     error=None
                 ))
                 
             except Exception as ex:
                 logger.error(f"Failed to process file {file.filename}: {ex}")
+                try:
+                    doc_id = IdService.make_id_by_filename(file.filename)
+                    
+                except Exception:
+                    doc_id = ""
+
                 results.append(IngestResult(
                     filename=file.filename,
-                    doc_id="",
+                    doc_id=doc_id,
                     status="failed",
                     error=str(ex)
                 ))
@@ -92,11 +97,11 @@ class IngestorService:
         self,
         uploaded_file: UploadedFile,
         collection_name: str,
-    ) -> None:
+    ) -> str:
         """
         Processes a PDF file through the complete ingestion pipeline with automatic rollback.
         """
-        doc_id: str = IdService.make_id_by_filename(uploaded_file.meta)
+        doc_id: str = IdService.make_id_by_filename(uploaded_file.filename)
 
         await self.vector_store_service.ensure_collection_exists(collection_name)
 
@@ -107,7 +112,8 @@ class IngestorService:
         s3_uploaded_key: str = await execute_atomic_step(
             action=lambda: self.document_service.required_upload_file_to_s3(
                 document=uploaded_file,
-                collection_name=collection_name
+                collection_name=collection_name,
+                doc_id=doc_id
             ),
             rollback=lambda s3_uploaded_key: self._rollback_s3_upload(s3_uploaded_key)
         )
@@ -150,6 +156,8 @@ class IngestorService:
         
         logger.info(f"Document {doc_id} successfully ingested with {len(chunks)} chunks" + 
                    (f" and stored in S3: {s3_uploaded_key}" if s3_uploaded_key else ""))
+
+        return doc_id
 
 
     async def _rollback_s3_upload(
@@ -233,5 +241,8 @@ class IngestorService:
                 })
         
         return results
+
+
+
 
 
