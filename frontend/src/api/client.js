@@ -1,5 +1,7 @@
+import { config } from '../config.js';
+
 class APIClient {
-  constructor(baseURL = 'http://100.87.209.118:8080') {
+  constructor(baseURL = config.apiBaseUrl) {
     this.baseURL = baseURL;
     this.accessToken = localStorage.getItem('accessToken');
     this.refreshToken = localStorage.getItem('refreshToken');
@@ -7,7 +9,7 @@ class APIClient {
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    const config = {
+    const requestConfig = {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -16,17 +18,17 @@ class APIClient {
     };
 
     if (this.accessToken) {
-      config.headers.Authorization = `Bearer ${this.accessToken}`;
+      requestConfig.headers.Authorization = `Bearer ${this.accessToken}`;
     }
 
     try {
-      const response = await fetch(url, config);
+      const response = await fetch(url, requestConfig);
       
       if (response.status === 401 && this.refreshToken) {
         const refreshed = await this.refreshTokens();
         if (refreshed) {
-          config.headers.Authorization = `Bearer ${this.accessToken}`;
-          return await fetch(url, config);
+          requestConfig.headers.Authorization = `Bearer ${this.accessToken}`;
+          return await fetch(url, requestConfig);
         }
       }
 
