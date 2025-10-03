@@ -48,7 +48,7 @@ func New(cfg *config.Config, l *slog.Logger) (*App, error) {
 	}
 	authServiceGRPCClient := userpb.NewAuthServiceClient(a.userServiceGRPCConn)
 
-	llmService := llmservice.New(a.l, llmGatewayGRPCClient)
+	llmService := llmservice.New(a.l, llmGatewayGRPCClient, a.cfg.LLMGateway.AgentName)
 	authService := authservice.New(a.l, authServiceGRPCClient)
 
 	authMiddleware := authmiddleware.New(authService)

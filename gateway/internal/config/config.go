@@ -17,6 +17,7 @@ type server struct {
 
 type llmGateway struct {
 	ServerAddress string `env:"LLM_GATEWAY_GRPC_SERVER_ADDR" env-required:"true"`
+	AgentName     string `env:"LLM_GATEWAY_AGENT_NAME" env-required:"true"`
 }
 
 type userService struct {

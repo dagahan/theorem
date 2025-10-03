@@ -16,14 +16,17 @@ type llmClient interface {
 type service struct {
 	l         *slog.Logger
 	llmClient llmClient
+	agentName string
 }
 
 func New(
 	l *slog.Logger,
 	llmClient llmClient,
+	agentName string,
 ) *service {
 	return &service{
 		l:         l,
 		llmClient: llmClient,
+		agentName: agentName,
 	}
 }

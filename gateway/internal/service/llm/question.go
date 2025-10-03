@@ -9,8 +9,9 @@ import (
 
 func (s *service) Question(ctx context.Context, text string) (string, error) {
 	req := &pb.QuestionRequest{
-		RawText: text,
-		Stream:  false,
+		RawText:   text,
+		Stream:    false,
+		AgentName: s.agentName,
 	}
 	resp, err := s.llmClient.Question(ctx, req)
 	if err != nil {
