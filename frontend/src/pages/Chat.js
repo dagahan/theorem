@@ -1,4 +1,6 @@
 import { createElement } from "../core/utils.js";
+import { apiClient } from "../api/client.js";
+import { authManager } from "../auth.js";
 
 export default function Chat() {
   const el = createElement("div", "chat-container");
@@ -19,6 +21,14 @@ export default function Chat() {
               </svg>
               Главная
             </a>
+            <button class="logout-btn" id="logoutBtn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16,17 21,12 16,7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Выйти
+            </button>
             <button class="theme-toggle">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="5"/>
@@ -95,6 +105,7 @@ function setupChatInteractions(container) {
   const sendButton = container.querySelector('#sendButton');
   const chatMessages = container.querySelector('#chatMessages');
   const themeToggle = container.querySelector('.theme-toggle');
+  const logoutBtn = container.querySelector('#logoutBtn');
   
   messageInput.addEventListener('input', () => {
     const hasText = messageInput.value.trim().length > 0;
@@ -120,6 +131,11 @@ function setupChatInteractions(container) {
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+  });
+  
+  logoutBtn.addEventListener('click', async () => {
+    await authManager.logout();
+    location.hash = '#/';
   });
   
   // Добавляем анимацию появления сообщений
@@ -251,7 +267,7 @@ function setupChatInteractions(container) {
     setTimeout(() => ripple.remove(), 600);
   }
   
-  function sendMessage() {
+  async function sendMessage() {
     const message = messageInput.value.trim();
     if (!message) return;
     
@@ -263,16 +279,29 @@ function setupChatInteractions(container) {
     // Добавляем индикатор печати
     showTypingIndicator();
     
-    setTimeout(() => {
+    try {
+      const response = await apiClient.sendQuestion(message);
       hideTypingIndicator();
-      const responses = [
-        'Отлично! Я помогу вам с этой задачей. Это демо-интерфейс — реальная интеграция с AI будет реализована, когда backend API будет готов.',
-        'Понял ваш запрос! Как наставник по математике, я готов помочь с подготовкой к ЕГЭ. Пока что это демо-версия интерфейса.',
-        'Хорошо! Я проанализирую вашу задачу и дам подробное объяснение. В полной версии будет интеграция с AI-моделью для генерации задач и проверки решений.'
-      ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      addMessage('assistant', randomResponse);
-    }, 2000 + Math.random() * 1000); // Случайная задержка для реалистичности
+      addMessage('assistant', response);
+    } catch (error) {
+      hideTypingIndicator();
+      
+      let errorMessage = 'Произошла ошибка при отправке сообщения.';
+      
+      if (error.status === 401) {
+        errorMessage = 'Сессия истекла. Пожалуйста, войдите заново.';
+        setTimeout(() => {
+          authManager.logout();
+          location.hash = '#/login';
+        }, 2000);
+      } else if (error.status === 0) {
+        errorMessage = 'Ошибка сети. Проверьте подключение к интернету.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      addMessage('assistant', errorMessage);
+    }
   }
   
   function showTypingIndicator() {

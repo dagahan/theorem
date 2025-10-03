@@ -1,4 +1,5 @@
 import { createElement } from "../core/utils.js";
+import { authManager } from "../auth.js";
 
 export default function Home() {
   const el = createElement("div", "home-container");
@@ -16,12 +17,31 @@ export default function Home() {
         </p>
         
         <div class="hero-actions">
-          <a href="#/chat" class="btn btn-primary">
+          <a href="#/chat" class="btn btn-primary" id="startChatBtn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
             Начать подготовку
           </a>
+          <div class="auth-actions" id="authActions" style="display: none;">
+            <a href="#/login" class="btn btn-secondary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10,17 15,12 10,7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+              </svg>
+              Войти
+            </a>
+            <a href="#/register" class="btn btn-outline">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="8.5" cy="7" r="4"/>
+                <line x1="20" y1="8" x2="20" y2="14"/>
+                <line x1="23" y1="11" x2="17" y2="11"/>
+              </svg>
+              Регистрация
+            </a>
+          </div>
         </div>
       </div>
       
@@ -122,12 +142,34 @@ export default function Home() {
 }
 
 function setupHomeInteractions(container) {
-  // Добавляем плавную анимацию для кнопки
-  const chatButton = container.querySelector('.btn-primary');
-  chatButton.addEventListener('mouseenter', () => {
-    chatButton.style.transform = 'translateY(-2px) scale(1.02)';
-  });
-  chatButton.addEventListener('mouseleave', () => {
-    chatButton.style.transform = 'translateY(0) scale(1)';
+  const startChatBtn = container.querySelector('#startChatBtn');
+  const authActions = container.querySelector('#authActions');
+  
+  // Обновляем UI в зависимости от статуса аутентификации
+  function updateAuthUI() {
+    if (authManager.isAuthenticated) {
+      startChatBtn.style.display = 'flex';
+      authActions.style.display = 'none';
+    } else {
+      startChatBtn.style.display = 'none';
+      authActions.style.display = 'flex';
+    }
+  }
+  
+  // Инициализируем UI
+  updateAuthUI();
+  
+  // Слушаем изменения статуса аутентификации
+  authManager.addAuthListener(updateAuthUI);
+  
+  // Добавляем плавную анимацию для кнопок
+  const buttons = container.querySelectorAll('.btn');
+  buttons.forEach(button => {
+    button.addEventListener('mouseenter', () => {
+      button.style.transform = 'translateY(-2px) scale(1.02)';
+    });
+    button.addEventListener('mouseleave', () => {
+      button.style.transform = 'translateY(0) scale(1)';
+    });
   });
 }
