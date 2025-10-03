@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.domain.models import QuestionResponse
+from src.pydantic_schemas.agent_controller import QuestionResponse
 from src.rest.client.registry_rest_clients import RestClientRegistry
 from src.rest.client.vllm_rest_client import VLLMRestClient
 

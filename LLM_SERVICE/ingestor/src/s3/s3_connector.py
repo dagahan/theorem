@@ -2,17 +2,15 @@ from __future__ import annotations
 
 import mimetypes
 import os
-import re
 from contextlib import asynccontextmanager
 from typing import Any, Protocol, TYPE_CHECKING
-from urllib.parse import urlparse
 from uuid import uuid4
 
 from aiobotocore.session import get_session as get_s3_session  # type: ignore[import-untyped]
 from botocore.config import Config  # type: ignore[import-untyped]
 
 from src.core.utils import EnvTools
-from src.services.text_normalize_service import TextNormalizeService
+from src.services.text_normalizer_service import TextNormalizerService
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -76,7 +74,7 @@ class S3Client:
     @staticmethod
     def _safe_name(name: str) -> str:
         base = os.path.splitext(os.path.basename(name))[0] or "file"
-        return TextNormalizeService().normalize_doc_id(base)
+        return TextNormalizerService().normalize_doc_id(base)
 
 
     async def upload_bytes(
@@ -137,5 +135,4 @@ class S3Client:
         - path:    https://<host>/<bucket>/<key>
         """
         return f"https://{self.public_domain}/{key.lstrip('/')}"
-
 

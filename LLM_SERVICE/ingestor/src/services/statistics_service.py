@@ -25,18 +25,18 @@ class StatisticsService:
         try:
             health_result = await self.health_service.health_check_service("all")
             if isinstance(health_result, tuple) and len(health_result) == 4:
-                embedder_health, qdrant_status, postgres_health, s3_status = health_result
-                embedder_status = embedder_health.get("status", "unknown")
-                embedder_model_id = embedder_health.get("model_id", "")
-                embedder_dim = embedder_health.get("dim", 0)
+                hybrid_embedder_health, qdrant_status, postgres_health, s3_status = health_result
+                hybrid_embedder_status = hybrid_embedder_health.get("status", "unknown")
+                hybrid_embedder_model_id = hybrid_embedder_health.get("model_id", "")
+                hybrid_embedder_dim = hybrid_embedder_health.get("dim", 0)
             else:
                 raise ValueError("Unexpected health check result format")
                     
         except Exception as ex:
             logger.error(f"Health check failed: {ex}")
-            embedder_status = "unknown"
-            embedder_model_id = ""
-            embedder_dim = 0
+            hybrid_embedder_status = "unknown"
+            hybrid_embedder_model_id = ""
+            hybrid_embedder_dim = 0
             qdrant_status = "unknown"
             error_messages.append(f"Health check failed: {str(ex)}")
         
@@ -53,9 +53,9 @@ class StatisticsService:
         return ServiceStats(
             total_collections=total_collections,
             total_vectors=total_vectors,
-            embedder_status=embedder_status,
-            embedder_model_id=embedder_model_id,
-            embedder_dim=embedder_dim,
+            hybrid_embedder_status=hybrid_embedder_status,
+            hybrid_embedder_model_id=hybrid_embedder_model_id,
+            hybrid_embedder_dim=hybrid_embedder_dim,
             qdrant_status=qdrant_status,
             error_message="; ".join(error_messages) if error_messages else ""
         )

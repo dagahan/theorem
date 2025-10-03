@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-from typing import Dict, Any, List
+import mimetypes
+from typing import TYPE_CHECKING, Any
 
 from loguru import logger
-from sqlalchemy import select, delete
+from sqlalchemy import delete, select
 
 from pydantic_schemas import Document
 from src.s3.s3_connector import S3Client
 from src.services.id_service import IdService
-import mimetypes
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from src.data_classes.data_classes import PdfFile
+    from src.data_classes.data_classes import UploadedFile
 
 
 class DocumentService:
@@ -24,7 +23,7 @@ class DocumentService:
 
     async def create_document_record(
         self,
-        session: "AsyncSession",
+        session: AsyncSession,
         doc_id: str,
         content_type: str,
         file_size: int,
@@ -76,20 +75,20 @@ class DocumentService:
 
     async def required_upload_file_to_s3(
         self,
-        pdf: "PdfFile",
+        document: UploadedFile,
         collection_name: str
     ) -> str:
         return await self.upload_file_to_s3(
-            pdf.doc_id,
+            document.doc_id,
             collection_name,
-            pdf.content,
-            pdf.content_type
+            document.content,
+            document.content_type
         )
 
 
     async def get_document_by_doc_id(
         self,
-        session: "AsyncSession",
+        session: AsyncSession,
         doc_id: str
     ) -> Document | None:
         result = await session.execute(
@@ -100,9 +99,9 @@ class DocumentService:
 
     async def get_documents_by_collection(
         self,
-        session: "AsyncSession",
+        session: AsyncSession,
         collection_name: str
-    ) -> List[Document]:
+    ) -> list[Document]:
         result = await session.execute(
             select(Document).where(Document.collection_name == collection_name)
         )
@@ -111,7 +110,7 @@ class DocumentService:
 
     async def delete_document_record(
         self,
-        session: "AsyncSession",
+        session: AsyncSession,
         doc_id: str
     ) -> Document | None:
         document = await self.get_document_by_doc_id(session, doc_id)
@@ -144,7 +143,7 @@ class DocumentService:
 
     async def delete_document_completely(
         self,
-        session: "AsyncSession",
+        session: AsyncSession,
         doc_id: str
     ) -> bool:
         document = await self.delete_document_record(session, doc_id)
@@ -153,12 +152,15 @@ class DocumentService:
 
         s3_deleted = await self.delete_file_from_s3(document.s3_key)
         if not s3_deleted:
-            logger.warning(f"S3 deletion failed for document: {doc_id}, but database record was deleted")
+            logger.warning(
+                "S3 deletion failed for document %s, but database record was deleted",
+                doc_id,
+            )
 
         return True
 
 
-    async def _ensure_table_exists(self, session: "AsyncSession") -> None:
+    async def _ensure_table_exists(self, session: AsyncSession) -> None:
         try:
             # Try to query the table to check if it exists
             await session.execute(select(Document).limit(1))
@@ -176,9 +178,9 @@ class DocumentService:
 
     async def get_document_info(
         self,
-        session: "AsyncSession",
+        session: AsyncSession,
         doc_id: str
-    ) -> Dict[str, Any] | None:
+    ) -> dict[str, Any] | None:
         document = await self.get_document_by_doc_id(session, doc_id)
         if not document:
             return None
@@ -193,5 +195,3 @@ class DocumentService:
             "created_at": document.created_at,
             "updated_at": document.updated_at
         }
-
-

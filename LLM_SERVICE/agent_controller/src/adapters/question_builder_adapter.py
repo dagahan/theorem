@@ -8,7 +8,7 @@ from src.grpc.client.question_builder_grpc_client import QuestionBuilderGrpcClie
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 
 if TYPE_CHECKING:
-    from src.domain.models import QuestionBuilderRequest, QuestionBuilderResponse
+    from src.pydantic_schemas.agent_controller import QuestionBuilderRequest, QuestionBuilderResponse
 
 
 class QuestionBuilderAdapter:

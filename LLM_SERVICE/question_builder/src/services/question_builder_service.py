@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from loguru import logger
 
-from src.domain.models import QuestionBuilderResponse
+from src.pydantic_schemas.question_builder import QuestionBuilderResponse
 from src.services.text_normalize_service import TextNormalizeService
 from src.services.llm_expansion_service import LLMExpansionService
 from src.services.llm_splitting_service import LLMSplittingService

@@ -11,10 +11,10 @@ from loguru import logger
 from protobuf_stubs import retriever_pb2, retriever_pb2_grpc
 from src.core.timeouts import TimeoutTools
 from src.grpc.grpc_utils import GrpcTools
-from src.domain.models import RetrieveResponse as DomainRetrieveResponse, RetrieveResult
+from src.pydantic_schemas.agent_controller import RetrieveResponse as DomainRetrieveResponse, RetrieveResult
 
 if TYPE_CHECKING:
-    from src.domain.models import RetrieveRequest, RetrieveResponse
+    from src.pydantic_schemas.agent_controller import RetrieveRequest, RetrieveResponse
 
 
 class RetrieverGrpcClient:

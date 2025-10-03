@@ -31,13 +31,13 @@ class RetrieverService(retriever_pb2_grpc.RetrieverServiceServicer):  # type: ig
             grpc_tools.validate_proto(request, context)
 
             health_result = await self.health_checker.health_check_service("all")
-            embedder_status, qdrant_status, embedder_model_id, embedder_dim = health_result  # type: ignore
+            hybrid_embedder_status, qdrant_status, hybrid_embedder_model_id, hybrid_embedder_dim = health_result  # type: ignore
 
-            overall = "healthy" if embedder_status == "healthy" and qdrant_status == "healthy" else "unhealthy"
+            overall = "healthy" if hybrid_embedder_status == "healthy" and qdrant_status == "healthy" else "unhealthy"
 
             details = []
-            if embedder_status != 'healthy':
-                details.append(f'embedder:{embedder_status}')
+            if hybrid_embedder_status != 'healthy':
+                details.append(f'hybrid_embedder:{hybrid_embedder_status}')
             if qdrant_status != 'healthy':
                 details.append(f'qdrant:{qdrant_status}')
 
@@ -45,10 +45,10 @@ class RetrieverService(retriever_pb2_grpc.RetrieverServiceServicer):  # type: ig
                 status=overall,
                 success=overall == 'healthy',
                 details=', '.join(details),
-                embedder_status=embedder_status,
+                hybrid_embedder_status=hybrid_embedder_status,
                 qdrant_status=qdrant_status,
-                embedder_model_id=embedder_model_id,
-                embedder_dim=embedder_dim,
+                hybrid_embedder_model_id=hybrid_embedder_model_id,
+                hybrid_embedder_dim=hybrid_embedder_dim,
             )
 
             grpc_tools.validate_proto(response, context)
@@ -61,10 +61,10 @@ class RetrieverService(retriever_pb2_grpc.RetrieverServiceServicer):  # type: ig
                 status='unhealthy',
                 success=False,
                 details=str(ex),
-                embedder_status='unknown',
+                hybrid_embedder_status='unknown',
                 qdrant_status='unknown',
-                embedder_model_id='',
-                embedder_dim=0,
+                hybrid_embedder_model_id='',
+                hybrid_embedder_dim=0,
             )
 
 

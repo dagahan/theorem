@@ -24,15 +24,14 @@ __all__ = [
     "CollectionInfo",
     "ListCollectionsResponse",
     # Document Management
-    "DeleteDocumentsRequest",
-    "DeleteDocumentsItem", 
-    "DeleteDocumentsResponse",
+    "DeleteDocumentRequest",
+    "DeleteDocumentResponse",
     "DocumentInfo",
     "GetDocumentResponse",
     # Service Stats
     "ServiceStats",
     # File Ingestion
-    "IngestResult",
+    "IngestFilesItem",
     "IngestFilesResponse",
     # PostgreSQL Models
     "Document",

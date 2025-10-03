@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple, TypeAlias
 from loguru import logger
 
-from src.domain.models import RetrievalQuestion, Candidate, RetrieveResult, DocKey
-from src.domain.params import FusionWeights, PipelineLimits, MmrParams
+from src.pydantic_schemas.retriever import RetrievalQuestion, Candidate, RetrieveResult, DocKey
+from src.pydantic_schemas.retriever import FusionWeights, PipelineLimits, MmrParams
 from src.services.dense_retriever_service import DenseRetrieverService
 from src.services.bm25_ranker import Bm25Ranker
 from src.services.neural_rerank_service import NeuralRerankService

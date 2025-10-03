@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any, Dict
 
-from src.services.text_normalize_service import TextNormalizeService
+from src.services.text_normalizer_service import TextNormalizerService
 
 
 class IdService:
@@ -14,7 +14,7 @@ class IdService:
         if not stem:
             raise ValueError("Cannot determine doc_id from filename.")
 
-        normalized_id = TextNormalizeService().normalize_doc_id(stem)
+        normalized_id = TextNormalizerService().normalize_doc_id(stem)
         if not normalized_id:
             raise ValueError("Empty doc_id after filename normalization.")
 
@@ -27,4 +27,5 @@ class IdService:
         doc_id: str
     ) -> str:
         return f"{collection_name}/{doc_id}"
+
 

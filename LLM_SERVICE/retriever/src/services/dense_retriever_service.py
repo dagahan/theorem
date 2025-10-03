@@ -4,14 +4,14 @@ from typing import Any, Dict, List
 
 from loguru import logger
 
-from src.adapters.embedder_adapter import EmbedderAdapter
+from src.adapters.hybrid_embedder_adapter import HybridEmbedderAdapter
 from src.adapters.vector_store_adapter import VectorStoreAdapter
-from src.domain.models import Candidate, EmbeddingResult, VectorSearchResult
+from src.pydantic_schemas.retriever import Candidate, EmbeddingResult, VectorSearchResult
 
 
 class DenseRetrieverService:
     def __init__(self) -> None:
-        self.embedder_adapter = EmbedderAdapter()
+        self.hybrid_embedder_adapter = HybridEmbedderAdapter()
         self.vector_store_adapter = VectorStoreAdapter()
 
 
@@ -42,7 +42,7 @@ class DenseRetrieverService:
         query_text: str
     ) -> EmbeddingResult:
         try:
-            embed_response: Dict[str, Any] = await self.embedder_adapter.embed_text(
+            embed_response: Dict[str, Any] = await self.hybrid_embedder_adapter.embed_text(
                 query_text,
                 normalize=True
             )
@@ -54,7 +54,7 @@ class DenseRetrieverService:
                     text=query_text,
                     vector=[],
                     success=False,
-                    error="Empty vector returned from embedder"
+                    error="Empty vector returned from hybrid embedder"
                 )
             
             return EmbeddingResult(

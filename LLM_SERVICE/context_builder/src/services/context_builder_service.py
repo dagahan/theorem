@@ -4,7 +4,7 @@ from loguru import logger
 
 from src.adapters.vllm_adapter import VLLMAdapter
 from src.core.utils import EnvTools
-from src.domain.models import (
+from src.pydantic_schemas.context_builder import (
     ContextBuilderRequest,
     ContextBuilderResponse,
     HealthStatus,

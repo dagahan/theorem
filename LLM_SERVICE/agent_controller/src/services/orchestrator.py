@@ -16,7 +16,7 @@ from src.adapters.system_prompt_builder_adapter import SystemPromptBuilderAdapte
 from src.adapters.vllm_adapter import VLLMAdapter
 from src.core.timeouts import TimeoutTools
 from src.core.utils import EnvTools
-from src.domain.models import (
+from src.pydantic_schemas.agent_controller import (
     ComponentHealth,
     GraphState,
     HealthCheck,
@@ -153,9 +153,9 @@ class LLMGraphOrchestrator:
                 if result_details:
                     detail_parts.append(str(result_details))
 
-                embedder_status = getattr(result, 'embedder_status', '')
-                if embedder_status and str(embedder_status).lower() != 'healthy':
-                    detail_parts.append(f'embedder:{embedder_status}')
+                hybrid_embedder_status = getattr(result, 'hybrid_embedder_status', '')
+                if hybrid_embedder_status and str(hybrid_embedder_status).lower() != 'healthy':
+                    detail_parts.append(f'hybrid_embedder:{hybrid_embedder_status}')
 
                 qdrant_status = getattr(result, 'qdrant_status', '')
                 if qdrant_status and str(qdrant_status).lower() != 'healthy':
@@ -193,6 +193,5 @@ class LLMGraphOrchestrator:
             overall_status=overall_status,
             components=list(components),
         )
-
 
 

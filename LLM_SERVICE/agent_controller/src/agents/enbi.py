@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import partial
 
-from src.domain.models import GraphNodeFactory, StepSpec
+from src.pydantic_schemas.agent_controller import GraphNodeFactory, StepSpec
 from .agent_registry import AgentGraphRegistry
 
 

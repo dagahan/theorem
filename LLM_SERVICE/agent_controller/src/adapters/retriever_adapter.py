@@ -9,7 +9,7 @@ from src.grpc.client.retriever_grpc_client import RetrieverGrpcClient
 
 if TYPE_CHECKING:
     from protobuf_stubs import retriever_pb2
-    from src.domain.models import RetrieveRequest, RetrieveResponse
+    from src.pydantic_schemas.agent_controller import RetrieveRequest, RetrieveResponse
 
 
 class RetrieverAdapter:

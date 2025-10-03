@@ -6,7 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 from loguru import logger
 
 from src.adapters.policy_builder_adapter import PolicyBuilderAdapter
-from src.domain.models import BuildSystemPromptRequest, BuildSystemPromptResponse, HealthStatus, PersonaPrompt
+from src.pydantic_schemas.system_prompt_builder import BuildSystemPromptRequest, BuildSystemPromptResponse, HealthStatus, PersonaPrompt
 
 
 class SystemPromptBuilderService:

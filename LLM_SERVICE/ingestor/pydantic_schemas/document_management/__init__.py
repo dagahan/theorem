@@ -1,9 +1,8 @@
 from .document_management import *
 
 __all__ = [
-    "DeleteDocumentsRequest",
-    "DeleteDocumentsItem",
-    "DeleteDocumentsResponse",
+    "DeleteDocumentRequest",
+    "DeleteDocumentResponse",
     "DocumentInfo",
     "GetDocumentResponse",
 ]

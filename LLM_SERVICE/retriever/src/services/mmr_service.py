@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import List, Dict, TYPE_CHECKING
 import math
-from src.adapters.embedder_adapter import EmbedderAdapter
+from src.adapters.hybrid_embedder_adapter import HybridEmbedderAdapter
 
 if TYPE_CHECKING:
-    from src.domain.models import Candidate
+    from src.pydantic_schemas.retriever import Candidate
 
 
 def _cos(a: List[float], b: List[float]) -> float:
@@ -18,7 +18,7 @@ def _cos(a: List[float], b: List[float]) -> float:
 
 class MmrService:
     def __init__(self, diversity_lambda: float = 0.55) -> None:
-        self.embedder = EmbedderAdapter()
+        self.hybrid_embedder = HybridEmbedderAdapter()
         self.lmb = diversity_lambda
 
 
@@ -31,8 +31,11 @@ class MmrService:
         if not items:
             return []
         pool = items[:k]
-        qv = (await self.embedder.embed_text(question, normalize=True)).get("vector", [])
-        c_vecs = [(await self.embedder.embed_text(c.text, normalize=True)).get("vector", []) for c in pool]
+        qv = (await self.hybrid_embedder.embed_text(question, normalize=True)).get("vector", [])
+        c_vecs = [
+            (await self.hybrid_embedder.embed_text(c.text, normalize=True)).get("vector", [])
+            for c in pool
+        ]
 
         selected: List[int] = []
         remaining: List[int] = list(range(len(pool)))
@@ -53,5 +56,4 @@ class MmrService:
             remaining.remove(best_idx) # type: ignore
 
         return [pool[i] for i in selected] + [pool[i] for i in remaining]
-
 

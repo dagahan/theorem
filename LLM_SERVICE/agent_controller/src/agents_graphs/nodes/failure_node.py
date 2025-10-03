@@ -8,7 +8,7 @@ from src.core.logging import QuestionLogger
 from src.agents_graphs.graph_tools import GraphTools
 
 if TYPE_CHECKING:
-    from src.domain.models import GraphState
+    from src.pydantic_schemas.agent_controller import GraphState
 
 
 class FailureNode:

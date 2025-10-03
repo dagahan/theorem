@@ -8,7 +8,7 @@ from loguru import logger
 
 from protobuf_stubs import question_builder_pb2, question_builder_pb2_grpc
 from src.core.timeouts import TimeoutTools
-from src.domain.models import QuestionBuilderRequest, QuestionBuilderResponse
+from src.pydantic_schemas.agent_controller import QuestionBuilderRequest, QuestionBuilderResponse
 from src.grpc.grpc_utils import GrpcTools
 
 

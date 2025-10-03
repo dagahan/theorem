@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from loguru import logger
 
-from src.domain.models import HealthStatus, PolicyResponse
+from src.pydantic_schemas.budget_estimator import HealthStatus, PolicyResponse
 
 
 _POLICY_HEADER = (

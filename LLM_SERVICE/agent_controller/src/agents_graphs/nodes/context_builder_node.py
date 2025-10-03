@@ -8,7 +8,7 @@ from loguru import logger
 from src.core.logging import ContextBuilderLogger
 from src.core.retry import timeout_and_retry
 from src.core.timeouts import TimeoutTools
-from src.domain.models import ContextBuilderRequest, ContextBuilderResponse, ContextChunk, GraphState
+from src.pydantic_schemas.agent_controller import ContextBuilderRequest, ContextBuilderResponse, ContextChunk, GraphState
 from src.agents_graphs.graph_tools import GraphTools
 
 if TYPE_CHECKING:

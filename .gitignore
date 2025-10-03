@@ -12,6 +12,9 @@ LLM_SERVICE/*/buf/validate/
 # Generated validate stubs in protobuf generator
 protobuf/generators/python/validate_gen/
 
+# Local pydantic schemas in microservices (use centralized schemas instead)
+LLM_SERVICE/*/src/pydantic_schemas/
+
 # Virtual environments
 .env
 .venv/

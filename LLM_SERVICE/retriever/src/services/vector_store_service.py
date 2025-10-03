@@ -13,7 +13,7 @@ from qdrant_client.http import models as qm
 class VectorStoreService:
     def __init__(self) -> None:
         self.qdrant_grpc_client = GrpcClientRegistry().register_client("qdrant", QdrantGrpcClient)
-        self.dimensions: int = int(EnvTools.required_load_env_var("EMBEDDER_DIMENSIONS"))
+        self.dimensions: int = int(EnvTools.required_load_env_var("HYBRID_EMBEDDER_DIMENSIONS"))
         self.qdrant_upsert_batch: int = int(EnvTools.required_load_env_var("QDRANT_UPSERT_BATCH"))
 
 
@@ -176,5 +176,4 @@ class VectorStoreService:
         total_vectors = sum(col.get("vectors_count", 0) for col in collections)
         logger.debug(f"Retrieved {total_collections} collections with {total_vectors} total vectors")
         return total_collections, total_vectors
-
 

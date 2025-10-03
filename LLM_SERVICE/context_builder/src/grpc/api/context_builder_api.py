@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING, List
 from loguru import logger
 
 from protobuf_stubs import context_builder_pb2, context_builder_pb2_grpc
-from src.domain.models import ContextBuilderRequest, ContextChunk
+from src.pydantic_schemas.context_builder import ContextBuilderRequest, ContextChunk
 from src.grpc.grpc_utils import GrpcTools
 
 if TYPE_CHECKING:
     import grpc
-    from src.domain.models import ContextBuilderResponse
+    from src.pydantic_schemas.context_builder import ContextBuilderResponse
     from src.services.context_builder_service import ContextBuilderService
 
 

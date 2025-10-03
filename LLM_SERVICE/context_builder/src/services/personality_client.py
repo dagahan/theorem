@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from loguru import logger
+from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
     from src.adapters.vllm_adapter import VLLMAdapter
 
 
-@dataclass(slots=True)
-class PersonalityClient:
+class PersonalityClient(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
     adapter: "VLLMAdapter"
     persona_name: str = 'Summarizer'
 
@@ -34,4 +35,3 @@ class PersonalityClient:
         except Exception as ex:
             logger.error(f"LLM generation failed: {ex}")
             raise
-

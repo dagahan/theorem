@@ -3,38 +3,41 @@ from typing import List, Dict, Any, Union
 import re
 from loguru import logger
 
-from src.data_classes.data_classes import PdfFile, IngestResult
+from src.data_classes.data_classes import UploadedFile, IngestResult
 from src.services.chunking_service import ChunkingService
 from src.services.document_service import DocumentService
-from src.services.text_normalize_service import TextNormalizeService
 from src.services.health_service import HealthService
 from src.services.vector_store_service import VectorStoreService
 from src.services.statistics_service import StatisticsService
 from src.services.id_service import IdService
 from src.services.file_parser_service import FileParserService
-from src.grpc.client.embedder_grpc_client import EmbedderGrpcClient
+from src.grpc.client.hybrid_embedder_grpc_client import HybridEmbedderGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 from src.transaction_manager.transaction_manager import transactional, execute_atomic_step
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.db.database_connector import DataBaseConnector
     from qdrant_client.http import models as qm
     from pydantic_schemas import Document
-    from src.data_classes.data_classes import Block, Chunk, EmbeddedChunk
+    from src.data_classes.data_classes import Chunk, EmbeddedChunk
+    from docling_core.types.doc.document import DoclingDocument
 
 
 class IngestorService:
     def __init__(self, database_connector: "DataBaseConnector") -> None:
-        self.chunking_service = ChunkingService()
         self.document_service = DocumentService()
-        self.text_normalize_service = TextNormalizeService()
+        self.chunking_service = ChunkingService()
         self.health_service = HealthService(database_connector)
         self.vector_store_service = VectorStoreService()
         self.statistics_service = StatisticsService(database_connector)
         self.file_parser_service = FileParserService()
         self.db_connector = database_connector
-        self.embedder_grpc_client = GrpcClientRegistry().register_client("embedder", EmbedderGrpcClient)
+        self.hybrid_embedder_grpc_client = GrpcClientRegistry().register_client(
+            "hybrid_embedder",
+            HybridEmbedderGrpcClient,
+        )
 
     
     async def ingest_files(
@@ -53,25 +56,21 @@ class IngestorService:
             try:
                 content = await file.read()
                 
-                if not (file.filename.lower().endswith('.pdf') or 
-                       (file.content_type and file.content_type.startswith('application/pdf'))):
-                    raise ValueError("Only PDF files are supported")
-                
-                pdf_file = PdfFile(
+                uploaded_file = UploadedFile(
                     filename=file.filename,
-                    content_type=file.content_type or "application/pdf",
+                    content_type=file.content_type or "application/octet-stream",
                     content=content,
                     meta={**metadata}
                 )
                 
                 await self.ingest_file(
-                    pdf_file=pdf_file,
+                    uploaded_file=uploaded_file,
                     collection_name=collection_name
                 )
                 
                 results.append(IngestResult(
                     filename=file.filename,
-                    doc_id=pdf_file.doc_id,
+                    doc_id=uploaded_file.doc_id,
                     status="success",
                     error=None
                 ))
@@ -91,13 +90,13 @@ class IngestorService:
     @transactional
     async def ingest_file(
         self,
-        pdf_file: PdfFile,
+        uploaded_file: UploadedFile,
         collection_name: str,
     ) -> None:
         """
         Processes a PDF file through the complete ingestion pipeline with automatic rollback.
         """
-        doc_id: str = IdService.make_id_by_filename(pdf_file.meta)
+        doc_id: str = IdService.make_id_by_filename(uploaded_file.meta)
 
         await self.vector_store_service.ensure_collection_exists(collection_name)
 
@@ -107,25 +106,22 @@ class IngestorService:
             
         s3_uploaded_key: str = await execute_atomic_step(
             action=lambda: self.document_service.required_upload_file_to_s3(
-                pdf=pdf_file,
+                document=uploaded_file,
                 collection_name=collection_name
             ),
             rollback=lambda s3_uploaded_key: self._rollback_s3_upload(s3_uploaded_key)
         )
         
-        blocks: List["Block"] = self.file_parser_service.extract_blocks_from_pdf(pdf_file)
+        docling_doc: DoclingDocument = self.file_parser_service.parse_file_content(uploaded_file)
 
-        chunks: List["Chunk"] = self.chunking_service.chunk_blocks(
-            doc_id, blocks,
-            pdf_file.meta
-        )
+        chunks: List["Chunk"] = self.chunking_service.extract_chunks_from_docling_file(docling_doc)
 
-        embedded_chunks: List["EmbeddedChunk"] = await self.embedder_grpc_client.embed_chunks(chunks)
+        embedded_chunks: List["EmbeddedChunk"] = await self.hybrid_embedder_grpc_client.embed_chunks(chunks)
 
         point_structs: List[qm.PointStruct] = self.vector_store_service.build_point_structs_from_embedded_chunks(
             embedded_chunks,
             doc_id,
-            pdf_file.meta
+            uploaded_file.meta
         )
 
         await execute_atomic_step(
@@ -142,7 +138,7 @@ class IngestorService:
         await execute_atomic_step(
             action=lambda: self._create_db_record(
                 doc_id,
-                pdf_file,
+                uploaded_file,
                 s3_uploaded_key,
                 collection_name
             ),
@@ -166,7 +162,7 @@ class IngestorService:
     async def _create_db_record(
         self, 
         doc_id: str, 
-        pdf_file: PdfFile, 
+        uploaded_file: UploadedFile, 
         s3_uploaded_key: str, 
         collection_name: str
     ) -> "Document":
@@ -174,8 +170,8 @@ class IngestorService:
             return await self.document_service.create_document_record(
                 session=session,
                 doc_id=doc_id,
-                content_type=pdf_file.content_type,
-                file_size=pdf_file.file_size,
+                content_type=uploaded_file.content_type,
+                file_size=uploaded_file.file_size,
                 s3_key=s3_uploaded_key,
                 collection_name=collection_name
             )
@@ -237,7 +233,5 @@ class IngestorService:
                 })
         
         return results
-
-
 
 

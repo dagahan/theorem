@@ -17,10 +17,10 @@ message HealthResponse {
   string status = 1 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
   bool success = 2;
   string details = 3 [(buf.validate.field).string = {max_len: 256}];
-  string embedder_status = 4 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string hybrid_embedder_status = 4 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
   string qdrant_status = 5 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
-  string embedder_model_id = 6 [(buf.validate.field).string = {min_len: 0, max_len: 256}];
-  int32 embedder_dim = 7 [(buf.validate.field).int32 = {gte: -1, lte: 4096}];
+  string hybrid_embedder_model_id = 6 [(buf.validate.field).string = {min_len: 0, max_len: 256}];
+  int32 hybrid_embedder_dim = 7 [(buf.validate.field).int32 = {gte: -1, lte: 4096}];
 }
 
 
@@ -45,5 +45,4 @@ message RetrieveResponse {
   bool success = 2;
   string error = 3 [(buf.validate.field).string = {max_len: 2048}];
 }
-
 

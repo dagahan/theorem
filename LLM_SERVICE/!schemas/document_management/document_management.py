@@ -1,23 +1,22 @@
-from typing import Any, Dict
 from pydantic import BaseModel, Field
 
 
-class DeleteDocumentRequest(BaseModel):
+class DeleteDocumentRequest(BaseModel):  # type: ignore[misc]
     doc_id: str = Field(...)
     collection_name: str | None = Field(default=None)
 
 
-class DeleteDocumentResponse(BaseModel):
+class DeleteDocumentResponse(BaseModel):  # type: ignore[misc]
     status: str = Field(...)
 
 
-class DocumentInfo(BaseModel):
+class DocumentInfo(BaseModel):  # type: ignore[misc]
     doc_id: str = Field(...)
     chunks_count: int = Field(...)
     collection_name: str = Field(...)
 
 
-class GetDocumentResponse(BaseModel):
+class GetDocumentResponse(BaseModel):  # type: ignore[misc]
     doc_id: str = Field(...)
     chunks_count: int = Field(...)
     status: str = Field(...)

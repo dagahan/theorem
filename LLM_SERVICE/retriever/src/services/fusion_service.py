@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Dict, Final, List, Tuple
 import math
-from src.domain.models import Candidate, DocKey
+from src.pydantic_schemas.retriever import Candidate, DocKey
 
 
 class FusionService:

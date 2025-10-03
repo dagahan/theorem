@@ -8,7 +8,7 @@ from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 from src.grpc.client.system_prompt_builder_grpc_client import SystemPromptBuilderGrpcClient
 
 if TYPE_CHECKING:
-    from src.domain.models import SystemPromptResponse
+    from src.pydantic_schemas.agent_controller import SystemPromptResponse
 
 
 class SystemPromptBuilderAdapter:

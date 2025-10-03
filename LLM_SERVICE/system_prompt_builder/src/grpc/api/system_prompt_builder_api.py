@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from protobuf_stubs import system_prompt_builder_pb2, system_prompt_builder_pb2_grpc
-from src.domain.models import BuildSystemPromptRequest, BuildSystemPromptResponse
+from src.pydantic_schemas.system_prompt_builder import BuildSystemPromptRequest, BuildSystemPromptResponse
 from src.grpc.grpc_utils import GrpcTools
 
 if TYPE_CHECKING:

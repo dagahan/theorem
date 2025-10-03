@@ -8,7 +8,7 @@ from loguru import logger
 
 from protobuf_stubs import system_prompt_builder_pb2, system_prompt_builder_pb2_grpc
 from src.core.timeouts import TimeoutTools
-from src.domain.models import SystemPromptResponse
+from src.pydantic_schemas.agent_controller import SystemPromptResponse
 from src.grpc.grpc_utils import GrpcTools
 
 

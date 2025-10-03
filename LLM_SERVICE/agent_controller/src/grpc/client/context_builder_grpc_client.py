@@ -9,7 +9,7 @@ from loguru import logger
 from protobuf_stubs import context_builder_pb2, context_builder_pb2_grpc
 
 from src.core.timeouts import TimeoutTools
-from src.domain.models import (
+from src.pydantic_schemas.agent_controller import (
     ContextBuilderRequest,
     ContextBuilderResponse,
     ContextChunk,

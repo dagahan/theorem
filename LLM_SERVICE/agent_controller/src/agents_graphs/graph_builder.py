@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 from langgraph.graph import END, StateGraph
 
 from src.agents.agent_registry import AgentGraphRegistry
-from src.domain.models import GraphNodeFactory
+from src.pydantic_schemas.agent_controller import GraphNodeFactory
 from .nodes.context_builder_node import ContextBuilderNode
 from .nodes.failure_node import FailureNode
 from .nodes.finalization_node import FinalizationNode

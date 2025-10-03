@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import List, Tuple, Dict, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.domain.models import Candidate
+    from src.pydantic_schemas.retriever import Candidate
 
 class DedupService:
     def __init__(self, keep_per_paragraph: int = 2, near_chunk_window: int = 2) -> None:

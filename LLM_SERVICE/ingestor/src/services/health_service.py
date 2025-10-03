@@ -4,7 +4,7 @@ import asyncio
 from typing import Any, Dict, Tuple, Union
 from loguru import logger
 
-from src.grpc.client.embedder_grpc_client import EmbedderGrpcClient
+from src.grpc.client.hybrid_embedder_grpc_client import HybridEmbedderGrpcClient
 from src.grpc.client.qdrant_grpc_client import QdrantGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class HealthService:
     def __init__(self, database_connector: "DataBaseConnector") -> None:
         self.db_connector = database_connector
-        self.embedder_grpc_client = GrpcClientRegistry().register_client("embedder", EmbedderGrpcClient)
+        self.hybrid_embedder_grpc_client = GrpcClientRegistry().register_client("hybrid_embedder", HybridEmbedderGrpcClient)
         self.qdrant_grpc_client = GrpcClientRegistry().register_client("qdrant", QdrantGrpcClient)
 
 
@@ -24,9 +24,9 @@ class HealthService:
         self,
         service_name: str
     ) -> Union[str, Tuple[Dict[str, Any], str, Dict[str, Any], str]]:
-        async def _check_embedder() -> Dict[str, Any]:
+        async def _check_hybrid_embedder() -> Dict[str, Any]:
             try:
-                return await self.embedder_grpc_client.health_check()
+                return await self.hybrid_embedder_grpc_client.health_check()
             except Exception as ex:
                 return {"status": "unhealthy", "model_id": "", "dim": 0}
 
@@ -52,8 +52,8 @@ class HealthService:
                 return "unhealthy"
 
         name = service_name.lower()
-        if name == "embedder":
-            return str((await _check_embedder()).get("status", "unknown"))
+        if name == "hybrid_embedder":
+            return str((await _check_hybrid_embedder()).get("status", "unknown"))
         if name == "qdrant":
             return await _check_qdrant()
         if name == "postgres":
@@ -63,7 +63,7 @@ class HealthService:
             return await _check_s3()
         if name == "all":
             emb, q, pg, s3 = await asyncio.gather(
-                _check_embedder(), 
+                _check_hybrid_embedder(), 
                 _check_qdrant(), 
                 _check_postgres(), 
                 _check_s3()
@@ -77,18 +77,16 @@ class HealthService:
     async def ensure_all_healthy(self) -> Dict[str, Any]:
         health = await self.health_check_service("all")
         assert isinstance(health, tuple)
-        embedder_health, qdrant_status, postgres_health, s3_status = health
+        hybrid_embedder_health, qdrant_status, postgres_health, s3_status = health
 
-        if (embedder_health.get("status") != "healthy" or 
+        if (hybrid_embedder_health.get("status") != "healthy" or 
             qdrant_status != "healthy" or 
             postgres_health.get("status") != "healthy" or 
             s3_status != "healthy"):
                 raise RuntimeError(
-                    f"Services unavailable. Embedder: {embedder_health.get('status')}, "
+                    f"Services unavailable. Hybrid embedder: {hybrid_embedder_health.get('status')}, "
                     f"Qdrant: {qdrant_status}, PostgreSQL: {postgres_health.get('status')}, "
                     f"S3: {s3_status}"
                 )
 
-        return embedder_health
-
-
+        return hybrid_embedder_health

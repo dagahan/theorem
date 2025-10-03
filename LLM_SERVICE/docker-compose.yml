@@ -57,12 +57,12 @@ services:
           path: ./
 
 
-  # embedder:
+  # hybrid_embedder:
   #  build:
-  #    context: ./embedder
+  #    context: ./hybrid_embedder
   #    dockerfile: dockerfile
-  #  image: embedder-${COMPOSE_PROJECT_NAME}
-  #  container_name: embedder-${COMPOSE_PROJECT_NAME}
+  #  image: hybrid_embedder-${COMPOSE_PROJECT_NAME}
+  #  container_name: hybrid_embedder-${COMPOSE_PROJECT_NAME}
   #  env_file: 
   #    - .env
   #    - .common-env.conf
@@ -70,14 +70,14 @@ services:
   #    RUNNING_INSIDE_DOCKER: 1
   #    COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
   #  ports:
-  #    - "${EMBEDDER_GRPC_PORT}:${EMBEDDER_GRPC_PORT}"
+  #    - "${HYBRID_EMBEDDER_GRPC_PORT}:${HYBRID_EMBEDDER_GRPC_PORT}"
   #  networks:
   #    - llm_service_network
   #  restart: ${DOCKER_CONTAINERS_RESTART}
   #  develop:
   #    watch:
   #      - action: rebuild
-  #        path: ./embedder
+  #        path: ./hybrid_embedder
 
 
   # retriever:
@@ -99,7 +99,7 @@ services:
   #  restart: ${DOCKER_CONTAINERS_RESTART}
   #  depends_on:
   #    - qdrant
-  #    - embedder
+  #    - hybrid_embedder
   #  develop:
   #    watch:
   #     - action: rebuild
@@ -125,7 +125,7 @@ services:
   #  restart: ${DOCKER_CONTAINERS_RESTART}
   #  depends_on:
   #    - qdrant
-  #    - embedder
+  #    - hybrid_embedder
   #  develop:
   #    watch:
   #      - action: rebuild
@@ -275,5 +275,4 @@ volumes:
 
   postgres_data:
     driver: local
-
 

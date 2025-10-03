@@ -6,7 +6,7 @@ from loguru import logger
 from src.core.utils import EnvTools
 from sentence_transformers import CrossEncoder   # type: ignore
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
-from src.domain.models import Candidate
+from src.pydantic_schemas.retriever import Candidate
 
 
 class NeuralRerankService:

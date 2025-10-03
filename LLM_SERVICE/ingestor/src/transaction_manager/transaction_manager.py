@@ -1,10 +1,10 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
 from typing import Awaitable, Callable, TypeVar, Optional, List, Any, AsyncIterator, Dict
 from contextvars import ContextVar
 from contextlib import asynccontextmanager
 import time
 from loguru import logger
+from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar("T")
 UndoAction = Callable[[], Awaitable[None]]
@@ -14,12 +14,13 @@ UndoWithResult = Callable[[T], Awaitable[None]]
 _current_transaction: ContextVar["TransactionRecorder | None"] = ContextVar("_current_transaction", default=None)
 
 
-@dataclass
-class TransactionRecorder:
-    rollback_actions: List[UndoAction] = field(default_factory=list)
+class TransactionRecorder(BaseModel):
+    model_config = ConfigDict()
+    
+    rollback_actions: List[UndoAction] = Field(default_factory=list)
     completed_steps: int = 0
-    step_times: Dict[str, float] = field(default_factory=dict)
-    step_starts: Dict[str, float] = field(default_factory=dict)
+    step_times: Dict[str, float] = Field(default_factory=dict)
+    step_starts: Dict[str, float] = Field(default_factory=dict)
 
 
     def register_rollback(
@@ -66,7 +67,7 @@ async def transaction_scope() -> AsyncIterator[None]:
         yield
 
     except Exception as e:
-        logger.warning(f"<red>Transaction failed after {recorder.completed_steps} steps:</red> <red><bg red><white>{str(e)}</white></bg red></red>")
+        logger.warning(f"Transaction failed after {recorder.completed_steps} steps: {str(e)}")
         await recorder.rollback_all()
         raise
 

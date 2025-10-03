@@ -1,6 +1,7 @@
 from .ingest_files import *
 
 __all__ = [
-    "IngestFilesItem",
-    "IngestFilesResponse",
+    name
+    for name in globals().keys()
+    if not name.startswith("_")
 ]

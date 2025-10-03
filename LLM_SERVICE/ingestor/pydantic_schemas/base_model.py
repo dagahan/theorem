@@ -32,10 +32,10 @@ updated_at = Annotated[int, mapped_column(
 ]
 
 
-class Base(DeclarativeBase):
+class Base(DeclarativeBase):  # type: ignore[misc]
     # this is base class for all of declaratively using models of tables.
     # e.g. we use this for create or drop all of tables in db.
     pass
 
 
-    
+     

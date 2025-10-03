@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
 from pydantic_ai.messages import TextPart
 from pydantic_ai.models import Model, ModelResponse
 
-from src.domain.models import QuestionResponse, ResponderConfig, ResponderRuntime
+from src.pydantic_schemas.agent_controller import QuestionResponse, ResponderConfig, ResponderRuntime
 
 if TYPE_CHECKING:
     from src.adapters.vllm_adapter import VLLMAdapter
@@ -60,8 +59,9 @@ class _ResponderModel(Model):  # type: ignore[misc]
         )
 
 
-@dataclass(slots=True)
-class PersonalityClient:
+class PersonalityClient(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
     vllm_adapter: VLLMAdapter
     config: ResponderConfig | None = None
 

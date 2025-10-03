@@ -74,5 +74,3 @@ ignore_missing_imports = true
 ignore_missing_imports = true
 [mypy-chardet]
 ignore_missing_imports = true
-[mypy-pydantic]
-ignore_missing_imports = true

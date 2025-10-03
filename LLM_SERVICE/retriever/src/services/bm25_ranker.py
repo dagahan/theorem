@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 from typing import Any, Dict, Final, List, Tuple
 from src.services.vector_store_service import VectorStoreService
 from src.services.synonym_service import SynonymService
-from src.domain.models import Candidate, DocKey
+from src.pydantic_schemas.retriever import Candidate, DocKey
 
 
 class BM25Scorer:

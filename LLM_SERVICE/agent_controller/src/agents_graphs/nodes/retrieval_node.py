@@ -8,12 +8,12 @@ from loguru import logger
 from src.core.logging import ContextRetrievalLogger
 from src.core.retry import timeout_and_retry
 from src.core.timeouts import TimeoutTools
-from src.domain.models import ContextChunk, RetrieveRequest, RetrieveResponse
+from src.pydantic_schemas.agent_controller import ContextChunk, RetrieveRequest, RetrieveResponse
 from src.agents_graphs.graph_tools import GraphTools
 
 if TYPE_CHECKING:
     from src.adapters.retriever_adapter import RetrieverAdapter
-    from src.domain.models import GraphState
+    from src.pydantic_schemas.agent_controller import GraphState
 
 
 class RetrievalNode:

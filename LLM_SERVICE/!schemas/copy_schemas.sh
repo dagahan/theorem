@@ -42,9 +42,12 @@ log "Copying schemas to services..."
 copied_count=0
 
 
-for service_dir in "${ROOT_DIR}"/*/pydantic_schemas; do
+mapfile -t SERVICE_SCHEMA_DIRS < <(find "${ROOT_DIR}" -maxdepth 3 -type d -name "pydantic_schemas" | sort)
+
+for service_dir in "${SERVICE_SCHEMA_DIRS[@]}"; do
   if [[ -d "$(dirname "$service_dir")" ]]; then
-    service_name=$(basename "$(dirname "$service_dir")")
+    parent_dir="$(dirname "$service_dir")"
+    service_name=$(basename "$parent_dir")
     log "Copying to ${service_name}..."
     
     mkdir -p "${service_dir}"
@@ -111,9 +114,9 @@ __all__ = [
 EOF
     
     # Remove schemas.py if it exists
-    if [[ -f "$(dirname "$service_dir")/schemas.py" ]]; then
-      log "  Removing old schemas.py from $(dirname "$service_dir")/"
-      rm "$(dirname "$service_dir")/schemas.py"
+    if [[ -f "${parent_dir}/schemas.py" ]]; then
+      log "  Removing old schemas.py from ${parent_dir}/"
+      rm "${parent_dir}/schemas.py"
     fi
     
     ((copied_count++))
@@ -129,5 +132,4 @@ fi
 
 
 ok "Done."
-
 

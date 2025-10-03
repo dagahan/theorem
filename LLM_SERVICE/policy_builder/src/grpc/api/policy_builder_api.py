@@ -9,7 +9,7 @@ from src.grpc.grpc_utils import GrpcTools
 
 
 if TYPE_CHECKING:
-    from src.domain.models import HealthStatus, PolicyResponse
+    from src.pydantic_schemas.policy_builder import HealthStatus, PolicyResponse
     from src.services.policy_builder_service import PolicyBuilderService
 
 

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from protobuf_stubs import agent_controller_pb2, agent_controller_pb2_grpc
-from src.domain.models import ServiceStatus, UserQuery
+from src.pydantic_schemas.agent_controller import ServiceStatus, UserQuery
 from src.grpc.grpc_utils import GrpcTools
 
 

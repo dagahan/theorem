@@ -12,7 +12,7 @@ from src.agents_graphs.graph_tools import GraphTools
 
 if TYPE_CHECKING:
     from src.adapters.system_prompt_builder_adapter import SystemPromptBuilderAdapter
-    from src.domain.models import GraphState, SystemPromptResponse
+    from src.pydantic_schemas.agent_controller import GraphState, SystemPromptResponse
 
 
 class SystemPromptBuilderNode:

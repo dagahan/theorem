@@ -13,7 +13,7 @@ from src.services.personality_client import PersonalityClient
 
 if TYPE_CHECKING:
     from src.adapters.vllm_adapter import VLLMAdapter
-    from src.domain.models import ContextDigestItem, GraphState, QuestionResponse
+    from src.pydantic_schemas.agent_controller import ContextDigestItem, GraphState, QuestionResponse
 
 
 class LLMGenerationNode:

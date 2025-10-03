@@ -8,7 +8,7 @@ from src.grpc.client.context_builder_grpc_client import ContextBuilderGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 
 if TYPE_CHECKING:
-    from src.domain.models import ContextBuilderRequest, ContextBuilderResponse
+    from src.pydantic_schemas.agent_controller import ContextBuilderRequest, ContextBuilderResponse
 
 
 class ContextBuilderAdapter:

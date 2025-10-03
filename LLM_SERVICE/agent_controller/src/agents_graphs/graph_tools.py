@@ -9,7 +9,7 @@ from loguru import logger
 from src.core.utils import EnvTools
 
 if TYPE_CHECKING:
-    from src.domain.models import ContextChunk, ContextDigestItem, GraphState
+    from src.pydantic_schemas.agent_controller import ContextChunk, ContextDigestItem, GraphState
 
 DEFAULT_MAX_CONTEXT_CHARS = 2048
 

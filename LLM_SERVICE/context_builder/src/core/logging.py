@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 if TYPE_CHECKING:
-    from src.domain.models import ContextChunk
+    from src.pydantic_schemas.context_builder import ContextChunk
 
 
 class InterceptHandler(logging.Handler):

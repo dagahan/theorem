@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 
 from loguru import logger
 from src.core.utils import FileSystemTools
-from src.domain.models import ContextDigestItem
+from src.pydantic_schemas.agent_controller import ContextDigestItem
 
 
 class InterceptHandler(logging.Handler):

@@ -4,7 +4,7 @@ import asyncio
 import json
 import time
 from collections.abc import Iterable, Sequence
-from dataclasses import replace
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any, cast
 
 from loguru import logger
@@ -19,7 +19,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models import Model, ModelRequestParameters, ModelResponse
 
 from src.core.logging import ContextBuilderLogger
-from src.domain.models import ContextChunk, DigestItem, SummarizerConfig, SummarizerDigestPayload
+from src.pydantic_schemas.context_builder import ContextChunk, DigestItem, SummarizerConfig, SummarizerDigestPayload
 
 if TYPE_CHECKING:
     from pydantic_ai.run import AgentRun
@@ -29,7 +29,15 @@ if TYPE_CHECKING:
 
 def _apply_token_budget(config: SummarizerConfig, token_budget: int) -> SummarizerConfig:
     bounded = max(config.min_tokens, min(config.max_tokens_cap, token_budget))
-    return replace(config, max_tokens=bounded)
+    return SummarizerConfig(
+        model_name=config.model_name,
+        temperature=config.temperature,
+        max_tokens=bounded,
+        min_tokens=config.min_tokens,
+        max_tokens_cap=config.max_tokens_cap,
+        chars_per_token=config.chars_per_token,
+        max_concurrency=config.max_concurrency
+    )
 
 
 class _PersonalityModel(Model):  # type: ignore[misc]

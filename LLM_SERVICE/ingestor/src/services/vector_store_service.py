@@ -14,7 +14,7 @@ from qdrant_client.http import models as qm
 class VectorStoreService:
     def __init__(self) -> None:
         self.qdrant_grpc_client = GrpcClientRegistry().register_client("qdrant", QdrantGrpcClient)
-        self.dimensions: int = int(EnvTools.required_load_env_var("EMBEDDER_DIMENSIONS"))
+        self.dimensions: int = int(EnvTools.required_load_env_var("HYBRID_EMBEDDER_DIMENSIONS"))
         self.qdrant_upsert_batch: int = int(EnvTools.required_load_env_var("QDRANT_UPSERT_BATCH"))
 
 
@@ -34,7 +34,7 @@ class VectorStoreService:
         self,
         embedded_chunks: List[EmbeddedChunk],
         doc_id: str,
-        pdf_metadata: Dict[str, Any]
+        doc_metadata: Dict[str, Any]
     ) -> List[qm.PointStruct]:
         point_structs: List[qm.PointStruct] = []
         
@@ -56,7 +56,7 @@ class VectorStoreService:
                     "paragraph_id": i + 1,
                     "chunk_id": i + 1,
                     "text": embedded_chunk.text,
-                    **pdf_metadata,
+                    **doc_metadata,
                     **embedded_chunk.meta
                 }
             )
@@ -160,5 +160,4 @@ class VectorStoreService:
         total_vectors = sum(col.get("vectors_count", 0) for col in collections)
         logger.debug(f"Retrieved {total_collections} collections with {total_vectors} total vectors")
         return total_collections, total_vectors
-
 
