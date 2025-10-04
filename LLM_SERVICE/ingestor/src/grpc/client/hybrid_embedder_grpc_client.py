@@ -49,7 +49,7 @@ class HybridEmbedderGrpcClient:
             if not response.success:
                 raise Exception(f"Dense embedding failed: {response.error}")
             
-            # GrpcTools.validate_proto(response)
+            GrpcTools.validate_proto(response)
 
             result = GrpcTools.proto_to_dict(response)
 
@@ -74,7 +74,7 @@ class HybridEmbedderGrpcClient:
             if not response.success:
                 raise Exception(f"Sparse embedding failed: {response.error}")
             
-            # GrpcTools.validate_proto(response)
+            GrpcTools.validate_proto(response)
 
             result = GrpcTools.proto_to_dict(response)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Any, Iterable
+from typing import List, Any, Iterable, Dict, Optional
 from loguru import logger
 
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
@@ -12,23 +12,31 @@ if TYPE_CHECKING:
 from pydantic_schemas.ingest import Chunk
 
 from src.core.logging import ChunkingLogger
+from src.core.utils import EnvTools
 
 
 class ChunkingService:
     def __init__(self) -> None:
+        max_tokens = int(EnvTools.required_load_env_var("CHUNKING_MAX_TOKENS"))
+        overlap_tokens = int(EnvTools.required_load_env_var("CHUNKING_OVERLAP_TOKENS"))
+        
         self.docling_chunker = HybridChunker(
-            max_tokens=480,
-            overlap_tokens=120
+            max_tokens=max_tokens,
+            overlap_tokens=overlap_tokens
         )
+        
+        logger.info(f"ChunkingService initialized with max_tokens={max_tokens}, overlap_tokens={overlap_tokens}")
 
 
     def extract_chunks_from_docling_file(
         self,
-        docling_doc: DoclingDocument
+        docling_doc: DoclingDocument,
+        doc_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> List[Chunk]:
         chunks: List[Chunk] = []
         
-        for idx, ch in enumerate(self.docling_chunker.chunk(docling_doc), start=1):
+        for idx, ch in enumerate(self.docling_chunker.chunk(docling_doc), start=0):
             pages = self._collect_pages_for_chunk(ch)        
             chunks.append(
                 Chunk(
@@ -37,6 +45,14 @@ class ChunkingService:
                     pages=pages,
                     meta={},
                 )
+            )
+        
+        if doc_id is not None and metadata is not None:
+            ChunkingLogger.log_chunking_results(
+                doc_id=doc_id,
+                extracted_text="\n\n".join(c.text for c in chunks),
+                chunks=[chunk.model_dump() for chunk in chunks],
+                metadata=metadata
             )
         
         return chunks
@@ -84,6 +100,7 @@ class ChunkingService:
             val = getattr(chunk, attr, None)
             if isinstance(val, int) and val > 0:
                 return [val]
+
             if isinstance(val, list):
                 ints = [v for v in val if isinstance(v, int) and v > 0]
                 if ints:

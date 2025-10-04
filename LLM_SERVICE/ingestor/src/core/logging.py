@@ -5,11 +5,12 @@ import os
 import re
 import sys
 import unicodedata
+import warnings
 from datetime import datetime
 from typing import Any, Dict, List
 
 from loguru import logger
-from src.core.utils import FileSystemTools
+from src.core.utils import FileSystemTools, EnvTools
 
 
 class InterceptHandler(logging.Handler):
@@ -34,6 +35,27 @@ class InterceptHandler(logging.Handler):
 class LogSetup:
     @staticmethod
     def configure() -> None:
+        EnvTools.set_env_var("TRANSFORMERS_VERBOSITY", "error")
+        EnvTools.set_env_var("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+        EnvTools.set_env_var("TQDM_DISABLE", "1")
+        
+        warnings.filterwarnings("ignore", message=".*pin_memory.*", category=UserWarning, module="torch.utils.data.dataloader")
+        
+        logging.getLogger().setLevel(logging.WARNING)
+        logging.getLogger("src").setLevel(logging.INFO)
+        
+        NOISY_LIBRARIES = [
+            "docling", "docling_core", "docling.datamodel", "docling.document_converter",
+            "pdfminer", "pikepdf", "PIL", "easyocr",
+            "celpy", "lark",
+            "urllib3", "httpx", "grpc",
+        ]
+        
+        for name in NOISY_LIBRARIES:
+            lg = logging.getLogger(name)
+            lg.setLevel(logging.ERROR)
+            lg.propagate = False
+        
         logger.remove()
         logger.add(
             "debug/debug.json",
@@ -62,7 +84,6 @@ class ChunkingLogger:
         extracted_text: str,
         chunks: List[Dict[str, Any]],
         metadata: Dict[str, Any],
-        paragraph_count: int
     ) -> None:
         try:
             log_chunking_entry = {

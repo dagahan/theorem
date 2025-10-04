@@ -120,7 +120,11 @@ class IngestorService:
         
         docling_doc: DoclingDocument = self.file_parser_service.parse_file_content(uploaded_file)
 
-        chunks: List["Chunk"] = self.chunking_service.extract_chunks_from_docling_file(docling_doc)
+        chunks: List["Chunk"] = self.chunking_service.extract_chunks_from_docling_file(
+            docling_doc, 
+            doc_id=doc_id, 
+            metadata=uploaded_file.meta
+        )
 
         embedded_chunks: List["EmbeddedChunk"] = await self.hybrid_embedder_grpc_client.embed_chunks(chunks)
 

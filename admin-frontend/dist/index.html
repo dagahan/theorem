@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theorem Admin - RAG Database Management</title>
+    <meta name="description" content="Admin panel for Theorem RAG database management. Manage collections, documents, and vector embeddings.">
+    <meta name="keywords" content="admin, rag, vector-database, management, theorem">
+    <meta name="author" content="Theorem team">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://theorem.ai/admin">
+    <meta property="og:title" content="Theorem Admin - RAG Database Management">
+    <meta property="og:description" content="Admin panel for Theorem RAG database management. Manage collections, documents, and vector embeddings.">
+    <meta property="og:image" content="https://theorem.ai/admin-og-image.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://theorem.ai/admin">
+    <meta property="twitter:title" content="Theorem Admin - RAG Database Management">
+    <meta property="twitter:description" content="Admin panel for Theorem RAG database management. Manage collections, documents, and vector embeddings.">
+    <meta property="twitter:image" content="https://theorem.ai/admin-og-image.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    
+    <!-- Theme detection -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('admin-theme') || 
+                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+  <script type="module" crossorigin src="/assets/index-B_QEy5Rq.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-2gs8-y_H.css">
+</head>
+<body>
+    <!-- Loading screen -->
+    <div id="loading" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+    ">
+        <div style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        ">
+            <div style="
+                width: 40px;
+                height: 40px;
+                border: 3px solid var(--border);
+                border-top: 3px solid var(--primary);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            "></div>
+            <p style="color: var(--muted); font-size: 14px;">Загрузка Theorem Admin...</p>
+        </div>
+    </div>
+
+    <!-- Main app container -->
+    <div id="app"></div>
+
+    <!-- CSS Animations -->
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+    </style>
+
+    <!-- Scripts -->
+    
+    <!-- Hide loading screen when app loads -->
+    <script>
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.style.opacity = '0';
+                    setTimeout(() => loading.remove(), 300);
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>
