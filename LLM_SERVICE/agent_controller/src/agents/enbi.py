@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from functools import partial
 
-from src.pydantic_schemas.agent_controller import GraphNodeFactory, StepSpec
+from src.pydantic_schemas.agent_controller import StepSpec
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.agents_graphs.graph_node_factory import GraphNodeFactory
 from .agent_registry import AgentGraphRegistry
 
 
@@ -14,8 +18,8 @@ class EnbiAgent:
     def _build_sequence(factory: GraphNodeFactory) -> list[StepSpec]:
         return [
             StepSpec(
-                name='build_system_prompt',
-                handler=partial(factory.system_prompt_builder_node.execute_node),
+                name='build_personalities',
+                handler=partial(factory.personality_builder_node.execute_node),
                 success_key='success',
             ),
             StepSpec(
@@ -34,8 +38,8 @@ class EnbiAgent:
                 success_key='success',
             ),
             StepSpec(
-                name='llm_generation',
-                handler=partial(factory.llm_generation_node.execute_node),
+                name='response_answer',
+                handler=partial(factory.response_answer_node.execute_node),
                 success_key='llm_success',
             ),
         ]

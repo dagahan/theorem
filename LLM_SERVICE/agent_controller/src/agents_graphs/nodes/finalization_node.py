@@ -22,25 +22,25 @@ class FinalizationNode:
     ) -> GraphState:
         total_ms = GraphTools.total_elapsed_ms(graph_state)
 
-        graph_state['success'] = bool(graph_state.get('llm_success', False))
+        graph_state['success'] = bool(graph_state.get('response_success', False))
         
         if graph_state['success']:
             graph_state['error'] = ''
 
         else:
             graph_state['error'] = (
-                graph_state.get('llm_error')
+                    graph_state.get('response_error')
                 or graph_state.get('retrieval_error')
                 or 'Unknown error'
             )
 
         QuestionLogger.log_question_processing(
             question_id=graph_state['question_id'],
-            original_question=graph_state['query'].raw_text,
+            question=graph_state['query'].raw_text,
             context_chunks=GraphTools.context_chunks_to_payload(
                 graph_state.get('context_chunks', []),
             ),
-            llm_response=graph_state.get('llm_answer', ''),
+            response_answer=graph_state.get('response_answer', ''),
             processing_time_ms=total_ms,
             success=graph_state['success'],
             error_message=graph_state['error'],

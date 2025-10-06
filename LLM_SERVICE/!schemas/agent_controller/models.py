@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from enum import Enum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, Any
 
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from src.agents_graphs.nodes.context_builder_node import ContextBuilderNode
-    from src.agents_graphs.nodes.llm_generation_node import LLMGenerationNode
+    from src.agents_graphs.nodes.response_answer_node import ResponseAnswerNode
     from src.agents_graphs.nodes.question_builder_node import QuestionBuilderNode
     from src.agents_graphs.nodes.retrieval_node import RetrievalNode
-    from src.agents_graphs.nodes.system_prompt_builder_node import SystemPromptBuilderNode
+    from src.agents_graphs.nodes.personality_builder_node import PersonalityBuilderNode
 
 
 class ServiceStatus(Enum):
@@ -62,9 +62,7 @@ class QuestionBuilderRequest(BaseModel):  # type: ignore[misc]
 
 
 class QuestionBuilderResponse(BaseModel):  # type: ignore[misc]
-    original_question: str
-    expanded_question: str
-    expanded_question_semantic_parts: list[str]
+    question: str
     success: bool
     error: str | None = None
 
@@ -96,6 +94,22 @@ class ContextBuilderResponse(BaseModel):  # type: ignore[misc]
     error: str | None = None
 
 
+class Personality(BaseModel):  # type: ignore[misc]
+    name: str
+    system_prompt: str
+    response_schema: Any | None = None
+
+
+class Personalities(BaseModel):  # type: ignore[misc]
+    personalities: dict[str, Personality]
+
+
+class PersonalityResponse(BaseModel):  # type: ignore[misc]
+    personalities: list[Any]
+    success: bool
+    error: str | None = None
+
+
 class SystemPromptResponse(BaseModel):  # type: ignore[misc]
     personalities: dict[str, str]
     success: bool
@@ -120,21 +134,20 @@ class GraphState(TypedDict, total=False):
     query: UserQuery
     agent_name: str
 
-    original_question: str
-    expanded_question: str
-    expanded_question_semantic_parts: list[str]
+    question: str
 
     retrieval_success: bool
     retrieval_error: str
     context_chunks: list[ContextChunk]
 
     context_digests: list[ContextDigestItem]
-    personality_prompts: dict[str, str]
-    system_prompt: str
+    personalities: Personalities
 
-    llm_answer: str
-    llm_success: bool
-    llm_error: str
+    inference_params: InferenceParams
+
+    response_answer: str
+    response_success: bool
+    response_error: str
 
     success: bool
     error: str
@@ -150,26 +163,18 @@ class StepSpec(BaseModel):  # type: ignore[misc]
     on_fail: str = "failure"
 
 
+class InferenceParams(BaseModel):  # type: ignore[misc]
+    temperature: float = 0.2
+    max_tokens: int = 800
+    model_name: str = "vllm"
+
+
 class GraphNodeFactory(BaseModel):  # type: ignore[misc]
-    system_prompt_builder_node: SystemPromptBuilderNode
+    personality_builder_node: PersonalityBuilderNode
     question_builder_node: QuestionBuilderNode
     retrieval_node: RetrievalNode
     context_builder_node: ContextBuilderNode
-    llm_generation_node: LLMGenerationNode
-
-
-class ResponderConfig(BaseModel):  # type: ignore[misc]
-    model_name: str
-    temperature: float = 0.2
-    max_tokens: int = 800
-
-
-class ResponderRuntime(BaseModel):  # type: ignore[misc]
-    system_prompt: str
-    question: str
-    context: str
-    agent_name: str
-    stream: bool
+    response_answer_node: ResponseAnswerNode
 
 
 

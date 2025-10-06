@@ -51,9 +51,21 @@ class ContextBuilderNode:
 
             return graph_state
 
-        prompts = graph_state.get('personality_prompts') or {}
+        personalities = graph_state.get('personalities')
+        if not personalities or 'Summarizer' not in personalities.personalities:
+            elapsed_ms = GraphTools.record_timing(graph_state, 'build_context_text', started_at)
+            ContextBuilderLogger.log_context_building(
+                question_id=graph_state['question_id'],
+                input_chunks_count=len(chunks),
+                digests=[],
+                building_time_ms=elapsed_ms,
+                success=False,
+            )
+            
+            return GraphTools.mark_failure(graph_state, "Summarizer personality is missing")
 
-        summarizer_prompt = prompts.get('Summarizer', '').strip()
+        summarizer = personalities.personalities['Summarizer']
+        summarizer_prompt = summarizer.system_prompt.strip()
 
         if not summarizer_prompt:
             elapsed_ms = GraphTools.record_timing(graph_state, 'build_context_text', started_at)

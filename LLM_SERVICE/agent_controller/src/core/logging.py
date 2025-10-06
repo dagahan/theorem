@@ -58,9 +58,9 @@ class QuestionLogger:
     @staticmethod
     def log_question_processing(
         question_id: str,
-        original_question: str,
+        question: str,
         context_chunks: List[Dict[str, Any]],
-        llm_response: str,
+        response_answer: str,
         processing_time_ms: float,
         success: bool,
         error_message: str = ""
@@ -73,7 +73,7 @@ class QuestionLogger:
             question_entry = {
                 "timestamp": int(datetime.now().timestamp()),
                 "question_id": question_id,
-                "original_question": original_question,
+                "question": question,
                 "context_chunks": [
                     {
                         "doc_id": chunk.get("doc_id", ""),
@@ -86,7 +86,7 @@ class QuestionLogger:
 
                     for chunk in context_chunks
                 ],
-                "llm_response": llm_response,
+                "response_answer": response_answer,
                 "success": success,
                 "error_message": error_message if not success else None
             }
@@ -156,13 +156,13 @@ class ContextRetrievalLogger:
             logger.error(f"Failed to log context retrieval results: {ex}")
 
 
-class LLMGenerationLogger:
+class ResponderGenerationLogger:
     @staticmethod
-    def log_llm_generation(
+    def log_responder_generation(
         question_id: str,
         question: str,
         context: str,
-        llm_response: str,
+        response_answer: str,
         generation_time_ms: float,
         success: bool,
         error_message: str = ""
@@ -177,7 +177,7 @@ class LLMGenerationLogger:
                 "question_id": question_id,
                 "question": question,
                 "context": context,
-                "llm_response": llm_response,
+                "response_answer": response_answer,
                 "success": success,
                 "error_message": error_message if not success else None
             }
@@ -201,9 +201,7 @@ class QuestionBuilderLogger:
     @staticmethod
     def log_question_building(
         question_id: str,
-        original_question: str,
-        expanded_question: str,
-        semantic_parts: List[str],
+        question: str,
         building_time_ms: float,
         success: bool,
         error_message: str = ""
@@ -216,9 +214,7 @@ class QuestionBuilderLogger:
             building_entry = {
                 "timestamp": int(datetime.now().timestamp()),
                 "question_id": question_id,
-                "original_question": original_question,
-                "expanded_question": expanded_question,
-                "semantic_parts": semantic_parts,
+                "question": question,
                 "success": success,
                 "error_message": error_message if not success else None
             }
@@ -289,24 +285,34 @@ class ContextBuilderLogger:
             logger.error(f"Failed to log context building results: {ex}")
 
 
-class SystemPromptBuilderLogger:
+class PersonalityBuilderLogger:
     @staticmethod
-    def log_system_prompt_building(
+    def log_personality_building(
         question_id: str,
-        system_prompt: str,
+        personalities: Any,  # Personalities object
         building_time_ms: float,
         success: bool,
         error_message: str = ""
     ) -> None:
         try:
-            debug_dir = "debug/system_prompt_building"
+            debug_dir = "debug/personality_building"
             FileSystemTools.ensure_directory_exists(debug_dir)
             file_path = os.path.join(debug_dir, f"{question_id}.json")
+            
+            # Convert Personalities object to dict for JSON serialization
+            personalities_dict = {}
+            if hasattr(personalities, 'personalities'):
+                for name, personality in personalities.personalities.items():
+                    personalities_dict[name] = {
+                        "name": personality.name,
+                        "system_prompt": personality.system_prompt,
+                        "response_schema": personality.response_schema.__name__ if personality.response_schema else None
+                    }
             
             building_entry = {
                 "timestamp": int(datetime.now().timestamp()),
                 "question_id": question_id,
-                "system_prompt": system_prompt,
+                "personalities": personalities_dict,
                 "success": success,
                 "error_message": error_message if not success else None
             }
@@ -316,12 +322,12 @@ class SystemPromptBuilderLogger:
             
             log_data = {
                 "question_id": question_id,
-                "system_prompt_building": [building_entry]
+                "personality_building": [building_entry]
             }
             
             with open(file_path, "w", encoding="utf-8") as file:
                 json.dump(log_data, file, indent=2, ensure_ascii=False)
             
         except Exception as ex:
-            logger.error(f"Failed to log system prompt building results: {ex}")
+            logger.error(f"Failed to log personality building results: {ex}")
 

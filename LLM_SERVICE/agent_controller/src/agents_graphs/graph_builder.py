@@ -9,20 +9,21 @@ if TYPE_CHECKING:
 from langgraph.graph import END, StateGraph
 
 from src.agents.agent_registry import AgentGraphRegistry
-from src.pydantic_schemas.agent_controller import GraphNodeFactory
+from src.pydantic_schemas.agent_controller import InferenceParams, Personality
+from .graph_node_factory import GraphNodeFactory
 from .nodes.context_builder_node import ContextBuilderNode
 from .nodes.failure_node import FailureNode
 from .nodes.finalization_node import FinalizationNode
-from .nodes.llm_generation_node import LLMGenerationNode
+from .nodes.response_answer_node import ResponseAnswerNode
 from .nodes.question_builder_node import QuestionBuilderNode
 from .nodes.retrieval_node import RetrievalNode
-from .nodes.system_prompt_builder_node import SystemPromptBuilderNode
+from .nodes.personality_builder_node import PersonalityBuilderNode
 
 if TYPE_CHECKING:
     from src.adapters.context_builder_adapter import ContextBuilderAdapter
     from src.adapters.question_builder_adapter import QuestionBuilderAdapter
     from src.adapters.retriever_adapter import RetrieverAdapter
-    from src.adapters.system_prompt_builder_adapter import SystemPromptBuilderAdapter
+    from src.adapters.personality_builder_adapter import PersonalityBuilderAdapter
     from src.adapters.vllm_adapter import VLLMAdapter
 
 from src.pydantic_schemas.agent_controller import GraphState
@@ -35,23 +36,26 @@ class GraphBuilder:
         retriever_adapter: 'RetrieverAdapter',
         question_builder_adapter: 'QuestionBuilderAdapter',
         context_builder_adapter: 'ContextBuilderAdapter',
-        system_prompt_builder_adapter: 'SystemPromptBuilderAdapter',
+        personality_builder_adapter: 'PersonalityBuilderAdapter',
     ) -> None:
         self.question_builder_node = QuestionBuilderNode(question_builder_adapter)
         self.retrieval_node = RetrievalNode(retriever_adapter)
         self.context_builder_node = ContextBuilderNode(context_builder_adapter)
-        self.system_prompt_builder_node = SystemPromptBuilderNode(system_prompt_builder_adapter)
-        self.llm_generation_node = LLMGenerationNode(vllm_adapter_service)
+        self.personality_builder_node = PersonalityBuilderNode(personality_builder_adapter)
+        self.response_answer_node = ResponseAnswerNode(
+            vllm_adapter=vllm_adapter_service,
+            defaults=InferenceParams()
+        )
         self.finalization_node = FinalizationNode()
         self.failure_node = FailureNode()
 
         self.agent_graph_registry = AgentGraphRegistry()
         self.graph_node_factory = GraphNodeFactory(
-            system_prompt_builder_node=self.system_prompt_builder_node,
+            personality_builder_node=self.personality_builder_node,
             question_builder_node=self.question_builder_node,
             retrieval_node=self.retrieval_node,
             context_builder_node=self.context_builder_node,
-            llm_generation_node=self.llm_generation_node,
+            response_answer_node=self.response_answer_node,
         )
 
 

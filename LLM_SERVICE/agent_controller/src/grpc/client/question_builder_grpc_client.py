@@ -82,7 +82,7 @@ class QuestionBuilderGrpcClient:
                 raise asyncio.TimeoutError('question_builder timeout') from ex
 
             return QuestionBuilderResponse(
-                original_question=request.raw_text,
+                question=request.raw_text,
                 expanded_question=request.raw_text,
                 expanded_question_semantic_parts=[request.raw_text],
                 success=False,
@@ -104,7 +104,7 @@ class QuestionBuilderGrpcClient:
 
         except grpc.RpcError as ex:
             return QuestionBuilderResponse(
-                original_question=request.raw_text,
+                question=request.raw_text,
                 expanded_question=request.raw_text,
                 expanded_question_semantic_parts=[request.raw_text],
                 success=False,
@@ -113,7 +113,7 @@ class QuestionBuilderGrpcClient:
 
         if not response.success:
             return QuestionBuilderResponse(
-                original_question=request.raw_text,
+                question=request.raw_text,
                 expanded_question=request.raw_text,
                 expanded_question_semantic_parts=[request.raw_text],
                 success=False,
@@ -123,9 +123,7 @@ class QuestionBuilderGrpcClient:
         GrpcTools.validate_proto(response)
         
         return QuestionBuilderResponse(
-            original_question=response.original_question,
-            expanded_question=response.expanded_question,
-            expanded_question_semantic_parts=list(response.expanded_question_semantic_parts),
+            question=response.question,
             success=True
         )
 

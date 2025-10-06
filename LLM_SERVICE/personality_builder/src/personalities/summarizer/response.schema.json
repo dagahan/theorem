@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "digests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "summary": { "type": "string", "maxLength": 500, "minLength": 1 },
+          "chunk_id": { "type": "integer" },
+          "doc_id":   { "type": "string",  "minLength": 1 },
+          "paragraph_id": { "type": "integer" },
+          "pages": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1 }
+          },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
+        "required": ["summary", "chunk_id", "doc_id", "paragraph_id", "score"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["digests"],
+  "additionalProperties": false
+}
+

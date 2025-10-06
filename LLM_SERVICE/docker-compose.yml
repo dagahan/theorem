@@ -189,12 +189,12 @@ services:
   #         path: ./context_builder
 
 
-  # system_prompt_builder:
+  # personality_builder:
   #   build:
-  #     context: ./system_prompt_builder
+  #     context: ./personality_builder
   #     dockerfile: dockerfile
-  #   image: system_prompt_builder-${COMPOSE_PROJECT_NAME}
-  #   container_name: system_prompt_builder-${COMPOSE_PROJECT_NAME}
+  #   image: personality_builder-${COMPOSE_PROJECT_NAME}
+  #   container_name: personality_builder-${COMPOSE_PROJECT_NAME}
   #   env_file: 
   #     - .env
   #     - .common-env.conf
@@ -202,7 +202,7 @@ services:
   #     RUNNING_INSIDE_DOCKER: 1
   #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
   #   ports:
-  #     - "${SYSTEM_PROMPT_BUILDER_GRPC_PORT}:${SYSTEM_PROMPT_BUILDER_GRPC_PORT}"
+  #     - "${PERSONALITY_BUILDER_GRPC_PORT}:${PERSONALITY_BUILDER_GRPC_PORT}"
   #   networks:
   #     - llm_service_network
   #   restart: ${DOCKER_CONTAINERS_RESTART}
@@ -211,7 +211,7 @@ services:
   #   develop:
   #     watch:
   #       - action: rebuild
-  #         path: ./system_prompt_builder
+  #         path: ./personality_builder
 
 
   # policy_builder:

@@ -10,9 +10,7 @@ class QuestionBuilderRequest(BaseModel):  # type: ignore[misc]
 
 
 class QuestionBuilderResponse(BaseModel):  # type: ignore[misc]
-    original_question: str
-    expanded_question: str
-    expanded_question_semantic_parts: List[str]
+    question: str
     success: bool
     error: Optional[str] = None
 

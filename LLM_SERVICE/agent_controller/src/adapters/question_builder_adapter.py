@@ -25,12 +25,16 @@ class QuestionBuilderAdapter:
         request: QuestionBuilderRequest
     ) -> QuestionBuilderResponse:
         logger.info(f"Starting question processing for: '{request.raw_text}'")
+
         try:
             response = await self.client.process_question(request)
+
             logger.info(f"Question processing completed: success={response.success}")
+
             return response
-        except Exception as e:
-            logger.error(f"Question processing failed: {e}")
+
+        except Exception as ex:
+            logger.error(f"Question processing failed: {ex}")
             raise
 
 

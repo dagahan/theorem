@@ -4,7 +4,8 @@ from collections.abc import Callable
 
 from loguru import logger
 
-from src.pydantic_schemas.agent_controller import GraphNodeFactory, StepSpec
+from src.pydantic_schemas.agent_controller import StepSpec
+from src.agents_graphs.graph_node_factory import GraphNodeFactory
 
 
 AgentFactory = Callable[[GraphNodeFactory], list[StepSpec]]

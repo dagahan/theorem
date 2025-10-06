@@ -29,9 +29,9 @@ class FailureNode:
 
         QuestionLogger.log_question_processing(
             question_id=state['question_id'],
-            original_question=state['query'].raw_text,
+            question=state['query'].raw_text,
             context_chunks=[],
-            llm_response='',
+            response_answer='',
             processing_time_ms=total_ms,
             success=False,
             error_message=error_message,

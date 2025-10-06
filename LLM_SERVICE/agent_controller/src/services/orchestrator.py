@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import asyncio
@@ -12,7 +11,7 @@ from loguru import logger
 from src.adapters.context_builder_adapter import ContextBuilderAdapter
 from src.adapters.question_builder_adapter import QuestionBuilderAdapter
 from src.adapters.retriever_adapter import RetrieverAdapter
-from src.adapters.system_prompt_builder_adapter import SystemPromptBuilderAdapter
+from src.adapters.personality_builder_adapter import PersonalityBuilderAdapter
 from src.adapters.vllm_adapter import VLLMAdapter
 from src.core.timeouts import TimeoutTools
 from src.core.utils import EnvTools
@@ -20,6 +19,8 @@ from src.pydantic_schemas.agent_controller import (
     ComponentHealth,
     GraphState,
     HealthCheck,
+    InferenceParams,
+    Personalities,
     QuestionResponse,
     ServiceStatus,
     UserQuery,
@@ -37,20 +38,27 @@ class LLMGraphOrchestrator:
         self.retriever_adapter = RetrieverAdapter()
         self.question_builder_adapter = QuestionBuilderAdapter()
         self.context_builder_adapter = ContextBuilderAdapter()
-        self.system_prompt_builder_adapter = SystemPromptBuilderAdapter()
+        self.personality_builder_adapter = PersonalityBuilderAdapter()
         self.default_collection = EnvTools.required_load_env_var('DEFAULT_RETRIEVER_COLLECTION')
         max_len_env = float(EnvTools.required_load_env_var('VLLM_TALKING_MAX_LEN'))
         self.max_context_chars = int(max_len_env / 2)
         self.min_results_required = int(EnvTools.required_load_env_var('VLLM_TALKING_MIN_RESULTS'))
         self.checkpointer = MemorySaver()
         self.health_timeout_sec = TimeoutTools.get_health_check_timeout()
+        
+        # Initialize inference defaults
+        self.inference_defaults = InferenceParams(
+            model_name=EnvTools.load_env_var("VLLM_MODEL_NAME") or "vllm",
+            temperature=float(EnvTools.load_env_var("LLM_TEMP") or "0.2"),
+            max_tokens=int(EnvTools.load_env_var("LLM_MAX_TOKENS") or "800"),
+        )
 
         self.graph_builder = GraphBuilder(
             self.vllm_adapter,
             self.retriever_adapter,
             self.question_builder_adapter,
             self.context_builder_adapter,
-            self.system_prompt_builder_adapter,
+            self.personality_builder_adapter,
         )
 
         self.agents_graphs: dict[str, Any] = {}
@@ -91,9 +99,9 @@ class LLMGraphOrchestrator:
             'query': query,
             'agent_name': query.agent_name,
             'success': False,
-            'personality_prompts': {},
             'context_digests': [],
-            'system_prompt': '',
+            'personalities': Personalities(personalities={}),
+            'inference_params': self.inference_defaults,
         }
 
         state: GraphState = await graph.ainvoke(
@@ -102,7 +110,7 @@ class LLMGraphOrchestrator:
         )
 
         return QuestionResponse(
-            answer=state.get('llm_answer', ''),
+            answer=state.get('response_answer', ''),
             success=state.get('success', False),
             error=state.get('error', ''),
         )
@@ -182,7 +190,7 @@ class LLMGraphOrchestrator:
             run_check('question_builder', self.question_builder_adapter.health_check),
             run_check('retriever', self.retriever_adapter.health_check),
             run_check('context_builder', self.context_builder_adapter.health_check),
-            run_check('system_prompt_builder', self.system_prompt_builder_adapter.health_check),
+            run_check('personality_builder', self.personality_builder_adapter.health_check),
         )
 
         overall_status = ServiceStatus.HEALTHY if all(

@@ -6,7 +6,7 @@ import colorama
 from loguru import logger
 
 from src.core.logging import InterceptHandler, LogSetup
-from src.grpc.grpc_server import GrpcSystemPromptBuilderServer
+from src.grpc.grpc_server import GrpcPersonalityBuilderServer
 from src.core.utils import EnvTools
 
 
@@ -14,7 +14,7 @@ class Service:
     def __init__(self) -> None:
         self.intercept_handler = InterceptHandler()
         self.logger_setup = LogSetup()
-        self.grpc_runner = GrpcSystemPromptBuilderServer()
+        self.grpc_runner = GrpcPersonalityBuilderServer()
 
 
     async def run_service(self) -> None:
@@ -27,7 +27,7 @@ class Service:
 
         await self.grpc_runner.start()
 
-        waiter = asyncio.create_task(self.grpc_runner.wait_terminated(), name="gRPC-SystemPromptBuilder")
+        waiter = asyncio.create_task(self.grpc_runner.wait_terminated(), name="gRPC-PersonalityBuilder")
         pending = {waiter, stop_future}
 
         try:
@@ -56,7 +56,7 @@ class Service:
 if __name__ == "__main__":
     try:
         EnvTools.bootstrap_env(
-            service_name="system_prompt_builder",
+            service_name="personality_builder",
             conf_filename=".conf"
         )
 

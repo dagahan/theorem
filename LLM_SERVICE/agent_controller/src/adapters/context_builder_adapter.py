@@ -28,13 +28,13 @@ class ContextBuilderAdapter:
         try:
             response = await self.client.build_context(request)
             logger.info(
-                "Context building completed: %s digests, success=%s",
-                len(response.digests),
-                response.success,
+                f"Context building completed: {len(response.digests)} digests, success={response.success}"
             )
+
             return response
-        except Exception as e:
-            logger.error(f"Context building failed: {e}")
+
+        except Exception as ex:
+            logger.error(f"Context building failed: {ex}")
             raise
 
 

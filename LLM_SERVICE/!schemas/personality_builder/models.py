@@ -1,17 +1,26 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
 
-class PersonaPrompt(BaseModel):  # type: ignore[misc]
+class ResponseSchema(BaseModel):  # type: ignore[misc]
+    type: str
+    properties: Dict[str, str] = {}
+    required: List[str] = []
+    title: Optional[str] = None
+
+
+class Personality(BaseModel):  # type: ignore[misc]
     name: str
-    prompt: str
+    system_prompt: str
+    response_schema: Optional[ResponseSchema] = None
 
 
-class BuildSystemPromptRequest(BaseModel):  # type: ignore[misc]
+class BuildPersonalityRequest(BaseModel):  # type: ignore[misc]
     persona_names: list[str]
+    agent_name: str = ""
 
 
 class PolicyHeaderResponse(BaseModel):  # type: ignore[misc]
@@ -26,8 +35,8 @@ class PolicyHealthResponse(BaseModel):  # type: ignore[misc]
     error: Optional[str] = None
 
 
-class BuildSystemPromptResponse(BaseModel):  # type: ignore[misc]
-    personalities: list[PersonaPrompt]
+class BuildPersonalityResponse(BaseModel):  # type: ignore[misc]
+    personalities: list[Personality]
     success: bool
     error: Optional[str] = None
 

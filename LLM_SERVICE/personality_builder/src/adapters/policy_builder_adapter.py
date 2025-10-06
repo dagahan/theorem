@@ -6,7 +6,7 @@ from src.grpc.client.policy_builder_grpc_client import PolicyBuilderGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 
 if TYPE_CHECKING:
-    from src.pydantic_schemas.system_prompt_builder import PolicyHeaderResponse
+    from src.pydantic_schemas.personality_builder import PolicyHeaderResponse
 
 
 class PolicyBuilderAdapter:

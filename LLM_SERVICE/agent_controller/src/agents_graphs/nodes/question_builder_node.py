@@ -45,29 +45,19 @@ class QuestionBuilderNode:
             error_text = response.error or 'unknown'
             return GraphTools.mark_failure(graph_state, f'Question processing failed: {error_text}')
 
-        graph_state['original_question'] = response.original_question
-        graph_state['expanded_question'] = response.expanded_question
-        graph_state['expanded_question_semantic_parts'] = response.expanded_question_semantic_parts
+        graph_state['question'] = response.question
 
         elapsed_ms = GraphTools.record_timing(graph_state, 'build_question', started_at)
 
         QuestionBuilderLogger.log_question_building(
             question_id=graph_state['question_id'],
-            original_question=response.original_question,
-            expanded_question=response.expanded_question,
-            semantic_parts=response.expanded_question_semantic_parts,
+            question=response.question,
             building_time_ms=elapsed_ms,
             success=True,
         )
 
         graph_state['success'] = True
 
-        logger.info(
-            (
-                f"Question processed: original='{response.original_question}', "
-                f"expanded='{response.expanded_question}', "
-                f"parts={len(response.expanded_question_semantic_parts)}"
-            )
-        )
+        logger.info(f"Question processed: question='{response.question}'")
 
         return graph_state

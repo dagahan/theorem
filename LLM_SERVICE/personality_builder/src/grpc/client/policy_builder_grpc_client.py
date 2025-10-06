@@ -5,7 +5,7 @@ from loguru import logger
 
 from protobuf_stubs import policy_builder_pb2, policy_builder_pb2_grpc
 from src.grpc.grpc_utils import GrpcTools
-from src.pydantic_schemas.system_prompt_builder import PolicyHeaderResponse, PolicyHealthResponse
+from src.pydantic_schemas.personality_builder import PolicyHeaderResponse, PolicyHealthResponse
 
 
 class PolicyBuilderGrpcClient:

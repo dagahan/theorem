@@ -6,17 +6,17 @@ import colorama
 import grpc.aio
 from loguru import logger
 
-from protobuf_stubs import system_prompt_builder_pb2_grpc
+from protobuf_stubs import personality_builder_pb2_grpc
 from src.core.utils import EnvTools
-from src.grpc.api.system_prompt_builder_api import SystemPromptBuilderAPI
-from src.services.system_prompt_builder_service import SystemPromptBuilderService
+from src.grpc.api.personality_builder_api import PersonalityBuilderAPI
+from src.services.personality_builder_service import PersonalityBuilderService
 
 
-class GrpcSystemPromptBuilderServer:
+class GrpcPersonalityBuilderServer:
     def __init__(self) -> None:
-        self.stub = system_prompt_builder_pb2_grpc
+        self.stub = personality_builder_pb2_grpc
         self._server_addr: str = (
-            f"{EnvTools.get_service_host('system_prompt_builder')}:{EnvTools.get_service_grpc_port('system_prompt_builder')}"
+            f"{EnvTools.get_service_host('personality_builder')}:{EnvTools.get_service_grpc_port('personality_builder')}"
         )
         self._max_workers: int = 4
         self._options: tuple[tuple[str, int], ...] = (
@@ -29,8 +29,8 @@ class GrpcSystemPromptBuilderServer:
 
         self._grpc_server: grpc.aio.Server | None = None
 
-        service = SystemPromptBuilderService()
-        self._servicer = SystemPromptBuilderAPI(service)
+        service = PersonalityBuilderService()
+        self._servicer = PersonalityBuilderAPI(service)
 
     @property
     def is_running(self) -> bool:
@@ -45,13 +45,13 @@ class GrpcSystemPromptBuilderServer:
             options=self._options,
         )
 
-        self.stub.add_SystemPromptBuilderServiceServicer_to_server(self._servicer, self._grpc_server)
+        self.stub.add_PersonalityBuilderServiceServicer_to_server(self._servicer, self._grpc_server)
         self._grpc_server.add_insecure_port(self._server_addr)
 
         await self._grpc_server.start()
 
         logger.info(
-            f"{colorama.Fore.GREEN}gRPC System Prompt Builder started at "
+            f"{colorama.Fore.GREEN}gRPC Personality Builder started at "
             f"{colorama.Fore.YELLOW}{self._server_addr}{colorama.Style.RESET_ALL}"
         )
 
@@ -64,7 +64,7 @@ class GrpcSystemPromptBuilderServer:
         if self._grpc_server is None:
             return
 
-        logger.info(f"{colorama.Fore.YELLOW}Stopping gRPC System Prompt Builder{colorama.Style.RESET_ALL}")
+        logger.info(f"{colorama.Fore.YELLOW}Stopping gRPC Personality Builder{colorama.Style.RESET_ALL}")
         await self._grpc_server.stop(grace=grace)
         self._grpc_server = None
-        logger.info(f"{colorama.Fore.GREEN}gRPC System Prompt Builder stopped{colorama.Style.RESET_ALL}")
+        logger.info(f"{colorama.Fore.GREEN}gRPC Personality Builder stopped{colorama.Style.RESET_ALL}")

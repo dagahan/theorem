@@ -26,14 +26,20 @@ class RetrieverAdapter:
         request: RetrieveRequest
     ) -> RetrieveResponse:
         logger.info(f"Starting context retrieval for query: '{request.question}'")
+
         try:
             response = await self.client.retrieve_context(request)
+
             logger.info(f"Context retrieval completed: {len(response.results)} chunks")
+
             return response
-        except Exception as e:
-            logger.error(f"Context retrieval failed: {e}")
+
+        except Exception as ex:
+            logger.error(f"Context retrieval failed: {ex}")
             raise
 
 
     async def health_check(self) -> retriever_pb2.HealthResponse:
         return await self.client.health_check()
+
+
