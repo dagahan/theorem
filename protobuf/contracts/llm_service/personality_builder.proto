@@ -2,8 +2,10 @@ syntax = "proto3";
 
 package personality_builder.v1;
 
+import "google/protobuf/struct.proto";
 import "third_party/protovalidate/buf/validate/validate.proto";
 
+option go_package = "github.com/theorem/personality_builder/v1";
 
 service PersonalityBuilderService {
   rpc Health(HealthRequest) returns (HealthResponse);
@@ -15,36 +17,37 @@ message HealthRequest {}
 
 
 message HealthResponse {
-  string status = 1 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
-  string policy_builder_status = 2 [(buf.validate.field).string = {min_len: 0, max_len: 32}];
+  string status = 1 [(buf.validate.field).string = {min_len: 1, max_len: 32}];
+  string policy_builder_status = 2 [(buf.validate.field).string = {min_len: 1, max_len: 32}];
 }
 
 
 message BuildPersonalityRequest {
-  repeated string persona_names = 1 [(buf.validate.field).repeated.min_items = 1];
-  string agent_name = 2 [(buf.validate.field).string = {min_len: 0, max_len: 128}];
+  repeated string persona_names = 1 [(buf.validate.field).repeated = {min_items: 1}];
+  string agent_name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
 }
 
 
 message ResponseSchema {
   string type = 1 [(buf.validate.field).string = {min_len: 1, max_len: 32}];
-  map<string, string> properties = 2;
+  google.protobuf.Struct properties = 2;
   repeated string required = 3;
-  string title = 4 [(buf.validate.field).string = {max_len: 64}];
+  optional string title = 4 [(buf.validate.field).string = {max_len: 64}];
+  optional string description = 5 [(buf.validate.field).string = {max_len: 512}];
 }
 
 
 message Personality {
   string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
-  string system_prompt = 2 [(buf.validate.field).string = {min_len: 1, max_len: 13072}];
-  ResponseSchema response_schema = 3;
+  string system_prompt = 2 [(buf.validate.field).string = {min_len: 1, max_len: 16384}];
+  optional ResponseSchema response_schema = 3;
 }
 
 
 message BuildPersonalityResponse {
-  repeated Personality personalities = 1 [(buf.validate.field).repeated.min_items = 1];
+  repeated Personality personalities = 1 [(buf.validate.field).repeated = {min_items: 1}];
   bool success = 2;
-  string error = 3 [(buf.validate.field).string = {max_len: 2048}];
+  string error = 3 [(buf.validate.field).string = {max_len: 4096}];
 }
 
 

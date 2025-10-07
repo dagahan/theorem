@@ -306,7 +306,7 @@ class PersonalityBuilderLogger:
                     personalities_dict[name] = {
                         "name": personality.name,
                         "system_prompt": personality.system_prompt,
-                        "response_schema": personality.response_schema.__name__ if personality.response_schema else None
+                        "response_schema": personality.response_schema.get("fingerprint") if personality.response_schema else None
                     }
             
             building_entry = {

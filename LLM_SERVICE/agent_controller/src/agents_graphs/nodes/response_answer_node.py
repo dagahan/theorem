@@ -9,6 +9,7 @@ from src.core.logging import ResponderGenerationLogger
 from src.core.retry import timeout_and_retry
 from src.core.timeouts import TimeoutTools
 from src.agents_graphs.graph_tools import GraphTools
+from src.core.schema_utils import get_utils
 from src.services.llm_model import LLMModel
 
 if TYPE_CHECKING:
@@ -21,6 +22,7 @@ class ResponseAnswerNode:
     def __init__(self, vllm_adapter: "VLLMAdapter", defaults: "InferenceParams") -> None:
         self.llm_model = LLMModel(adapter=vllm_adapter)
         self.defaults = defaults
+        self.schema_utils = get_utils()
         
 
 
@@ -63,20 +65,38 @@ class ResponseAnswerNode:
                 graph_state['response_error'] = ''
 
             else:
-                response_model = responder_personality.response_schema
-
-                result = await self.llm_model.pydantic_ai_request(
-                    system_prompt=system_prompt,
-                    question=question,
-                    context=context_json,
-                    response_schema=response_model,
-                    retries=1,
-                    temperature=params.temperature,
-                    max_tokens=params.max_tokens,
+                response_model = self.schema_utils.get_personality_model(
+                    responder_personality.model_dump(), 
+                    "ResponderResponse"
                 )
+                
+                if response_model is None:
+                    # Если нет схемы, используем стандартный ответ
+                    answer: str = await self.llm_model.infer(
+                        system_prompt=system_prompt,
+                        question=question,
+                        context=context_json,
+                        stream=False,
+                        temperature=params.temperature,
+                        max_tokens=params.max_tokens,
+                    )
+                else:
+                    result = await self.llm_model.pydantic_ai_request(
+                        system_prompt=system_prompt,
+                        question=question,
+                        context=context_json,
+                        response_schema=response_model,
+                        retries=1,
+                        temperature=params.temperature,
+                        max_tokens=params.max_tokens,
+                    )
+                    answer_value = getattr(result, 'answer', None)
+                    if isinstance(answer_value, str):
+                        answer = answer_value
+                    else:
+                        answer = result.model_dump_json()
 
-                answer = getattr(result, 'answer', None)
-                graph_state['response_answer'] = answer if isinstance(answer, str) else result.model_dump_json()
+                graph_state['response_answer'] = answer
                 graph_state['response_success'] = True
                 graph_state['response_error'] = ''
 

@@ -12,13 +12,6 @@ from pydantic import AnyUrl, EmailStr
 from pydantic.config import ConfigDict
 
 
-def _create_fingerprint(value: Any) -> str:
-    try:
-        return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    except Exception:
-        return str(id(value))
-
-
 @dataclass(frozen=True)
 class _ResolvedType:
     python_type: Any
@@ -329,6 +322,9 @@ class JsonPydanticSchemaCompiler:
         path: Tuple[str, ...]
     ) -> Type[BaseModel]:
         properties: Dict[str, Any] = node.get("properties", {}) or {}
+        if not isinstance(properties, dict):
+            raise TypeError(f"'properties' must be dict, got {type(properties)}")
+        
         required_fields: List[str] = list(node.get("required", []) or [])
 
         model_fields: Dict[str, Tuple[Any, Any]] = {}
@@ -337,8 +333,19 @@ class JsonPydanticSchemaCompiler:
             property_title = property_schema.get("title") or f"{name}_{property_name}"
             resolved = self._resolve_type(property_schema, name=self._create_model_name(property_title), path=path + ("properties", property_name))
             is_required = property_name in required_fields
+            
             default_value = resolved.default_value if resolved.default_value is not None else (None if not is_required else ...)
-            field_definition = Field(default=default_value, description=property_schema.get("description"), **resolved.field_arguments)
+
+            field_args = dict(resolved.field_arguments or {})
+
+            desc_from_type = field_args.pop("description", None)
+            description = property_schema.get("description", desc_from_type)
+
+            field_definition = Field(
+                default=default_value,
+                description=description,
+                **field_args,
+            )
             model_fields[property_name] = (resolved.python_type, field_definition)
 
         extra_behavior = "forbid" if node.get("additionalProperties") is False else "allow"

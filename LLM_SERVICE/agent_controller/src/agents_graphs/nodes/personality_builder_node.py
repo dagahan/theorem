@@ -9,7 +9,7 @@ from src.core.logging import PersonalityBuilderLogger
 from src.core.retry import timeout_and_retry
 from src.core.timeouts import TimeoutTools
 from src.agents_graphs.graph_tools import GraphTools
-from src.core.json_schema_to_pydantic import JsonPydanticSchemaCompiler
+from src.core.schema_utils import get_utils
 from src.pydantic_schemas.agent_controller import GraphState, PersonalityResponse, Personality, Personalities
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class PersonalityBuilderNode:
     def __init__(self, adapter: PersonalityBuilderAdapter) -> None:
         self.adapter = adapter
-        self.schema_compiler = JsonPydanticSchemaCompiler()
+        self.schema_utils = get_utils()
 
 
     _TIMEOUT_SEC = TimeoutTools.get_timeout('PERSONALITY_NODE_TIMEOUT_SEC', 15.0)
@@ -48,18 +48,29 @@ class PersonalityBuilderNode:
                 f"Personality building failed: {response.error or 'unknown'}",
             )
 
-        def _compile(schema_like: Any, name: str) -> Any:
+        def _prepare_schema(schema_like: Any, name: str) -> dict[str, Any] | None:
+            """Подготовить схему для хранения в state (JSON + fingerprint)."""
             if not schema_like:
                 return None
+            
+            # Конвертируем в dict если нужно
             data = schema_like.model_dump() if hasattr(schema_like, "model_dump") else schema_like
-            return self.schema_compiler.compile(data, default_name=f"{name}Response")
+            if not isinstance(data, dict):
+                raise TypeError(f"response_schema must be dict, got {type(data)}")
+            
+            # Проверяем properties
+            props = data.get("properties", {})
+            if not isinstance(props, dict):
+                raise TypeError(f"'properties' must be dict, got {type(props)}")
+            
+            return self.schema_utils.create_schema_entry(data)
 
         personalities = Personalities(
             personalities={
                 personality.name: Personality(
                     name=personality.name,
                     system_prompt=personality.system_prompt,
-                    response_schema=_compile(getattr(personality, "response_schema", None), personality.name)
+                    response_schema=_prepare_schema(getattr(personality, "response_schema", None), personality.name)
                 )
                 for personality in response.personalities
             }

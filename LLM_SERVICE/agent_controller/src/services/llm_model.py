@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Type
 
-if TYPE_CHECKING:
-    from pydantic import BaseModel
-
 from pydantic_ai import Agent
 
 from .pydantic_ai_model import PydanticAIBridgeModel
 
 if TYPE_CHECKING:
+    from pydantic import BaseModel
     from src.adapters.vllm_adapter import VLLMAdapter
 
 
