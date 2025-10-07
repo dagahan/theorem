@@ -29,21 +29,6 @@ class SchemaUtils:
         return self._cache.get_compiled_model(schema_data, model_name)
     
 
-    def get_personality_schema_data(
-        self,
-        personality: Dict[str, Any]
-    ) -> Dict[str, Any] | None:
-        response_schema = personality.get("response_schema")
-        if not response_schema or not isinstance(response_schema, dict):
-            return None
-        
-        schema_data = response_schema.get("schema")
-        if not isinstance(schema_data, dict):
-            return None
-        
-        return schema_data
-    
-
     def create_schema_entry(
         self,
         schema: Dict[str, Any]

@@ -9,7 +9,6 @@ from langgraph.checkpoint.memory import MemorySaver
 from loguru import logger
 
 from src.adapters.context_builder_adapter import ContextBuilderAdapter
-from src.adapters.question_builder_adapter import QuestionBuilderAdapter
 from src.adapters.retriever_adapter import RetrieverAdapter
 from src.adapters.personality_builder_adapter import PersonalityBuilderAdapter
 from src.adapters.vllm_adapter import VLLMAdapter
@@ -36,7 +35,6 @@ class LLMGraphOrchestrator:
     def __init__(self) -> None:
         self.vllm_adapter = VLLMAdapter()
         self.retriever_adapter = RetrieverAdapter()
-        self.question_builder_adapter = QuestionBuilderAdapter()
         self.context_builder_adapter = ContextBuilderAdapter()
         self.personality_builder_adapter = PersonalityBuilderAdapter()
         self.default_collection = EnvTools.required_load_env_var('DEFAULT_RETRIEVER_COLLECTION')
@@ -56,7 +54,6 @@ class LLMGraphOrchestrator:
         self.graph_builder = GraphBuilder(
             self.vllm_adapter,
             self.retriever_adapter,
-            self.question_builder_adapter,
             self.context_builder_adapter,
             self.personality_builder_adapter,
         )
@@ -187,7 +184,6 @@ class LLMGraphOrchestrator:
 
         components = await asyncio.gather(
             run_check('vllm_talking', self.vllm_adapter.health_check),
-            run_check('question_builder', self.question_builder_adapter.health_check),
             run_check('retriever', self.retriever_adapter.health_check),
             run_check('context_builder', self.context_builder_adapter.health_check),
             run_check('personality_builder', self.personality_builder_adapter.health_check),

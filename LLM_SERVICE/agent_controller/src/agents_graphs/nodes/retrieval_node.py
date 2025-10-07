@@ -1,49 +1,39 @@
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING
 
-from loguru import logger
-
 from src.core.logging import ContextRetrievalLogger
-from src.core.retry import timeout_and_retry
-from src.core.timeouts import TimeoutTools
 from src.pydantic_schemas.agent_controller import ContextChunk, RetrieveRequest, RetrieveResponse
 from src.agents_graphs.graph_tools import GraphTools
+from src.core.handlers import ResponseHandler
+from .base_node import BaseNode
 
 if TYPE_CHECKING:
     from src.adapters.retriever_adapter import RetrieverAdapter
     from src.pydantic_schemas.agent_controller import GraphState
 
 
-class RetrievalNode:
+class RetrievalNode(BaseNode):
     def __init__(self, retriever_adapter: RetrieverAdapter) -> None:
+        super().__init__('RETRIEVAL_NODE_TIMEOUT_SEC', 120.0, 2)
         self.retriever_adapter = retriever_adapter
 
 
-    _TIMEOUT_SEC = TimeoutTools.get_timeout('RETRIEVAL_NODE_TIMEOUT_SEC', 120.0)
+    def _get_node_name(self) -> str:
+        return 'retrieve_context'
 
 
-    @timeout_and_retry(max_attempts=2, timeout_sec=_TIMEOUT_SEC)
-    async def execute_node(
+    async def _execute_impl(
         self,
         graph_state: "GraphState"
     ) -> "GraphState":
-        started_at = time.time()
-
         request = RetrieveRequest(
-            question=graph_state.get('expanded_question', graph_state['query'].raw_text),
+            question=graph_state['query'].raw_text,
             collection_name=graph_state['collection_name'],
         )
 
-        try:
-            response: RetrieveResponse = await self.retriever_adapter.retrieve_context(request)
-            
-        except Exception as ex:  # noqa: BLE001
-            graph_state['retrieval_success'] = False
-            graph_state['retrieval_error'] = f"{ex}"
-            return GraphTools.mark_failure(graph_state, f'Retrieval failed: {ex}')
-
+        response: RetrieveResponse = await self.retriever_adapter.retrieve_context(request)
+        
         graph_state['retrieval_success'] = bool(response.success and response.results)
         graph_state['retrieval_error'] = response.error or ''
 
@@ -63,24 +53,50 @@ class RetrievalNode:
 
         graph_state['context_chunks'] = chunks
 
-        elapsed_ms = GraphTools.record_timing(graph_state, 'retrieve_context', started_at)
-        payload = GraphTools.context_chunks_to_payload(chunks)
+        if not graph_state['retrieval_success']:
+            return ResponseHandler.handle_failure(
+                graph_state,
+                response.error or 'Context retrieval failed',
+                error_key='retrieval_success'
+            )
 
+        return ResponseHandler.handle_success(
+            graph_state,
+            'retrieval_success',
+            additional_data={'retrieval_error': ''}
+        )
+
+
+    def _log_success(
+        self,
+        graph_state: "GraphState",
+        elapsed_ms: float
+    ) -> None:
+        payload = GraphTools.context_chunks_to_payload(graph_state['context_chunks'])
         ContextRetrievalLogger.log_context_retrieval(
             question_id=graph_state['question_id'],
             query=graph_state['query'].raw_text,
             retrieved_chunks=payload,
             retrieval_time_ms=elapsed_ms,
-            success=response.success,
-            error_message=response.error or '',
+            success=graph_state['retrieval_success'],
+            error_message=graph_state['retrieval_error'],
         )
 
-        logger.info(
-            f"Context retrieved: {len(chunks)} chunks in {elapsed_ms:.2f}ms, "
-            f"success={response.success}"
+
+    def _log_error(
+        self,
+        graph_state: "GraphState",
+        elapsed_ms: float,
+        error: str
+    ) -> None:
+        payload = GraphTools.context_chunks_to_payload(graph_state.get('context_chunks', []))
+        ContextRetrievalLogger.log_context_retrieval(
+            question_id=graph_state['question_id'],
+            query=graph_state['query'].raw_text,
+            retrieved_chunks=payload,
+            retrieval_time_ms=elapsed_ms,
+            success=False,
+            error_message=error,
         )
 
-        if not graph_state['retrieval_success']:
-            GraphTools.mark_failure(graph_state, response.error or 'Context retrieval failed')
 
-        return graph_state

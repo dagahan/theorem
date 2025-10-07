@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from loguru import logger
 
 from src.core.utils import EnvTools
+from src.core.converters import DataConverter
 
 if TYPE_CHECKING:
     from src.pydantic_schemas.agent_controller import ContextChunk, ContextDigestItem, GraphState
@@ -54,39 +55,17 @@ class GraphTools:
 
     @staticmethod
     def context_chunks_to_payload(chunks: list["ContextChunk"]) -> list[dict[str, object]]:
-        return [
-            {
-                'doc_id': chunk.doc_id,
-                'paragraph_id': chunk.paragraph_id,
-                'chunk_id': chunk.chunk_id,
-                'text': chunk.text,
-                'pages': chunk.pages,
-                'score': chunk.score,
-            }
-            for chunk in chunks
-        ]
+        return DataConverter.chunks_to_payload(chunks)
 
 
     @staticmethod
     def digests_to_payload(digests: list["ContextDigestItem"]) -> list[dict[str, object]]:
-        return [
-            {
-                'title': digest.title,
-                'summary': digest.summary,
-                'doc_id': digest.source_chunk.doc_id,
-                'paragraph_id': digest.source_chunk.paragraph_id,
-                'chunk_id': digest.source_chunk.chunk_id,
-                'score': digest.source_chunk.score,
-                'pages': list(digest.source_chunk.pages),
-            }
-            for digest in digests
-        ]
+        return DataConverter.digests_to_payload(digests)
 
 
     @staticmethod
     def digests_to_json(digests: list["ContextDigestItem"]) -> str:
-        payload = {'digests': GraphTools.digests_to_payload(digests)}
-        return json.dumps(payload, ensure_ascii=False)
+        return DataConverter.digests_to_json(digests)
 
 
     @staticmethod

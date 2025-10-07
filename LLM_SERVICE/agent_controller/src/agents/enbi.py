@@ -23,11 +23,6 @@ class EnbiAgent:
                 success_key='success',
             ),
             StepSpec(
-                name='build_question',
-                handler=partial(factory.question_builder_node.execute_node),
-                success_key='success',
-            ),
-            StepSpec(
                 name='retrieve_context',
                 handler=partial(factory.retrieval_node.execute_node),
                 success_key='retrieval_success',
@@ -40,7 +35,7 @@ class EnbiAgent:
             StepSpec(
                 name='response_answer',
                 handler=partial(factory.response_answer_node.execute_node),
-                success_key='llm_success',
+                success_key='response_success',
             ),
         ]
 

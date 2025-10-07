@@ -28,7 +28,7 @@ class GrpcRetrieverServer:
         )
 
         self._grpc_server: grpc.aio.Server | None = None
-        self._servicer = RetrieverService()
+        self._servicer: RetrieverService | None = None
 
     @property
     def is_running(self) -> bool:
@@ -42,6 +42,9 @@ class GrpcRetrieverServer:
             ThreadPoolExecutor(max_workers=self._max_workers),
             options=self._options,
         )
+
+        if self._servicer is None:
+            self._servicer = RetrieverService()
 
         self.stub.add_RetrieverServiceServicer_to_server(self._servicer, self._grpc_server)
         self._grpc_server.add_insecure_port(self._server_addr)

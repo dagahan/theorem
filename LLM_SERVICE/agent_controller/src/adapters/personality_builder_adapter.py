@@ -4,6 +4,8 @@ from typing import Any
 
 from loguru import logger
 
+from google.protobuf.message import Message
+
 from src.core.protobuf_converter import ProtobufConverter
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 from src.grpc.client.personality_builder_grpc_client import PersonalityBuilderGrpcClient
@@ -53,8 +55,6 @@ class PersonalityBuilderAdapter:
         schema_dict = ProtobufConverter.convert_response_schema(schema_like) if schema_like else None
         
         if schema_dict:
-            # Sanity check - убеждаемся что нет protobuf объектов
-            from google.protobuf.message import Message
             def _has_proto(x: Any) -> bool:
                 if isinstance(x, Message): return True
                 if isinstance(x, dict): return any(_has_proto(v) for v in x.values())

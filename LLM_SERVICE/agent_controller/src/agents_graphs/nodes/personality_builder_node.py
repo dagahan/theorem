@@ -1,64 +1,58 @@
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING, Any
 
-from loguru import logger
-
 from src.core.logging import PersonalityBuilderLogger
-from src.core.retry import timeout_and_retry
-from src.core.timeouts import TimeoutTools
-from src.agents_graphs.graph_tools import GraphTools
 from src.core.schema_utils import get_utils
 from src.pydantic_schemas.agent_controller import GraphState, PersonalityResponse, Personality, Personalities
+from src.agents_graphs.graph_tools import GraphTools
+from src.core.handlers import ResponseHandler
+from .base_node import BaseNode
 
 if TYPE_CHECKING:
     from src.adapters.personality_builder_adapter import PersonalityBuilderAdapter
 
 
-class PersonalityBuilderNode:
+class PersonalityBuilderNode(BaseNode):
     def __init__(self, adapter: PersonalityBuilderAdapter) -> None:
+        super().__init__('PERSONALITY_NODE_TIMEOUT_SEC', 15.0, 3)
         self.adapter = adapter
         self.schema_utils = get_utils()
 
 
-    _TIMEOUT_SEC = TimeoutTools.get_timeout('PERSONALITY_NODE_TIMEOUT_SEC', 15.0)
     _PERSONALITIES: tuple[str, ...] = ('Responder', 'Summarizer')
 
 
-    @timeout_and_retry(max_attempts=3, timeout_sec=_TIMEOUT_SEC)
-    async def execute_node(
+    def _get_node_name(self) -> str:
+        return 'build_personalities'
+
+
+    async def _execute_impl(
         self,
         graph_state: GraphState
     ) -> GraphState:
-        started_at = time.time()
-
-        try:
-            response: PersonalityResponse = await self.adapter.build_personalities(
-                list(self._PERSONALITIES),
-                graph_state.get('agent_name', '')
-            )
-
-        except Exception as ex:  # noqa: BLE001
-            return GraphTools.mark_failure(graph_state, f'Personality builder call failed: {ex}')
+        response: PersonalityResponse = await self.adapter.build_personalities(
+            list(self._PERSONALITIES),
+            graph_state.get('agent_name', '')
+        )
 
         if not response.success:
-            return GraphTools.mark_failure(
+            return ResponseHandler.handle_failure(
                 graph_state,
-                f"Personality building failed: {response.error or 'unknown'}",
+                f"Personality building failed: {response.error or 'unknown'}"
             )
 
-        def _prepare_schema(schema_like: Any, name: str) -> dict[str, Any] | None:
-            """Подготовить схему для хранения в state (JSON + fingerprint)."""
+        def _prepare_schema(
+            schema_like: Any,
+            name: str
+        ) -> dict[str, Any] | None:
             if not schema_like:
                 return None
             
-            # Конвертируем в dict если нужно
             data = schema_like.model_dump() if hasattr(schema_like, "model_dump") else schema_like
             if not isinstance(data, dict):
                 raise TypeError(f"response_schema must be dict, got {type(data)}")
             
-            # Проверяем properties
             props = data.get("properties", {})
             if not isinstance(props, dict):
                 raise TypeError(f"'properties' must be dict, got {type(props)}")
@@ -76,22 +70,24 @@ class PersonalityBuilderNode:
             }
         )
 
-        graph_state['personalities'] = personalities
-        elapsed_ms = GraphTools.record_timing(graph_state, 'build_personalities', started_at)
-        
+        return ResponseHandler.handle_success(
+            graph_state,
+            'success',
+            additional_data={'personalities': personalities}
+        )
+
+
+
+    def _log_success(
+        self,
+        graph_state: GraphState,
+        elapsed_ms: float
+    ) -> None:
         PersonalityBuilderLogger.log_personality_building(
             question_id=graph_state['question_id'],
-            personalities=personalities,
+            personalities=graph_state['personalities'],
             building_time_ms=elapsed_ms,
             success=True,
         )
-
-        logger.info(
-            f"Personalities built: {len(response.personalities)} personas in {elapsed_ms:.2f}ms"
-        )
-
-        graph_state['success'] = True
-
-        return graph_state
 
         

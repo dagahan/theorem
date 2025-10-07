@@ -21,3 +21,10 @@ class HybridEmbedderAdapter:
             text,
             normalize=normalize
         )
+
+
+    async def embed_text_sparse(
+        self,
+        text: str
+    ) -> Dict[str, Any]:
+        return await self.hybrid_embedder_client.embed_text_sparse(text)

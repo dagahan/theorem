@@ -15,13 +15,11 @@ from .nodes.context_builder_node import ContextBuilderNode
 from .nodes.failure_node import FailureNode
 from .nodes.finalization_node import FinalizationNode
 from .nodes.response_answer_node import ResponseAnswerNode
-from .nodes.question_builder_node import QuestionBuilderNode
 from .nodes.retrieval_node import RetrievalNode
 from .nodes.personality_builder_node import PersonalityBuilderNode
 
 if TYPE_CHECKING:
     from src.adapters.context_builder_adapter import ContextBuilderAdapter
-    from src.adapters.question_builder_adapter import QuestionBuilderAdapter
     from src.adapters.retriever_adapter import RetrieverAdapter
     from src.adapters.personality_builder_adapter import PersonalityBuilderAdapter
     from src.adapters.vllm_adapter import VLLMAdapter
@@ -34,11 +32,9 @@ class GraphBuilder:
         self,
         vllm_adapter_service: 'VLLMAdapter',
         retriever_adapter: 'RetrieverAdapter',
-        question_builder_adapter: 'QuestionBuilderAdapter',
         context_builder_adapter: 'ContextBuilderAdapter',
         personality_builder_adapter: 'PersonalityBuilderAdapter',
     ) -> None:
-        self.question_builder_node = QuestionBuilderNode(question_builder_adapter)
         self.retrieval_node = RetrievalNode(retriever_adapter)
         self.context_builder_node = ContextBuilderNode(context_builder_adapter)
         self.personality_builder_node = PersonalityBuilderNode(personality_builder_adapter)
@@ -46,13 +42,13 @@ class GraphBuilder:
             vllm_adapter=vllm_adapter_service,
             defaults=InferenceParams()
         )
+
         self.finalization_node = FinalizationNode()
         self.failure_node = FailureNode()
 
         self.agent_graph_registry = AgentGraphRegistry()
         self.graph_node_factory = GraphNodeFactory(
             personality_builder_node=self.personality_builder_node,
-            question_builder_node=self.question_builder_node,
             retrieval_node=self.retrieval_node,
             context_builder_node=self.context_builder_node,
             response_answer_node=self.response_answer_node,
@@ -97,6 +93,8 @@ class GraphBuilder:
     @staticmethod
     def _make_router(success_key: str) -> Callable[[GraphState], str]:
         def router(state: GraphState) -> str:
+            if not state.get('success', True):
+                return 'fail'
             return 'ok' if bool(state.get(success_key, True)) else 'fail'
 
         return router

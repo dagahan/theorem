@@ -7,7 +7,7 @@ from src.core.utils import EnvTools
 from sentence_transformers import CrossEncoder   # type: ignore
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 from src.pydantic_schemas.retriever import Candidate
-
+    
 
 class NeuralRerankService:
     def __init__(self) -> None:
