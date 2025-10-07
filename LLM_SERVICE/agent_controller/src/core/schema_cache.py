@@ -46,7 +46,11 @@ class SchemaCache:
         self,
         schema: Dict[str, Any],
         model_name: str
-    ) -> Type[BaseModel]:
+    ) -> Type[BaseModel] | None:
+        properties = schema.get("properties", {})
+        if not properties:
+            return None
+        
         fingerprint = self.create_fingerprint(schema)
         
         cached_model = self._registry.get(fingerprint)

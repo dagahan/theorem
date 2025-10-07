@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     T = TypeVar('T')
 
 import yaml
-from jsonschema.validators import Draft202012Validator
+from jsonschema.validators import Draft202012Validator  # type: ignore[import-untyped]
 from pydantic import BaseModel, create_model
 from loguru import logger
 

@@ -37,7 +37,8 @@ class ChunkingService:
         chunks: List[Chunk] = []
         
         for idx, ch in enumerate(self.docling_chunker.chunk(docling_doc), start=0):
-            pages = self._collect_pages_for_chunk(ch)        
+            pages = self._collect_pages_for_chunk(ch)
+            logger.debug(f"chunk {idx}: pages={pages} | text[:60]={ch.text[:60]!r}")
             chunks.append(
                 Chunk(
                     id=str(idx),
@@ -60,53 +61,35 @@ class ChunkingService:
 
     def _collect_pages_for_chunk(
         self,
-        chunk: Chunk
+        chunk: Any
     ) -> List[int]:
-        """
-        reliably collect page numbers:
-        1) from meta.doc_items[*].page (the main path to Docling),
-        2) if not, we look for the 'page'/'pages' keys at any meta level,
-        3) if there is nothing at all, we return [1].
-        """
-        meta = getattr(chunk, "meta", None)
+        meta = getattr(chunk, "meta", None) if hasattr(chunk, "meta") else None
+        pages: set[int] = set()
 
-        pages = set()
+        def _push(v: Any) -> None:
+            if isinstance(v, int):
+                pages.add(v + 1 if v >= 0 else v)
+            elif isinstance(v, (list, tuple)):
+                for x in v:
+                    if isinstance(x, int):
+                        pages.add(x + 1 if x >= 0 else x)
 
         for it in self._iter_doc_items(meta):
-            page = self._get(it, ("page",))
-            if isinstance(page, int) and page > 0:
-                pages.add(page)
+            for key in ("page", "page_no", "page_idx", "page_index", "page_number"):
+                _push(self._get(it, (key,)))
+            bbox = self._get(it, ("bbox",))
+            if bbox:
+                for key in ("page", "page_no", "page_idx", "page_index"):
+                    _push(self._get(bbox, (key,)))
 
-            else:
-                bbox_page = self._get(it, ("bbox", "page"))
-                if isinstance(bbox_page, int) and bbox_page > 0:
-                    pages.add(bbox_page)
+        for found in self._find_pages_in_meta(meta, keys=("page","page_no","page_idx","page_index","page_number","pages","page_numbers")):
+            _push(found)
 
-        if pages:
-            return sorted(pages)
+        for attr in ("pages","page_indices","page_index","page","page_number","page_numbers"):
+            _push(getattr(chunk, attr, None))
 
-        for found in self._find_pages_in_meta(meta):
-            if isinstance(found, int) and found > 0:
-                pages.add(found)
-            elif isinstance(found, list):
-                for v in found:
-                    if isinstance(v, int) and v > 0:
-                        pages.add(v)
-
-        if pages:
-            return sorted(pages)
-
-        for attr in ("pages", "page_indices", "page"):
-            val = getattr(chunk, attr, None)
-            if isinstance(val, int) and val > 0:
-                return [val]
-
-            if isinstance(val, list):
-                ints = [v for v in val if isinstance(v, int) and v > 0]
-                if ints:
-                    return sorted(set(ints))
-
-        return [1]
+        out = sorted(x for x in pages if isinstance(x, int) and x > 0)
+        return out or [1]
 
 
     def _iter_doc_items(
@@ -127,7 +110,8 @@ class ChunkingService:
 
     def _find_pages_in_meta(
         self,
-        obj: Any
+        obj: Any,
+        keys: tuple[str, ...] = ("page", "pages")
     ) -> Iterable[Any]:
         if obj is None:
             return []
@@ -139,13 +123,10 @@ class ChunkingService:
             cur = stack.pop()
             if isinstance(cur, dict):
                 for k, v in cur.items():
-                    key = str(k).lower()
-                    if key in ("page", "pages"):
+                    if str(k).lower() in keys:
                         out.append(v)
-
                     if isinstance(v, (dict, list, tuple)):
                         stack.append(v)
-
             elif isinstance(cur, (list, tuple)):
                 stack.extend(cur)
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-import grpc
+import grpc  # type: ignore[import-untyped]
 from loguru import logger
 
 from protobuf_stubs import hybrid_embedder_pb2, hybrid_embedder_pb2_grpc

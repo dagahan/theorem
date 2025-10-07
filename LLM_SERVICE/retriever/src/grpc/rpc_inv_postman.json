@@ -1,6 +1,6 @@
 {
   "id": "3f8f4d4e-5c2a-4b7f-9c6d-111111111111",
-  "name": "RAG gRPC Env",
+  "name": "Retriever gRPC Env",
   "values": [
     {"key": "grpc_host", "value": "localhost", "type": "text", "enabled": true},
     {"key": "grpc_port", "value": "50051", "type": "text", "enabled": true},

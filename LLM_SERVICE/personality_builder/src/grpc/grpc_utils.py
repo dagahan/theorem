@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import time
 from functools import wraps
 from typing import Any, Awaitable, Callable, ParamSpec, TypeVar
 
-import grpc
+import grpc  # type: ignore[import-untyped]
 from loguru import logger
 from protovalidate import ValidationError, Validator
 
@@ -39,19 +40,30 @@ class GrpcTools:
                 context: Any | None = kwargs.get('context')
                 if context is None and len(args) >= 3:
                     context = args[2]
-                peer = context.peer() if context and hasattr(context, 'peer') else 'unknown'
+                
+                peer = 'unknown'
+                if context and hasattr(context, 'peer'):
+                    try:
+                        peer = context.peer()
+                    except Exception:
+                        peer = 'unknown'
 
                 logger.info(f"gRPC request started: {method_name} from {peer}")
+                start_time = time.time()
+                
                 try:
                     result = await func(*args, **kwargs)
+                    end_time = time.time()
+                    duration_ms = (end_time - start_time) * 1000
+                    logger.info(f"gRPC request completed: {method_name} from {peer} in {duration_ms:.2f} ms")
+                    return result
                 except Exception as exc:  # noqa: BLE001
+                    end_time = time.time()
+                    duration_ms = (end_time - start_time) * 1000
                     logger.error(
-                        f"gRPC request failed: {method_name} from {peer} - {exc}"
+                        f"gRPC request failed: {method_name} from {peer} in {duration_ms:.2f} ms - {exc}"
                     )
                     raise
-
-                logger.info(f"gRPC request completed: {method_name} from {peer}")
-                return result
 
             return wrapper
 

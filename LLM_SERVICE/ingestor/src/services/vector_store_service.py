@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 from uuid import uuid5, NAMESPACE_URL
 from loguru import logger
 
-from pydantic_schemas.ingest import Chunk, EmbeddedChunk  # noqa: TC001
+from pydantic_schemas.ingest import EmbeddedChunk  # noqa: TC001
 from src.grpc.client.qdrant_grpc_client import QdrantGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 from src.core.utils import EnvTools
@@ -59,7 +59,12 @@ class VectorStoreService:
             else:
                 sparse_vector = qm.SparseVector(indices=[], values=[])
             
-            # Create point with both dense and sparse vectors stored natively
+            pages = embedded_chunk.meta.get("pages") if embedded_chunk.meta else None
+            if not pages:
+                pages = getattr(embedded_chunk, "pages", []) or []
+            if isinstance(pages, list) and pages and min(pages) == 0:
+                pages = [p + 1 for p in pages]
+            
             point_struct = qm.PointStruct(
                 id=point_id,
                 vector={
@@ -71,7 +76,7 @@ class VectorStoreService:
                     "paragraph_id": paragraph_id,
                     "chunk_id": chunk_id,
                     "text": embedded_chunk.text,
-                    "pages": embedded_chunk.meta.get("pages", []),
+                    "pages": pages,
                     **doc_metadata,
                     **embedded_chunk.meta,
                 }

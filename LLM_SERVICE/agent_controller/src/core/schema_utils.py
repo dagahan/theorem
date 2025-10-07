@@ -26,7 +26,14 @@ class SchemaUtils:
         if not schema_data:
             return None
         
-        return self._cache.get_compiled_model(schema_data, model_name)
+        model = self._cache.get_compiled_model(schema_data, model_name)
+        if model is None:
+            return None
+        
+        if not getattr(model, "model_fields", None):
+            return None
+        
+        return model
     
 
     def create_schema_entry(

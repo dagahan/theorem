@@ -4,7 +4,7 @@ from typing import Any, Awaitable, Callable, ParamSpec, TypeVar
 import time
 from functools import wraps
 
-import grpc
+import grpc  # type: ignore[import-untyped]
 from loguru import logger
 
 from protovalidate import ValidationError, Validator

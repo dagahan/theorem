@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import grpc
+import grpc  # type: ignore[import-untyped]
 from loguru import logger
 
 from protobuf_stubs import llm_gateway_pb2, llm_gateway_pb2_grpc

@@ -57,53 +57,53 @@ services:
           path: ./
 
 
-  # hybrid_embedder:
-  #  build:
-  #    context: ./hybrid_embedder
-  #    dockerfile: dockerfile
-  #  image: hybrid_embedder-${COMPOSE_PROJECT_NAME}
-  #  container_name: hybrid_embedder-${COMPOSE_PROJECT_NAME}
-  #  env_file: 
-  #    - .env
-  #    - .common-env.conf
-  #  environment:
-  #    RUNNING_INSIDE_DOCKER: 1
-  #    COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
-  #  ports:
-  #    - "${HYBRID_EMBEDDER_GRPC_PORT}:${HYBRID_EMBEDDER_GRPC_PORT}"
-  #  networks:
-  #    - llm_service_network
-  #  restart: ${DOCKER_CONTAINERS_RESTART}
-  #  develop:
-  #    watch:
-  #      - action: rebuild
-  #        path: ./hybrid_embedder
+  hybrid_embedder:
+    build:
+      context: ./hybrid_embedder
+      dockerfile: dockerfile
+    image: hybrid_embedder-${COMPOSE_PROJECT_NAME}
+    container_name: hybrid_embedder-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - .common-env.conf
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${HYBRID_EMBEDDER_GRPC_PORT}:${HYBRID_EMBEDDER_GRPC_PORT}"
+    networks:
+      - llm_service_network
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./hybrid_embedder
 
 
-  # retriever:
-  #  build:
-  #    context: ./retriever
-  #    dockerfile: dockerfile
-  #  image: retriever-${COMPOSE_PROJECT_NAME}
-  #  container_name: retriever-${COMPOSE_PROJECT_NAME}
-  #  env_file: 
-  #    - .env
-  #    - .common-env.conf
-  #  environment:
-  #    RUNNING_INSIDE_DOCKER: 1
-  #    COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
-  #  ports:
-  #    - "${RETRIEVER_GRPC_PORT}:${RETRIEVER_GRPC_PORT}"
-  #  networks:
-  #    - llm_service_network
-  #  restart: ${DOCKER_CONTAINERS_RESTART}
-  #  depends_on:
-  #    - qdrant
-  #    - hybrid_embedder
-  #  develop:
-  #    watch:
-  #     - action: rebuild
-  #       path: ./retriever
+  retriever:
+    build:
+      context: ./retriever
+      dockerfile: dockerfile
+    image: retriever-${COMPOSE_PROJECT_NAME}
+    container_name: retriever-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - .common-env.conf
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${RETRIEVER_GRPC_PORT}:${RETRIEVER_GRPC_PORT}"
+    networks:
+      - llm_service_network
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    depends_on:
+      - qdrant
+      - hybrid_embedder
+    develop:
+      watch:
+       - action: rebuild
+         path: ./retriever
 
 
   # ingestor:
@@ -166,27 +166,27 @@ services:
   #         path: ./vllm_math
 
 
-  # context_builder:
-  #   build:
-  #     context: ./context_builder
-  #     dockerfile: dockerfile
-  #   image: context_builder-${COMPOSE_PROJECT_NAME}
-  #   container_name: context_builder-${COMPOSE_PROJECT_NAME}
-  #   env_file: 
-  #     - .env
-  #     - .common-env.conf
-  #   environment:
-  #     RUNNING_INSIDE_DOCKER: 1
-  #     COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
-  #   ports:
-  #     - "${CONTEXT_BUILDER_GRPC_PORT}:${CONTEXT_BUILDER_GRPC_PORT}"
-  #   networks:
-  #     - llm_service_network
-  #   restart: ${DOCKER_CONTAINERS_RESTART}
-  #   develop:
-  #     watch:
-  #       - action: rebuild
-  #         path: ./context_builder
+  context_builder:
+    build:
+      context: ./context_builder
+      dockerfile: dockerfile
+    image: context_builder-${COMPOSE_PROJECT_NAME}
+    container_name: context_builder-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - .common-env.conf
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${CONTEXT_BUILDER_GRPC_PORT}:${CONTEXT_BUILDER_GRPC_PORT}"
+    networks:
+      - llm_service_network
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./context_builder
 
 
   # personality_builder:
@@ -259,6 +259,55 @@ services:
   #     watch:
   #       - action: rebuild
   #         path: ./budget_estimator
+
+  rag_orchestrator:
+    build:
+      context: ./rag_orchestrator
+      dockerfile: dockerfile
+    image: rag_orchestrator-${COMPOSE_PROJECT_NAME}
+    container_name: rag_orchestrator-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - .common-env.conf
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${RAG_ORCHESTRATOR_GRPC_PORT}:${RAG_ORCHESTRATOR_GRPC_PORT}"
+    networks:
+      - llm_service_network
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    depends_on:
+      - retriever
+      - context_builder
+    develop:
+      watch:
+        - action: rebuild
+          path: ./rag_orchestrator
+
+  mcp_server:
+    build:
+      context: ./mcp_server
+      dockerfile: dockerfile
+    image: mcp_server-${COMPOSE_PROJECT_NAME}
+    container_name: mcp_server-${COMPOSE_PROJECT_NAME}
+    env_file: 
+      - .env
+      - .common-env.conf
+    environment:
+      RUNNING_INSIDE_DOCKER: 1
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    ports:
+      - "${MCP_SERVER_HTTP_PORT}:${MCP_SERVER_HTTP_PORT}"
+    networks:
+      - llm_service_network
+    restart: ${DOCKER_CONTAINERS_RESTART}
+    depends_on:
+      - rag_orchestrator
+    develop:
+      watch:
+        - action: rebuild
+          path: ./mcp_server
 
 
 networks:

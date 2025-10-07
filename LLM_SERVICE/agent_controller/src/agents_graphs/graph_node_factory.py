@@ -13,6 +13,7 @@ class GraphNodeFactory:
     retrieval_node: "BaseNode"
     context_builder_node: "BaseNode"
     response_answer_node: "BaseNode"
+    mcp_executor_node: "BaseNode"
 
 
 

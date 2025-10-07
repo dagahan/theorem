@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from src.core.utils import EnvTools
 from src.rest.client.base_rest_client import BaseRestClient
 
@@ -19,6 +21,7 @@ class VLLMRestClient(BaseRestClient):
         *,
         temperature: float | None = None,
         max_tokens: int | None = None,
+        response_format: dict[str, Any] | None = None,
     ) -> str:
         messages = [
             {"role": "system", "content": system_prompt}
@@ -33,10 +36,12 @@ class VLLMRestClient(BaseRestClient):
             "model": self.model_name,
             "messages": messages,
             "max_tokens": max_tokens or 2048,
-            "temperature": temperature if temperature is not None else 0.2,
-            "stop": ["END", "STOP"],
+            "temperature": temperature if temperature is not None else 0.0,
             "stream": stream
         }
+        
+        if response_format is not None:
+            payload["response_format"] = response_format
         
         response = await self._make_request(
             method="POST",

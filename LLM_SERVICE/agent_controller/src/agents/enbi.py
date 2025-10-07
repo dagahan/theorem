@@ -23,13 +23,8 @@ class EnbiAgent:
                 success_key='success',
             ),
             StepSpec(
-                name='retrieve_context',
-                handler=partial(factory.retrieval_node.execute_node),
-                success_key='retrieval_success',
-            ),
-            StepSpec(
-                name='build_context_text',
-                handler=partial(factory.context_builder_node.execute_node),
+                name='mcp_rag_search',
+                handler=partial(factory.mcp_executor_node.execute_node),
                 success_key='success',
             ),
             StepSpec(

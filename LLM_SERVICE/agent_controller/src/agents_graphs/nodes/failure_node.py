@@ -20,7 +20,12 @@ class FailureNode:
         self,
         state: GraphState
     ) -> GraphState:
-        error_message = state.get('retrieval_error', 'Context retrieval failed')
+        error_message = (
+            state.get('response_error')
+            or state.get('retrieval_error')
+            or state.get('error')
+            or 'Pipeline failed'
+        )
         
         GraphTools.mark_failure(state, error_message)
 

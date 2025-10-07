@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Any, TypeVar, Generic
 
-import grpc
+import grpc  # type: ignore[import-untyped]
 from loguru import logger
 from protovalidate import Validator, ValidationError
 

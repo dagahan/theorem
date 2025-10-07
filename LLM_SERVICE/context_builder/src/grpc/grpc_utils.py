@@ -11,7 +11,7 @@ from loguru import logger
 from protovalidate import ValidationError, Validator
 
 if TYPE_CHECKING:
-    import google.protobuf.message
+    import google.protobuf.message  # type: ignore[import-untyped]
     from grpc import ServicerContext
 
 P = ParamSpec('P')

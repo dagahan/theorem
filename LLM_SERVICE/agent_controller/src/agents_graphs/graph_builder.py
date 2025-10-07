@@ -17,12 +17,14 @@ from .nodes.finalization_node import FinalizationNode
 from .nodes.response_answer_node import ResponseAnswerNode
 from .nodes.retrieval_node import RetrievalNode
 from .nodes.personality_builder_node import PersonalityBuilderNode
+from .nodes.mcp_executor_node import MCPExecutorNode
 
 if TYPE_CHECKING:
     from src.adapters.context_builder_adapter import ContextBuilderAdapter
     from src.adapters.retriever_adapter import RetrieverAdapter
     from src.adapters.personality_builder_adapter import PersonalityBuilderAdapter
     from src.adapters.vllm_adapter import VLLMAdapter
+    from src.adapters.mcp_adapter import MCPAdapter
 
 from src.pydantic_schemas.agent_controller import GraphState
 
@@ -34,6 +36,7 @@ class GraphBuilder:
         retriever_adapter: 'RetrieverAdapter',
         context_builder_adapter: 'ContextBuilderAdapter',
         personality_builder_adapter: 'PersonalityBuilderAdapter',
+        mcp_adapter: 'MCPAdapter',
     ) -> None:
         self.retrieval_node = RetrievalNode(retriever_adapter)
         self.context_builder_node = ContextBuilderNode(context_builder_adapter)
@@ -42,6 +45,7 @@ class GraphBuilder:
             vllm_adapter=vllm_adapter_service,
             defaults=InferenceParams()
         )
+        self.mcp_executor_node = MCPExecutorNode(mcp_adapter)
 
         self.finalization_node = FinalizationNode()
         self.failure_node = FailureNode()
@@ -52,6 +56,7 @@ class GraphBuilder:
             retrieval_node=self.retrieval_node,
             context_builder_node=self.context_builder_node,
             response_answer_node=self.response_answer_node,
+            mcp_executor_node=self.mcp_executor_node,
         )
 
 

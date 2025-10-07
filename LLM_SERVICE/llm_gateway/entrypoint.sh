@@ -24,7 +24,7 @@ if [[ "${RUNNING_INSIDE_DOCKER:-0}" != "1" ]]; then
   uv run ruff "${ruff_args[@]}"
 
   echo "🔬 Mypy (strict)…"
-  uv run mypy "$CHECK_PATH" --ignore-missing-imports
+  uv run mypy "$CHECK_PATH"
 else
   echo "🐳 RUNNING_INSIDE_DOCKER=1 → skipping Ruff & Mypy."
 fi

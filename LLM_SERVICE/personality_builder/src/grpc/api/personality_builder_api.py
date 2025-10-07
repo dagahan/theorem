@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from google.protobuf import struct_pb2
+from google.protobuf import struct_pb2  # type: ignore[import-untyped]
 from loguru import logger
 
 from protobuf_stubs import personality_builder_pb2, personality_builder_pb2_grpc
@@ -10,7 +10,7 @@ from src.pydantic_schemas.personality_builder import BuildPersonalityRequest, Bu
 from src.grpc.grpc_utils import GrpcTools
 
 if TYPE_CHECKING:
-    import grpc
+    import grpc  # type: ignore[import-untyped]
     from src.services.personality_builder_service import PersonalityBuilderService
 
 
@@ -104,11 +104,11 @@ class PersonalityBuilderAPI(personality_builder_pb2_grpc.PersonalityBuilderServi
 
             return response
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as ex:  # noqa: BLE001
             logger.exception('BuildPersonality failed')
             return personality_builder_pb2.BuildPersonalityResponse(
                 personalities=[],
                 success=False,
-                error=str(exc),
+                error=str(ex),
             )
 

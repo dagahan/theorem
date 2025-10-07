@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import grpc
+import grpc  # type: ignore[import-untyped]
+import grpc.aio  # type: ignore[import-untyped]
 from loguru import logger
 
 from protobuf_stubs import policy_builder_pb2, policy_builder_pb2_grpc
@@ -9,7 +10,7 @@ from src.pydantic_schemas.personality_builder import PolicyHeaderResponse, Polic
 
 
 class PolicyBuilderGrpcClient:
-    def __init__(self, channel: grpc.Channel, service_name: str) -> None:
+    def __init__(self, channel: grpc.aio.Channel, service_name: str) -> None:
         self.channel = channel
         self.service_name: str = service_name
         self.stub = policy_builder_pb2_grpc.PolicyBuilderServiceStub(self.channel)
@@ -20,7 +21,7 @@ class PolicyBuilderGrpcClient:
         GrpcTools.validate_proto(request)
         
         try:
-            response = self.stub.Health(request, timeout=3)
+            response = await self.stub.Health(request, timeout=3)
             GrpcTools.validate_proto(response)
 
             return PolicyHealthResponse(

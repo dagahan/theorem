@@ -75,6 +75,7 @@ class NeuralRerankService:
         for c, s in zip(limited, scores):
             cc = Candidate(**{**c.__dict__})
             cc.score_nn = float(s)
+            cc.score_total = float(s)
             out.append(cc)
 
         out.sort(key=lambda x: x.score_nn, reverse=True)

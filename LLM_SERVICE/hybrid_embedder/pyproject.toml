@@ -77,6 +77,8 @@ ignore_missing_imports = true
 ignore_missing_imports = true
 [mypy-grpc]
 ignore_missing_imports = true
+[mypy-grpc.aio]
+ignore_missing_imports = true
 [mypy-protobuf_stubs]
 ignore_missing_imports = true
 [mypy-buf.validate]

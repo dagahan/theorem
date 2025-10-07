@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 import bcrypt
 import chardet
-import colorama 
+import colorama  # type: ignore[import-untyped] 
 
 from dotenv import find_dotenv, load_dotenv
 from loguru import logger

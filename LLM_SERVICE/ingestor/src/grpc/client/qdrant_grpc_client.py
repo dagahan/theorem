@@ -131,21 +131,41 @@ class QdrantGrpcClient:
     ) -> None:
         try:
             collection_info = await self.get_collection(collection_name)
-            config = collection_info.get("config", {})
+            
+            config = collection_info.get("config", {}) if isinstance(collection_info, dict) else getattr(collection_info, "config", {})
             if not config:
                 raise ValueError(f"Collection '{collection_name}' has no config")
-            params = config.get("params", {})
+            
+            if isinstance(config, dict):
+                params = config.get("params", {})
+            else:
+                params = getattr(config, "params", {})
+            
             if not params:
                 raise ValueError(f"Collection '{collection_name}' config has no params")
-            vectors_config = params.get("vectors", {})
-            sparse_vectors_config = params.get("sparse_vectors", {})
+            
+            if isinstance(params, dict):
+                vectors_config = params.get("vectors", {})
+                sparse_vectors_config = params.get("sparse_vectors", {})
+            else:
+                vectors_config = getattr(params, "vectors", {})
+                sparse_vectors_config = getattr(params, "sparse_vectors", {})
+            
             if not isinstance(vectors_config, dict) or "dense" not in vectors_config:
                 raise ValueError(f"Collection '{collection_name}' does not have hybrid vector configuration. Expected 'dense' vector, got: {vectors_config}")
+            
             dense_config = vectors_config["dense"]
-            if dense_config.get("size") != dense_dim:
-                raise ValueError(f"Collection '{collection_name}' dense vector dimension mismatch. Expected {dense_dim}, got {dense_config.get('size')}")
+            if isinstance(dense_config, dict):
+                dense_size = dense_config.get("size")
+            else:
+                dense_size = getattr(dense_config, "size", None)
+            
+            if dense_size != dense_dim:
+                raise ValueError(f"Collection '{collection_name}' dense vector dimension mismatch. Expected {dense_dim}, got {dense_size}")
+            
             if not isinstance(sparse_vectors_config, dict) or "text" not in sparse_vectors_config:
                 raise ValueError(f"Collection '{collection_name}' does not have sparse vector configuration. Expected 'text' sparse vector, got: {sparse_vectors_config}")
+            
             logger.info(f"Collection '{collection_name}' is compatible with hybrid vector configuration")
         except Exception as e:
             logger.error(f"Collection validation failed: {e}")

@@ -12,6 +12,7 @@ from src.adapters.context_builder_adapter import ContextBuilderAdapter
 from src.adapters.retriever_adapter import RetrieverAdapter
 from src.adapters.personality_builder_adapter import PersonalityBuilderAdapter
 from src.adapters.vllm_adapter import VLLMAdapter
+from src.adapters.mcp_adapter import MCPAdapter
 from src.core.timeouts import TimeoutTools
 from src.core.utils import EnvTools
 from src.pydantic_schemas.agent_controller import (
@@ -37,6 +38,7 @@ class LLMGraphOrchestrator:
         self.retriever_adapter = RetrieverAdapter()
         self.context_builder_adapter = ContextBuilderAdapter()
         self.personality_builder_adapter = PersonalityBuilderAdapter()
+        self.mcp_adapter = MCPAdapter()
         self.default_collection = EnvTools.required_load_env_var('DEFAULT_RETRIEVER_COLLECTION')
         max_len_env = float(EnvTools.required_load_env_var('VLLM_TALKING_MAX_LEN'))
         self.max_context_chars = int(max_len_env / 2)
@@ -56,6 +58,7 @@ class LLMGraphOrchestrator:
             self.retriever_adapter,
             self.context_builder_adapter,
             self.personality_builder_adapter,
+            self.mcp_adapter,
         )
 
         self.agents_graphs: dict[str, Any] = {}
@@ -99,6 +102,10 @@ class LLMGraphOrchestrator:
             'context_digests': [],
             'personalities': Personalities(personalities={}),
             'inference_params': self.inference_defaults,
+            'mcp': {},
+            'mcp_tools': {},
+            'mcp_schemas': {},
+            'mcp_rag_error': '',
         }
 
         state: GraphState = await graph.ainvoke(
@@ -187,6 +194,7 @@ class LLMGraphOrchestrator:
             run_check('retriever', self.retriever_adapter.health_check),
             run_check('context_builder', self.context_builder_adapter.health_check),
             run_check('personality_builder', self.personality_builder_adapter.health_check),
+            run_check('mcp_server', self.mcp_adapter.health_check),
         )
 
         overall_status = ServiceStatus.HEALTHY if all(

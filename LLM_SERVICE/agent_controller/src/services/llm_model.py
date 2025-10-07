@@ -53,6 +53,10 @@ class LLMModel:
         temperature: float,
         max_tokens: int,
     ) -> BaseModel:
+        from loguru import logger
+        
+        logger.debug(f"PydanticAI request: schema={response_schema.__name__}, retries={retries}")
+        logger.debug(f"Expected schema fields: {list(response_schema.model_fields.keys())}")
 
         pydantic_ai_bridge_model = PydanticAIBridgeModel(
             adapter=self.adapter,

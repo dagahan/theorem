@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader  # type: ignore[import-not-found]
 from loguru import logger
 
 from src.adapters.policy_builder_adapter import PolicyBuilderAdapter

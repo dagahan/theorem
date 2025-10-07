@@ -79,5 +79,9 @@ ignore_missing_imports = true
 ignore_missing_imports = true
 [mypy-pydantic]
 ignore_missing_imports = true
+[mypy-grpc.aio]
+ignore_missing_imports = true
+[mypy-google.protobuf.message]
+ignore_missing_imports = true
 
 

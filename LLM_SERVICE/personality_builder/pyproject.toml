@@ -77,5 +77,11 @@ ignore_missing_imports = true
 ignore_missing_imports = true
 [mypy-torch]
 ignore_missing_imports = true
+[mypy-jinja2]
+ignore_missing_imports = true
+[mypy-jsonschema]
+ignore_missing_imports = true
+[mypy-colorama]
+ignore_missing_imports = true
 
 

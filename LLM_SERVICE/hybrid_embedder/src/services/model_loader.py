@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch
 from loguru import logger
-from FlagEmbedding import BGEM3FlagModel
+from FlagEmbedding import BGEM3FlagModel  # type: ignore[import-untyped]
 
 from src.core.utils import EnvTools
 

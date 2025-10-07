@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from src.pydantic_schemas.agent_controller import QuestionResponse
 from src.rest.client.registry_rest_clients import RestClientRegistry
 from src.rest.client.vllm_rest_client import VLLMRestClient
@@ -64,6 +66,7 @@ class VLLMAdapter:
         temperature: float,
         max_tokens: int,
         stream: bool,
+        response_format: dict[str, Any] | None = None,
     ) -> str:
         return await self.client.generate_answer(
             question=question,
@@ -72,6 +75,7 @@ class VLLMAdapter:
             stream=stream,
             temperature=temperature,
             max_tokens=max_tokens,
+            response_format=response_format,
         )
 
 

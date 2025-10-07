@@ -4,7 +4,7 @@
 export const config = {
   // API Configuration
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://100.87.209.118:8080',
-  apiTimeout: import.meta.env.VITE_API_TIMEOUT || 10000,
+  apiTimeout: import.meta.env.VITE_API_TIMEOUT || 100000,
   
   // Frontend Configuration
   frontendHost: import.meta.env.VITE_FRONTEND_HOST || '192.168.0.102',

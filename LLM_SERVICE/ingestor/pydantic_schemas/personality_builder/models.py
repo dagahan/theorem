@@ -7,9 +7,10 @@ from pydantic import BaseModel
 
 class ResponseSchema(BaseModel):  # type: ignore[misc]
     type: str
-    properties: Dict[str, str] = {}
+    properties: Dict[str, Any] = {}
     required: List[str] = []
     title: Optional[str] = None
+    description: Optional[str] = None
 
 
 class Personality(BaseModel):  # type: ignore[misc]

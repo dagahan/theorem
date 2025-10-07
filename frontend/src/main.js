@@ -6,6 +6,7 @@ import Chat from "./pages/Chat.js";
 import { Login, Register } from "./pages/Auth.js";
 import { authManager } from "./auth.js";
 import "./animations.js";
+import "katex/dist/katex.min.css";
 
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
