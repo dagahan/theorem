@@ -23,7 +23,7 @@ class RestClientRegistry:
     def register_client(
         self,
         service_name: str,
-        client_class: Callable[[str, float], T],
+        client_class: Callable[..., T],
         timeout: float = 30.0,
         **kwargs: Any
     ) -> T:
@@ -33,7 +33,7 @@ class RestClientRegistry:
         base_url = self._get_service_url(service_name)
         logger.info(f"Creating REST client for {service_name} at {base_url}")
         
-        client = client_class(base_url, timeout)
+        client = client_class(base_url, timeout, **kwargs)
         self._clients[service_name] = client
 
         logger.success(f"REST client created for {service_name}: {base_url}")

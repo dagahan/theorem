@@ -80,7 +80,7 @@ class DenseRetrieverService:
         top_k: int
     ) -> VectorSearchResult:
 
-        raw_results: List[Dict[str, Any]] = await self.vector_store_adapter.search(
+        raw_results: List[Dict[str, Any]] = await self.vector_store_adapter.search_dense(
             collection_name,
             query_vector,
             top_k

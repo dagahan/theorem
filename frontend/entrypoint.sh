@@ -31,7 +31,7 @@ if [ "${NODE_ENV}" = "development" ]; then
 else
     echo "Running in production mode..."
     # Serve built files with a simple HTTP server
-    npx serve -s dist -l ${FRONTEND_NGINX_PORT}
+    npx http-server dist -p ${FRONTEND_NGINX_PORT} -a 0.0.0.0
 fi
 
 

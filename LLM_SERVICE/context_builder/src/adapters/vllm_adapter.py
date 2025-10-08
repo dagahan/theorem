@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 import httpx
 from loguru import logger
 
@@ -10,12 +11,32 @@ class VLLMAdapter:
         *,
         base_url: str,
         model_name: str,
-        timeout: float = 30.0,
+        timeout: float = 60.0,
     ) -> None:
         self.base_url = base_url.rstrip('/')
         self.model_name = model_name
         self.timeout = timeout
 
+
+    async def complete(
+        self,
+        *,
+        system_prompt: str,
+        context: str,
+        question: str,
+        temperature: float,
+        max_tokens: int,
+        stream: bool,
+        response_format: dict[str, Any] | None = None,
+    ) -> str:
+        user_prompt = f"{context}\n\n{question}" if context else question
+        return await self.generate_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format=response_format,
+        )
 
     async def generate_completion(
         self,
@@ -24,6 +45,7 @@ class VLLMAdapter:
         user_prompt: str,
         temperature: float,
         max_tokens: int,
+        response_format: dict[str, Any] | None = None,
     ) -> str:
         payload = {
             'model': self.model_name,
@@ -33,9 +55,10 @@ class VLLMAdapter:
             ],
             'temperature': temperature,
             'max_tokens': max_tokens,
-            'stop': ['END', 'STOP'],
             'stream': False,
         }
+        if response_format is not None:
+            payload['response_format'] = response_format
         
         logger.debug(f"VLLM request: model={self.model_name}, max_tokens={max_tokens}, user_prompt_len={len(user_prompt)}")
 

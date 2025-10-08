@@ -55,6 +55,24 @@ class QdrantGrpcClient:
             return []
 
 
+    async def get_collection(self, collection_name: str) -> Dict[str, Any]:
+        try:
+            collection_info = await self._call("get_collection", collection_name=collection_name)
+            if isinstance(collection_info, dict):
+                return collection_info
+            else:
+                return {
+                    "config": getattr(collection_info, "config", {}),
+                    "status": getattr(collection_info, "status", "unknown"),
+                    "optimizer_status": getattr(collection_info, "optimizer_status", {}),
+                    "payload_schema": getattr(collection_info, "payload_schema", {}),
+                }
+
+        except Exception as e:
+            logger.error(f"Failed to get collection {collection_name}: {e}")
+            raise
+
+
     async def create_collection(
         self,
         collection_name: str,
@@ -73,6 +91,85 @@ class QdrantGrpcClient:
         except Exception as e:
             logger.error(f"Failed to create collection {collection_name}: {e}")
             raise
+
+
+    async def create_collection_hybrid(
+        self,
+        collection_name: str,
+        dense_dim: int
+    ) -> None:
+        try:
+            await self._call(
+                "create_collection",
+                collection_name=collection_name,
+                vectors_config={"dense": qm.VectorParams(size=dense_dim, distance=qm.Distance.COSINE)},
+                sparse_vectors_config={"text": qm.SparseVectorParams()},
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to create hybrid collection {collection_name}: {e}")
+            raise
+
+
+    async def ensure_collection_hybrid(
+        self,
+        collection_name: str,
+        dense_dim: int
+    ) -> None:
+        cols = await self.get_collections()
+        names = [getattr(c, "name", None) or c.get("name") for c in cols]
+        if collection_name not in set(filter(None, names)):
+            await self.create_collection_hybrid(collection_name, dense_dim)
+        else:
+            await self.validate_collection_hybrid(collection_name, dense_dim)
+
+
+    async def validate_collection_hybrid(
+        self,
+        collection_name: str,
+        dense_dim: int
+    ) -> None:
+        try:
+            collection_info = await self.get_collection(collection_name)
+            
+            config = collection_info.get("config", {}) if isinstance(collection_info, dict) else getattr(collection_info, "config", {})
+            if not config:
+                raise ValueError(f"Collection '{collection_name}' has no config")
+            
+            if isinstance(config, dict):
+                params = config.get("params", {})
+            else:
+                params = getattr(config, "params", {})
+            
+            if not params:
+                raise ValueError(f"Collection '{collection_name}' config has no params")
+            
+            if isinstance(params, dict):
+                vectors_config = params.get("vectors", {})
+                sparse_vectors_config = params.get("sparse_vectors", {})
+            else:
+                vectors_config = getattr(params, "vectors", {})
+                sparse_vectors_config = getattr(params, "sparse_vectors", {})
+            
+            if not isinstance(vectors_config, dict) or "dense" not in vectors_config:
+                raise ValueError(f"Collection '{collection_name}' does not have hybrid vector configuration. Expected 'dense' vector, got: {vectors_config}")
+            
+            dense_config = vectors_config["dense"]
+            if isinstance(dense_config, dict):
+                dense_size = dense_config.get("size")
+            else:
+                dense_size = getattr(dense_config, "size", None)
+            
+            if dense_size != dense_dim:
+                raise ValueError(f"Collection '{collection_name}' dense vector dimension mismatch. Expected {dense_dim}, got {dense_size}")
+            
+            if not isinstance(sparse_vectors_config, dict) or "text" not in sparse_vectors_config:
+                raise ValueError(f"Collection '{collection_name}' does not have sparse vector configuration. Expected 'text' sparse vector, got: {sparse_vectors_config}")
+            
+            logger.info(f"Collection '{collection_name}' is compatible with hybrid vector configuration")
+        except Exception as e:
+            logger.error(f"Collection validation failed: {e}")
+            raise ValueError(f"Collection '{collection_name}' is not compatible with hybrid vector configuration: {e}")
 
 
     async def upsert_points(
@@ -161,6 +258,33 @@ class QdrantGrpcClient:
         return out
 
 
+    async def get_collection_documents(
+        self,
+        collection_name: str
+    ) -> List[str]:
+        res = await self._call(
+            "scroll",
+            collection_name=collection_name,
+            scroll_filter=qm.Filter(must_not=[]),
+            with_payload=True,
+            with_vectors=False,
+            limit=10000,
+        )
+        
+        doc_ids = set()
+        for point in (res[0] if isinstance(res, (list, tuple)) else []):
+            if hasattr(point, "payload") and point.payload:
+                doc_id = point.payload.get("doc_id")
+                if doc_id:
+                    doc_ids.add(doc_id)
+            elif isinstance(point, dict) and "payload" in point:
+                doc_id = point["payload"].get("doc_id")
+                if doc_id:
+                    doc_ids.add(doc_id)
+        
+        return list(doc_ids)
+
+
     async def get_document_chunks_count(
         self,
         collection_name: str,
@@ -180,81 +304,10 @@ class QdrantGrpcClient:
             return 0
 
 
-    async def get_paragraph_chunks(
-        self,
-        collection_name: str,
-        doc_id: str,
-        paragraph_id: int
-    ) -> List[Dict[str, Any]]:
-        res = await self._call(
-            "scroll",
-            collection_name=collection_name,
-            scroll_filter=qm.Filter(
-                must=[
-                    qm.FieldCondition(key="doc_id", match=qm.MatchValue(value=doc_id)),
-                    qm.FieldCondition(key="paragraph_id", match=qm.MatchValue(value=paragraph_id)),
-                ]
-            ),
-            limit=1000,
-        )
-
-        results = []
-    
-        if isinstance(res, (list, tuple)) and len(res) > 0:
-            points = res[0]
-            if hasattr(points, '__iter__') and not isinstance(points, str):
-                points_list = list(points)
-            else:
-                points_list = [points]
-        else:
-            points_list = []
-        
-        for point in points_list:
-            if hasattr(point, "id") and hasattr(point, "payload"):
-                results.append({"id": point.id, "payload": point.payload})
-            elif isinstance(point, dict):
-                results.append({"id": point.get("id", ""), "payload": point.get("payload", {})})
-        
-        return results
 
 
-    async def get_window_by_chunk_id(
-        self,
-        collection_name: str,
-        doc_id: str,
-        start_id: int,
-        end_id: int
-    ) -> List[Dict[str, Any]]:
-        res = await self._call(
-            "scroll",
-            collection_name=collection_name,
-            scroll_filter=qm.Filter(
-                must=[
-                    qm.FieldCondition(key="doc_id", match=qm.MatchValue(value=doc_id)),
-                    qm.FieldCondition(key="chunk_id", range=qm.Range(gte=start_id, lte=end_id)),
-                ]
-            ),
-            limit=1000,
-        )
 
-        results = []
-        
-        if isinstance(res, (list, tuple)) and len(res) > 0:
-            points = res[0]
-            if hasattr(points, '__iter__') and not isinstance(points, str):
-                points_list = list(points)
-            else:
-                points_list = [points]
-        else:
-            points_list = []
-        
-        for point in points_list:
-            if hasattr(point, "id") and hasattr(point, "payload"):
-                results.append({"id": point.id, "payload": point.payload})
-            elif isinstance(point, dict):
-                results.append({"id": point.get("id", ""), "payload": point.get("payload", {})})
-        
-        return results
+
 
 
     async def search(
@@ -290,29 +343,4 @@ class QdrantGrpcClient:
         return results
 
 
-    async def get_collection_documents(
-        self,
-        collection_name: str
-    ) -> List[str]:
-        res = await self._call(
-            "scroll",
-            collection_name=collection_name,
-            scroll_filter=qm.Filter(must_not=[]),
-            with_payload=True,
-            with_vectors=False,
-            limit=10000,
-        )
-        
-        doc_ids = set()
-        for point in (res[0] if isinstance(res, (list, tuple)) else []):
-            if hasattr(point, "payload") and point.payload:
-                doc_id = point.payload.get("doc_id")
-                if doc_id:
-                    doc_ids.add(doc_id)
-            elif isinstance(point, dict) and "payload" in point:
-                doc_id = point["payload"].get("doc_id")
-                if doc_id:
-                    doc_ids.add(doc_id)
-        
-        return list(doc_ids)
 

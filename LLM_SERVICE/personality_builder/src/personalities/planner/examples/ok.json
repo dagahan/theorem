@@ -1,0 +1,45 @@
+{
+  "subgoals": [
+    {
+      "id": "understand_requirements",
+      "need": "Analyze the specific EGE math problem requirements and constraints"
+    },
+    {
+      "id": "identify_concepts",
+      "need": "Identify the mathematical concepts and formulas needed to solve this type of problem"
+    },
+    {
+      "id": "find_solution_strategy",
+      "need": "Research the standard solution approach and common pitfalls for this problem type"
+    }
+  ],
+  "actions": [
+    {
+      "id": "search_problem_type",
+      "tool": "rag_search",
+      "args": {
+        "query": "EGE math problem solving strategies",
+        "limit": 5
+      },
+      "produces": ["strategy_docs"]
+    },
+    {
+      "id": "get_formulas",
+      "tool": "rag_search", 
+      "args": {
+        "query": "mathematical formulas for EGE problems",
+        "limit": 3
+      },
+      "produces": ["formula_docs"]
+    },
+    {
+      "id": "find_examples",
+      "tool": "web_search",
+      "args": {
+        "query": "EGE math problem examples solutions",
+        "limit": 3
+      },
+      "produces": ["example_docs"]
+    }
+  ]
+}

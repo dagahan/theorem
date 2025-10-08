@@ -1,0 +1,73 @@
+[project]
+name = "rag_orchestrator_service"
+version = "0.0.1"
+requires-python = "==3.12.6"
+dependencies = [
+    "loguru==0.7.3",
+    "colorama==0.4.6",
+    "python-dotenv==1.1.1",
+    "grpcio==1.75.0",
+    "protobuf==6.32.0",
+    "protovalidate==1.0.0",
+    "bcrypt>=4.0.0",
+    "chardet>=5.0.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff==0.12.12",
+    "mypy>=1.17.1",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "UP", "I", "W", "N", "ANN", "TCH"]
+ignore = ["ANN401", "W293", "F403", "F405"]
+unfixable = ["ANN"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src"]
+follow_imports = "skip"
+strict = true
+warn_unused_configs = true
+show_error_codes = true
+pretty = true
+
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+no_implicit_optional = true
+warn_return_any = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+
+plugins = []
+
+[mypy-colorama]
+ignore_missing_imports = true
+[mypy-grpc]
+ignore_missing_imports = true
+[mypy-protobuf_stubs]
+ignore_missing_imports = true
+[mypy-buf.validate]
+ignore_missing_imports = true
+[mypy-google.protobuf]
+ignore_missing_imports = true
+[mypy-google.protobuf.internal]
+ignore_missing_imports = true
+[mypy-httpx]
+ignore_missing_imports = true
+[mypy-bcrypt]
+ignore_missing_imports = true
+[mypy-chardet]
+ignore_missing_imports = true
+[mypy-pydantic]
+ignore_missing_imports = true
+[mypy-src.adapters.rag_orchestrator_client]
+ignore_missing_imports = true

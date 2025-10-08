@@ -27,6 +27,14 @@ if [[ "${RUNNING_INSIDE_DOCKER:-0}" != "1" ]]; then
   uv run mypy "$CHECK_PATH" --ignore-missing-imports
 else
   echo "🐳 RUNNING_INSIDE_DOCKER=1 → skipping Ruff & Mypy."
+
+  if [[ "$APP_CMD" =~ ^[[:space:]]*uv[[:space:]]+run[[:space:]]+ ]]; then
+    if [[ ! "$APP_CMD" =~ --no-sync ]]; then
+      APP_CMD="${APP_CMD/uv run/uv run --no-sync}"
+    fi
+  else
+    APP_CMD="uv run --no-sync $APP_CMD"
+  fi
 fi
 
 

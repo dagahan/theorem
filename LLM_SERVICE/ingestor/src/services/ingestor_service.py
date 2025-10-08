@@ -126,6 +126,11 @@ class IngestorService:
             metadata=uploaded_file.meta
         )
 
+        chunks = [c for c in chunks if c.text and c.text.strip()]
+        
+        for ch in chunks:
+            ch.meta = {**(ch.meta or {}), "pages": ch.pages}
+
         embedded_chunks: List["EmbeddedChunk"] = await self.hybrid_embedder_grpc_client.embed_chunks(chunks)
 
         point_structs: List[qm.PointStruct] = self.vector_store_service.build_point_structs_from_embedded_chunks(

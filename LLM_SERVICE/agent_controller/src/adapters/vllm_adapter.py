@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from src.pydantic_schemas.agent_controller import QuestionResponse
+from typing import Dict
+
 from src.rest.client.registry_rest_clients import RestClientRegistry
 from src.rest.client.vllm_rest_client import VLLMRestClient
 
@@ -23,11 +24,12 @@ class VLLMAdapter:
         self,
         question: str,
         system_prompt: str,
-        context: str = "",
-        stream: bool = False,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-    ) -> QuestionResponse:
+        context: str,
+        stream: bool,
+        temperature: float,
+        max_tokens: int,
+        response_format: Dict[str, str] | None,
+    ) -> str:
         try:
             answer = await self.client.generate_answer(
                 question=question,
@@ -36,42 +38,18 @@ class VLLMAdapter:
                 stream=stream,
                 temperature=temperature,
                 max_tokens=max_tokens,
+                response_format=response_format
             )
             
-            return QuestionResponse(
-                answer=answer,
-                success=True
-            )
+            return answer
             
         except Exception as ex:
-            return QuestionResponse(
-                answer="",
-                success=False,
-                error=str(ex)
-            )
+            return ""
 
 
     async def health_check(self) -> bool:
         return await self.client.health_check()
 
 
-    async def complete(
-        self,
-        *,
-        system_prompt: str,
-        context: str,
-        question: str,
-        temperature: float,
-        max_tokens: int,
-        stream: bool,
-    ) -> str:
-        return await self.client.generate_answer(
-            question=question,
-            system_prompt=system_prompt,
-            context=context,
-            stream=stream,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
 
 

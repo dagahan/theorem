@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from google.protobuf import struct_pb2  # type: ignore[import-untyped]
 from loguru import logger
 
 from protobuf_stubs import personality_builder_pb2, personality_builder_pb2_grpc
@@ -9,7 +10,7 @@ from src.pydantic_schemas.personality_builder import BuildPersonalityRequest, Bu
 from src.grpc.grpc_utils import GrpcTools
 
 if TYPE_CHECKING:
-    import grpc
+    import grpc  # type: ignore[import-untyped]
     from src.services.personality_builder_service import PersonalityBuilderService
 
 
@@ -72,20 +73,30 @@ class PersonalityBuilderAPI(personality_builder_pb2_grpc.PersonalityBuilderServi
                     error=result.error or 'personality_builder error',
                 )
 
-            response = personality_builder_pb2.BuildPersonalityResponse(
-                personalities=[
-                    personality_builder_pb2.Personality(
-                        name=item.name, 
-                        system_prompt=item.system_prompt,
-                        response_schema=personality_builder_pb2.ResponseSchema(
-                            type=item.response_schema.type,
-                            properties=item.response_schema.properties,
-                            required=item.response_schema.required,
-                            title=item.response_schema.title
-                        ) if item.response_schema else None
+            personalities = []
+            for item in result.personalities:
+                response_schema = None
+                if item.response_schema:
+                    properties_struct = struct_pb2.Struct()
+                    properties_dict = item.response_schema.properties if isinstance(item.response_schema.properties, dict) else {}
+                    properties_struct.update(properties_dict)
+                    
+                    response_schema = personality_builder_pb2.ResponseSchema(
+                        type=item.response_schema.type,
+                        properties=properties_struct,
+                        required=item.response_schema.required,
+                        title=item.response_schema.title or "",
+                        description=item.response_schema.description or ""
                     )
-                    for item in result.personalities
-                ],
+                
+                personalities.append(personality_builder_pb2.Personality(
+                    name=item.name, 
+                    system_prompt=item.system_prompt,
+                    response_schema=response_schema
+                ))
+
+            response = personality_builder_pb2.BuildPersonalityResponse(
+                personalities=personalities,
                 success=True,
             )
 
@@ -93,11 +104,11 @@ class PersonalityBuilderAPI(personality_builder_pb2_grpc.PersonalityBuilderServi
 
             return response
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as ex:  # noqa: BLE001
             logger.exception('BuildPersonality failed')
             return personality_builder_pb2.BuildPersonalityResponse(
                 personalities=[],
                 success=False,
-                error=str(exc),
+                error=str(ex),
             )
 

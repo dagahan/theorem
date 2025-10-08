@@ -28,7 +28,7 @@ class FinalizationNode:
             graph_state['error'] = ''
 
         else:
-            graph_state['error'] = (
+            graph_state['error'] = str(
                     graph_state.get('response_error')
                 or graph_state.get('retrieval_error')
                 or 'Unknown error'
@@ -36,10 +36,7 @@ class FinalizationNode:
 
         QuestionLogger.log_question_processing(
             question_id=graph_state['question_id'],
-            question=graph_state['query'].raw_text,
-            context_chunks=GraphTools.context_chunks_to_payload(
-                graph_state.get('context_chunks', []),
-            ),
+            question=graph_state.get('question', ''),
             response_answer=graph_state.get('response_answer', ''),
             processing_time_ms=total_ms,
             success=graph_state['success'],
@@ -48,7 +45,7 @@ class FinalizationNode:
 
         logger.info(
             f"Question finalized: success={graph_state['success']}, total_time={total_ms:.2f}ms, "
-            f"chunks={len(graph_state.get('context_chunks', []))}"
+            f"digests={len(graph_state.get('context_digests', []))}"
         )
 
         return graph_state

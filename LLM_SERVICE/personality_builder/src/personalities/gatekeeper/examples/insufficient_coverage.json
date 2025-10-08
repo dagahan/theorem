@@ -1,0 +1,17 @@
+{
+  "coverage": 0.3,
+  "decision": "loop",
+  "missing_subgoals": [
+    "No evidence for quadratic formula application",
+    "Missing information about discriminant calculation",
+    "No examples of step-by-step solution process"
+  ],
+  "contradictions": [],
+  "next_hints": [
+    "Search for specific quadratic equation examples",
+    "Find detailed solution methodology",
+    "Look for common mistake patterns"
+  ],
+  "confidence_summary": "Very low coverage (0.3) - only basic strategy mentioned, missing core mathematical concepts and examples.",
+  "budget_warning": "Budget: 15% used, 3 iterations remaining"
+}

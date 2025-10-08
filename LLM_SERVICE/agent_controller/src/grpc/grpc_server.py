@@ -29,11 +29,9 @@ class GrpcAgentControllerServer:
         self._servicer: AgentControllerAPI | None = None
 
 
-
     @property
     def is_running(self) -> bool:
         return self._grpc_server is not None
-
 
 
     async def start(self) -> None:
@@ -63,12 +61,10 @@ class GrpcAgentControllerServer:
         )
 
 
-
     async def wait_terminated(self) -> None:
         if self._grpc_server is None:
             return
         await self._grpc_server.wait_for_termination()
-
 
 
     async def stop(

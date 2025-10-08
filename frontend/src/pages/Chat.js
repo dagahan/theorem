@@ -2,11 +2,12 @@ import { createElement } from "../core/utils.js";
 import { apiClient } from "../api/client.js";
 import { authManager } from "../auth.js";
 import { getUserFriendlyError, logError } from "../utils/errorHandler.js";
+import { latexRenderer } from "../utils/latexRenderer.js";
 
 export default function Chat() {
   const el = createElement("div", "chat-container");
   
-  el.innerHTML = `
+  el.innerHTML = String.raw`
     <div class="chat-layout">
       <main class="chat-main">
         <div class="chat-header">
@@ -55,6 +56,30 @@ export default function Chat() {
                 ✅ <strong>Проверять ваши решения</strong> с подробным анализом<br>
                 📚 <strong>Объяснять теорию</strong> простым языком<br>
                 📊 <strong>Отслеживать прогресс</strong> и давать рекомендации<br><br>
+                
+                <strong>Пример математических формул, которые я могу отображать:</strong><br><br>
+                
+                Квадратное уравнение: $ax^2 + bx + c = 0$<br>
+                Формула Эйнштейна: $E = mc^2$<br>
+                Интеграл: $\int_0^1 x^2 dx = \frac{1}{3}$<br><br>
+                
+                Квадратичная формула:<br>
+                $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$<br>
+                
+                Формула площади круга:<br>
+                $$S = \pi r^2$$<br>
+                
+                Уравнение Шрёдингера:<br>
+                \begin{equation}
+                i\hbar\frac{\partial}{\partial t}\Psi = \hat{H}\Psi
+                \end{equation}<br>
+                
+                Матрица поворота:<br>
+                $$\begin{pmatrix}
+                \cos\theta & -\sin\theta \\
+                \sin\theta & \cos\theta
+                \end{pmatrix}$$<br>
+                
                 Какую тему хотите изучить или какую задачу решить?
               </div>
               <div class="message-time">Только что</div>
@@ -97,6 +122,14 @@ export default function Chat() {
   `;
   
   setupChatInteractions(el);
+  
+  // Рендерим LaTeX в приветственном сообщении
+  setTimeout(() => {
+    const welcomeMessage = el.querySelector('.message-text');
+    if (welcomeMessage) {
+      latexRenderer.renderElement(welcomeMessage);
+    }
+  }, 100);
   
   return el;
 }
@@ -368,10 +401,12 @@ function setupChatInteractions(container) {
       </div>
     ` : '';
     
+    const processedText = role === 'assistant' ? '' : latexRenderer.processText(text);
+    
     messageEl.innerHTML = `
       ${avatar}
       <div class="message-content">
-        <div class="message-text">${role === 'assistant' ? '' : text}</div>
+        <div class="message-text">${processedText}</div>
         <div class="message-footer">
           <div class="message-time">${new Date().toLocaleTimeString('ru-RU')}</div>
           ${messageActions}
@@ -393,6 +428,16 @@ function setupChatInteractions(container) {
     } else {
       // Для AI запускаем эффект печати
       typeMessage(messageEl.querySelector('.message-text'), text);
+    }
+    
+    // Рендерим LaTeX только для пользовательских сообщений (AI сообщения рендерятся в typeMessage)
+    if (role === 'user') {
+      setTimeout(() => {
+        const messageText = messageEl.querySelector('.message-text');
+        if (messageText) {
+          latexRenderer.renderElement(messageText);
+        }
+      }, 100);
     }
     
     // Добавляем обработчики для кнопок действий
@@ -436,6 +481,8 @@ function setupChatInteractions(container) {
         // Убираем курсор после завершения печати
         setTimeout(() => {
           cursor.remove();
+          // Финальный рендеринг LaTeX
+          latexRenderer.renderElement(element);
         }, 500);
       }
     }
@@ -451,7 +498,16 @@ function setupChatInteractions(container) {
     copyBtn.addEventListener('click', () => {
       // Получаем текст без курсора печати
       const textElement = messageEl.querySelector('.message-text');
-      const text = textElement.textContent.replace(/\|/g, '').trim();
+      let text = textElement.textContent.replace(/\|/g, '').trim();
+      
+      // Извлекаем оригинальный LaTeX код из отрендеренных формул
+      const latexElements = textElement.querySelectorAll('.latex-inline, .latex-display');
+      latexElements.forEach(latexEl => {
+        const originalLatex = latexEl.getAttribute('data-original');
+        if (originalLatex) {
+          text = text.replace(latexEl.textContent, originalLatex);
+        }
+      });
       
       navigator.clipboard.writeText(text).then(() => {
         copyBtn.innerHTML = `

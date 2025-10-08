@@ -1,5 +1,5 @@
 from typing import Any, Dict, Type, TypeVar, cast, Callable
-import grpc
+import grpc  # type: ignore[import-untyped]
 from loguru import logger
 
 from src.core.utils import EnvTools

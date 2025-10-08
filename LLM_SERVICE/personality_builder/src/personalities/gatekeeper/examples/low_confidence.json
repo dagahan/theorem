@@ -1,0 +1,13 @@
+{
+  "coverage": 0.8,
+  "decision": "loop",
+  "missing_subgoals": [],
+  "contradictions": [],
+  "next_hints": [
+    "Find more authoritative sources for mathematical formulas",
+    "Look for official EGE documentation",
+    "Search for peer-reviewed educational materials"
+  ],
+  "confidence_summary": "Good coverage but low confidence scores (0.4-0.6) across all claims. Sources appear unreliable or outdated.",
+  "budget_warning": "Budget: 60% used, 1 iteration remaining"
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["digests"],
+  "properties": {
+    "digests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "summary", "source_chunk"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "summary": { "type": "string", "minLength": 1, "maxLength": 280 },
+          "source_chunk": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["doc_id", "paragraph_id", "chunk_id", "text", "pages", "score"],
+            "properties": {
+              "doc_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "paragraph_id": { "type": "integer" },
+              "chunk_id": { "type": "integer" },
+              "text": { "type": "string" },
+              "pages": {
+                "type": "array",
+                "items": { "type": "integer" }
+              },
+              "score": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

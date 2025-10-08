@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   return {
     root: ".",
     server: { 
-      port: parseInt(env.FRONTEND_NGINX_DEV_PORT) || 5500, 
+      port: 4173, 
       open: true,
       host: '0.0.0.0'
     },
@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
     define: {
       // Make environment variables available to the client
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(env.VITE_API_BASE_URL || 'http://100.87.209.118:8080'),
-      'import.meta.env.VITE_API_TIMEOUT': JSON.stringify(env.VITE_API_TIMEOUT || '10000'),
+      'import.meta.env.VITE_API_TIMEOUT': JSON.stringify(env.VITE_API_TIMEOUT || '100000'),
       'import.meta.env.VITE_FRONTEND_HOST': JSON.stringify(env.VITE_FRONTEND_HOST || '192.168.0.102'),
       'import.meta.env.VITE_FRONTEND_PORT': JSON.stringify(env.VITE_FRONTEND_PORT || '4173'),
       'import.meta.env.VITE_FRONTEND_PROTOCOL': JSON.stringify(env.VITE_FRONTEND_PROTOCOL || 'http'),

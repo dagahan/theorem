@@ -1,0 +1,30 @@
+{
+  "sections": [
+    {
+      "title": "Solution Strategy",
+      "bullets": [
+        "Systematic approach to EGE math problems",
+        "Key steps: read carefully, identify data, choose method, solve, check"
+      ],
+      "citation_placeholders": ["[strategy_001]"]
+    },
+    {
+      "title": "Mathematical Concepts",
+      "bullets": [
+        "Quadratic equations and discriminant formula",
+        "When to use different solution methods"
+      ],
+      "citation_placeholders": ["[formula_001]"]
+    },
+    {
+      "title": "Practice Recommendations",
+      "bullets": [
+        "Focus on systematic problem-solving approach",
+        "Practice with similar problem types"
+      ],
+      "citation_placeholders": []
+    }
+  ],
+  "citations": ["strategy_001", "formula_001"],
+  "flow_notes": "Start with strategy overview, then dive into specific mathematical concepts, end with practical advice"
+}

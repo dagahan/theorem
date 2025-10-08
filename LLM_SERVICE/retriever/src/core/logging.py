@@ -81,11 +81,11 @@ class SearchLogger:
                 "final_results": [
                     {
                         "doc_id": result.get("doc_id", ""),
-                        "score": result.get("combined_score", 0.0),
+                        "score": result.get("score", 0.0),
                         "pages": result.get("pages", []),
                         "paragraph_id": result.get("paragraph_id", 0),
                         "chunk_id": result.get("chunk_id", 0),
-                        "text_preview": result.get("context_text", "")[:200] + "..." if len(result.get("context_text", "")) > 200 else result.get("context_text", "")
+                        "text_preview": result.get("text", "")[:200] + "..." if len(result.get("text", "")) > 200 else result.get("text", "")
                     }
                     for result in final_results
                 ]
@@ -124,6 +124,47 @@ class StepLogger:
             
         except Exception as ex:
             logger.error(f"Failed to log step '{step_name}': {ex}")
+
+    @staticmethod
+    def log_search_results(
+        search_type: str,
+        query: str,
+        collection_name: str,
+        candidates: List[Dict[str, Any]],
+        execution_time_ms: float
+    ) -> None:
+        try:
+            debug_dir = "debug/search_results"
+            FileSystemTools.ensure_directory_exists(debug_dir)
+            
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            file_path = os.path.join(debug_dir, f"{search_type}_{timestamp}.json")
+            
+            search_entry = {
+                "timestamp": int(datetime.now().timestamp()),
+                "search_type": search_type,
+                "query": query,
+                "collection_name": collection_name,
+                "execution_time_ms": execution_time_ms,
+                "candidates_count": len(candidates),
+                "candidates": [
+                    {
+                        "doc_id": candidate.get("doc_id", ""),
+                        "score": candidate.get("score", 0.0),
+                        "pages": candidate.get("pages", []),
+                        "paragraph_id": candidate.get("paragraph_id", 0),
+                        "chunk_id": candidate.get("chunk_id", 0),
+                        "text_preview": candidate.get("text", "")[:200] + "..." if len(candidate.get("text", "")) > 200 else candidate.get("text", "")
+                    }
+                    for candidate in candidates
+                ]
+            }
+            
+            with open(file_path, "w", encoding="utf-8") as file:
+                json.dump(search_entry, file, indent=2, ensure_ascii=False)
+            
+        except Exception as ex:
+            logger.error(f"Failed to log {search_type} search results: {ex}")
 
 
 class ResponseLogger:

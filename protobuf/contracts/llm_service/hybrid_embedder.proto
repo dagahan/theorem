@@ -24,9 +24,6 @@ message HealthResponse {
 }
 
 
-// -------------------------- Dense embeddings --------------------------
-
-
 message DenseEmbedRequest {
   string text = 1 [(buf.validate.field).string = {min_len: 10, pattern: ".*\\S.*"}];
 }
@@ -51,9 +48,6 @@ message DenseEmbedBatchRequest {
 message DenseEmbedBatchResponse {
   repeated DenseEmbedResponse items = 1 [(buf.validate.field).repeated = {min_items: 1, max_items: 256}];
 }
-
-
-// -------------------------- Sparse embeddings -------------------------
 
 
 message SparseEmbedRequest {

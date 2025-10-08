@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package rag_orchestrator.v1;
+
+import "third_party/protovalidate/buf/validate/validate.proto";
+
+
+service RagOrchestratorService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc Search(RagSearchRequest) returns (RagSearchResponse);
+}
+
+
+message HealthRequest {}
+
+
+message HealthResponse {
+  string status = 1 [(buf.validate.field).string = {min_len: 1, max_len: 32}];
+}
+
+
+message RagSearchRequest {
+  string query = 1 [(buf.validate.field).string = {min_len: 1, max_len: 4096}];
+  string collection_name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128, pattern: "^[a-zA-Z0-9_-]+$"}];
+  int32 top_k = 3 [(buf.validate.field).int32 = {gte: 1, lte: 50}];
+  int32 max_context_chars = 4 [(buf.validate.field).int32 = {gte: 256, lte: 32768}];
+  string summarizer_prompt = 5 [(buf.validate.field).string = {min_len: 1, max_len: 4096}];
+}
+
+
+message ContextChunk {
+  string doc_id = 1 [(buf.validate.field).string.min_len = 1];
+  int32 paragraph_id = 2;
+  int32 chunk_id = 3;
+  string text = 4 [(buf.validate.field).string.min_len = 1];
+  repeated int32 pages = 5;
+  double score = 6;
+}
+
+
+message DigestItem {
+  string title = 1 [(buf.validate.field).string.min_len = 1];
+  string summary = 2 [(buf.validate.field).string.min_len = 1];
+  ContextChunk source_chunk = 3;
+}
+
+
+message RagSearchResponse {
+  repeated DigestItem digests = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+

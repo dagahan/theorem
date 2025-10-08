@@ -1,0 +1,9 @@
+{
+  "coverage": 0.75,
+  "decision": "exit",
+  "missing_subgoals": [],
+  "contradictions": [],
+  "next_hints": [],
+  "confidence_summary": "Good coverage of the main question with relevant mathematical information. Sufficient evidence to provide a comprehensive answer.",
+  "budget_warning": null
+}

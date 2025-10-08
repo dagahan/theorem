@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 from uuid import uuid5, NAMESPACE_URL
 from loguru import logger
 
-from pydantic_schemas.ingest import Chunk, EmbeddedChunk  # noqa: TC001
+from pydantic_schemas.ingest import EmbeddedChunk  # noqa: TC001
 from src.grpc.client.qdrant_grpc_client import QdrantGrpcClient
 from src.grpc.client.registry_grpc_clients import GrpcClientRegistry
 from src.core.utils import EnvTools
@@ -22,12 +22,7 @@ class VectorStoreService:
         self,
         collection_name: str
     ) -> None:
-        cols = await self.qdrant_grpc_client.get_collections()
-        exists = any(
-            (getattr(c, "name", None) or c.get("name")) == collection_name for c in cols
-        )
-        if not exists:
-            await self.qdrant_grpc_client.create_collection(collection_name, self.dimensions)
+        await self.qdrant_grpc_client.ensure_collection_hybrid(collection_name, self.dimensions)
 
 
     def build_point_structs_from_embedded_chunks(
@@ -47,34 +42,43 @@ class VectorStoreService:
                 logger.warning(f"No vectors found for embedded chunk {i}")
                 continue
                 
-            point_id = str(uuid5(NAMESPACE_URL, f"{doc_id}|{i+1}|{i+1}"))
+            # Use chunk_id from the embedded chunk itself, not i+1
+            chunk_id = embedded_chunk.meta.get("chunk_id", i + 1)
+            paragraph_id = embedded_chunk.meta.get("paragraph_id", i + 1)
             
-            # Convert sparse vector from dict to indices/values format for payload
+            point_id = str(uuid5(NAMESPACE_URL, f"{doc_id}|{paragraph_id}|{chunk_id}"))
+            
+            # Convert sparse vector from dict to indices/values format for native storage
             sparse_dict = embedded_chunk.sparse_vector
             if sparse_dict:
                 # Sort by index for consistent ordering
                 pairs = sorted((int(k), float(v)) for k, v in sparse_dict.items())
                 sparse_indices = [idx for idx, _ in pairs]
                 sparse_values = [val for _, val in pairs]
-                sparse_data = {
-                    "sparse_indices": sparse_indices,
-                    "sparse_values": sparse_values
-                }
+                sparse_vector = qm.SparseVector(indices=sparse_indices, values=sparse_values)
             else:
-                sparse_data = {"sparse_indices": [], "sparse_values": []}
+                sparse_vector = qm.SparseVector(indices=[], values=[])
             
-            # Create point with dense vector and sparse data in payload
+            pages = embedded_chunk.meta.get("pages") if embedded_chunk.meta else None
+            if not pages:
+                pages = getattr(embedded_chunk, "pages", []) or []
+            if isinstance(pages, list) and pages and min(pages) == 0:
+                pages = [p + 1 for p in pages]
+            
             point_struct = qm.PointStruct(
                 id=point_id,
-                vector=embedded_chunk.dense_vector,
+                vector={
+                    "dense": embedded_chunk.dense_vector,
+                    "text": sparse_vector,
+                },
                 payload={
                     "doc_id": doc_id,
-                    "paragraph_id": i + 1,
-                    "chunk_id": i + 1,
+                    "paragraph_id": paragraph_id,
+                    "chunk_id": chunk_id,
                     "text": embedded_chunk.text,
+                    "pages": pages,
                     **doc_metadata,
                     **embedded_chunk.meta,
-                    **sparse_data
                 }
             )
 
@@ -109,27 +113,6 @@ class VectorStoreService:
         return await self.qdrant_grpc_client.is_document_exists(collection_name, doc_id)
 
 
-    async def get_document_vectors(
-        self,
-        doc_id: str,
-        collection_name: str
-    ) -> List[List[float]]:
-        return await self.qdrant_grpc_client.get_document_vectors(collection_name, doc_id)
-
-
-    async def get_document_texts(
-        self,
-        doc_id: str,
-        collection_name: str
-    ) -> List[str]:
-        return await self.qdrant_grpc_client.get_document_texts(collection_name, doc_id)
-
-
-    async def get_collection_documents(
-        self,
-        collection_name: str
-    ) -> List[str]:
-        return await self.qdrant_grpc_client.get_collection_documents(collection_name)
 
 
     async def delete_document(
@@ -162,6 +145,13 @@ class VectorStoreService:
         return result
 
 
+    async def get_collection_documents(
+        self,
+        collection_name: str
+    ) -> List[str]:
+        return await self.qdrant_grpc_client.get_collection_documents(collection_name)
+
+
     async def get_document_chunks_count(
         self,
         doc_id: str,
@@ -169,6 +159,22 @@ class VectorStoreService:
     ) -> int:
         result = await self.qdrant_grpc_client.get_document_chunks_count(collection_name, doc_id)
         return result
+
+
+    async def get_document_vectors(
+        self,
+        doc_id: str,
+        collection_name: str
+    ) -> List[List[float]]:
+        return await self.qdrant_grpc_client.get_document_vectors(collection_name, doc_id)
+
+
+    async def get_document_texts(
+        self,
+        doc_id: str,
+        collection_name: str
+    ) -> List[str]:
+        return await self.qdrant_grpc_client.get_document_texts(collection_name, doc_id)
 
 
     async def get_collections_stats(self) -> tuple[int, int]:

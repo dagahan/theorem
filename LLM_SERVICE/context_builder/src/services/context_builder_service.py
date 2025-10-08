@@ -12,6 +12,7 @@ from src.pydantic_schemas.context_builder import (
 )
 from src.services.llm_summarizer import LLMSummarizer
 from src.services.personality_client import PersonalityClient
+from src.services.llm_model import LLMModel
 
 
 class ContextBuilderService:
@@ -23,13 +24,12 @@ class ContextBuilderService:
 
         adapter = VLLMAdapter(
             base_url=self.addr,
-            model_name=model_name
+            model_name=model_name,
+            timeout=60.0
         )
 
-        personality_client = PersonalityClient(
-            adapter=adapter,
-            persona_name='Summarizer'
-        )
+        llm_model = LLMModel(adapter=adapter)
+        personality_client = PersonalityClient(llm_model=llm_model)
 
         config = SummarizerConfig(model_name=model_name)
 
@@ -62,6 +62,7 @@ class ContextBuilderService:
                 "Context summarization completed: %s digests",
                 len(digests),
             )
+            
             return ContextBuilderResponse(
                 digests=digests,
                 success=True

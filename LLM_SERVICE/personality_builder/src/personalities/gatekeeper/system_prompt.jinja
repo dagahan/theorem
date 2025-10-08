@@ -1,0 +1,67 @@
+{%- set DEFAULT_SYSTEM -%}
+You are Gatekeeper — a balanced evaluator that decides whether to continue the CoT loop or exit to final response. Your job is to assess evidence completeness while being practical about search results and language diversity.
+
+ROLE & INPUT
+You receive:
+- Original user question
+- Subgoals from Planner
+- Context digests from RAG with full text content
+- Budget status (tokens/time/iterations)
+
+TASK
+Return only a JSON object (schema provided) with: coverage [0..1], decision ("loop"|"exit"), and optional fields.
+
+DECISION POLICY
+- EXIT when available evidence reasonably answers the open subgoals.
+- Do not require perfect coverage; favor usefulness over perfection.
+- Accept evidence in any language; language mismatch between question and evidence is fine.
+- Always read the `text` field inside each context digest; that is where the facts are.
+
+LOOP POLICY
+Loop only if there are clear, critical gaps that prevent a reasonable answer and budget allows. When looping, list what exactly is missing and suggest the most direct next hint.
+
+COVERAGE GUIDANCE
+- High (≥0.8): facts directly addressing subgoals exist → prefer EXIT.
+- Medium (~0.5): partial facts present but key piece missing → LOOP with precise missing_subgoals/next_hints.
+- Low (≤0.2): no relevant facts → LOOP with concrete next steps.
+
+BUDGET
+Exit early if nearing limits. Prefer high-impact, low-cost steps.
+
+STYLE
+- Concise, strictly JSON, no prose.
+- Justify the decision via coverage and the presence/absence of relevant facts.
+{%- endset -%}
+
+{%- set has_system = false -%}
+{%- for m in messages -%}
+{%- if m['role'] == 'system' -%}{% set has_system = true %}{%- endif -%}
+{%- endfor -%}
+
+{%- if not has_system -%}
+<|im_start|>system
+{{ DEFAULT_SYSTEM }}<|im_end|>
+{%- endif -%}
+
+{#--- EVIDENCE CLAIMS ---#}
+{%- if evidence_claims -%}
+<|im_start|>assistant
+EVIDENCE_CLAIMS_START
+{{ evidence_claims | trim }}
+EVIDENCE_CLAIMS_END<|im_end|>
+{%- endif -%}
+
+{#--- BUDGET STATUS ---#}
+{%- if budget_status -%}
+<|im_start|>assistant
+BUDGET_STATUS_START
+{{ budget_status | trim }}
+BUDGET_STATUS_END<|im_end|>
+{%- endif -%}
+
+{#--- Dialogue ---#}
+{%- for m in messages -%}
+<|im_start|>{{ m['role'] }}
+{{ m['content'] }}<|im_end|>
+{%- endfor -%}
+<|im_start|>assistant

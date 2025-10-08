@@ -31,42 +31,6 @@ class HealthCheck(BaseModel):  # type: ignore[misc]
     components: list[ComponentHealth]
 
 
-class UserQuery(BaseModel):  # type: ignore[misc]
-    raw_text: str
-    agent_name: str
-    stream: bool = False
-
-
-class RetrieveRequest(BaseModel):  # type: ignore[misc]
-    question: str
-    collection_name: str
-
-
-class RetrieveResult(BaseModel):  # type: ignore[misc]
-    doc_id: str
-    text: str
-    score: float
-    pages: list[int]
-    paragraph_id: int = 0
-    chunk_id: int = 0
-
-
-class RetrieveResponse(BaseModel):  # type: ignore[misc]
-    results: list[RetrieveResult]
-    success: bool
-    error: str | None = None
-
-
-class QuestionBuilderRequest(BaseModel):  # type: ignore[misc]
-    raw_text: str
-
-
-class QuestionBuilderResponse(BaseModel):  # type: ignore[misc]
-    question: str
-    success: bool
-    error: str | None = None
-
-
 class ContextChunk(BaseModel):  # type: ignore[misc]
     doc_id: str
     paragraph_id: int
@@ -105,13 +69,7 @@ class Personalities(BaseModel):  # type: ignore[misc]
 
 
 class PersonalityResponse(BaseModel):  # type: ignore[misc]
-    personalities: list[Any]
-    success: bool
-    error: str | None = None
-
-
-class SystemPromptResponse(BaseModel):  # type: ignore[misc]
-    personalities: dict[str, str]
+    personalities: list[Personality]
     success: bool
     error: str | None = None
 
@@ -135,10 +93,6 @@ class GraphState(TypedDict, total=False):
     agent_name: str
 
     question: str
-
-    retrieval_success: bool
-    retrieval_error: str
-    context_chunks: list[ContextChunk]
 
     context_digests: list[ContextDigestItem]
     personalities: Personalities

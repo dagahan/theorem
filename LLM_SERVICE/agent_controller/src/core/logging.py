@@ -59,7 +59,6 @@ class QuestionLogger:
     def log_question_processing(
         question_id: str,
         question: str,
-        context_chunks: List[Dict[str, Any]],
         response_answer: str,
         processing_time_ms: float,
         success: bool,
@@ -74,18 +73,6 @@ class QuestionLogger:
                 "timestamp": int(datetime.now().timestamp()),
                 "question_id": question_id,
                 "question": question,
-                "context_chunks": [
-                    {
-                        "doc_id": chunk.get("doc_id", ""),
-                        "paragraph_id": chunk.get("paragraph_id", 0),
-                        "chunk_id": chunk.get("chunk_id", 0),
-                        "score": chunk.get("score", 0.0),
-                        "pages": chunk.get("pages", []),
-                        "text": chunk.get("text", "")
-                    }
-
-                    for chunk in context_chunks
-                ],
                 "response_answer": response_answer,
                 "success": success,
                 "error_message": error_message if not success else None
@@ -253,11 +240,7 @@ class ContextBuilderLogger:
                 {
                     "title": digest.title,
                     "summary": digest.summary,
-                    "doc_id": digest.source_chunk.doc_id,
-                    "paragraph_id": digest.source_chunk.paragraph_id,
-                    "chunk_id": digest.source_chunk.chunk_id,
-                    "score": digest.source_chunk.score,
-                    "pages": list(digest.source_chunk.pages),
+                    "source_chunk": digest.source_chunk,
                 }
                 for digest in digests
             ]
@@ -306,7 +289,7 @@ class PersonalityBuilderLogger:
                     personalities_dict[name] = {
                         "name": personality.name,
                         "system_prompt": personality.system_prompt,
-                        "response_schema": personality.response_schema.__name__ if personality.response_schema else None
+                        "response_schema": personality.response_schema.get("fingerprint") if personality.response_schema else None
                     }
             
             building_entry = {

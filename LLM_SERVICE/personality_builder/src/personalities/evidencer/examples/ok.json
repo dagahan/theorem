@@ -1,0 +1,28 @@
+{
+  "digests": [
+    {
+      "title": "Document ege_profile_typical_tasks_demo_numeric_answers",
+      "summary": "EGE math problems require systematic approach: read carefully, identify given data, determine what to find, choose appropriate method, solve step-by-step, check answer.",
+      "source_chunk": {
+        "doc_id": "ege_profile_typical_tasks_demo_numeric_answers",
+        "paragraph_id": 6,
+        "chunk_id": 6,
+        "text": "Покажите, как из прямоугольного треугольника получить высоту \\(h\\) пирамиды.\\nНайдите \\(h\\).\\n**Ответ.** 12\\n**Полное решение (LaTeX).** В сечении через апофему: \\(\\nl^2=h^2+\\left(\\frac{a}{2}\\right)^2\\n\\).\\n\\(\\n13^2=h^2+5^2 \\Rightarrow h^2=169-25=144 \\Rightarrow h=12.\\n\\)",
+        "pages": [1],
+        "score": 0.001022
+      }
+    },
+    {
+      "title": "Document 8_mr-po-podgotovke-i-provedeniyu-ege-v-ppe-v-2025-godu",
+      "summary": "EGE exam preparation guidelines include checking exam settings, system time, test scanning, and quality control of answer sheets.",
+      "source_chunk": {
+        "doc_id": "8_mr-po-podgotovke-i-provedeniyu-ege-v-ppe-v-2025-godu",
+        "paragraph_id": 99,
+        "chunk_id": 99,
+        "text": "проверяет настройки экзамена по каждому учебному предмету: период проведения экзаменов, учебный предмет и дату экзамена;\\nпроверяет настройки системного времени;\\nконтролирует выполнение тестового сканирования не менее одного из предоставленных тестовых комплектов ЭМ повторно, тестового ДБО № 2 (за исключением проведения ЕГЭ по математике базового уровня), распечатанного на станции Штаба ППЭ, а также (при наличии) напечатанных по решению члена ГЭК тестовых комплектов ЭМ;;\\nоценивает  качество  сканирования  тестовых  бланков  и  форм  ППЭ:  все  бланки  и формы ППЭ  успешно распознаны и  не  отмечены  как  некачественные;  черные  квадраты (реперы),  штрихкоды  и  QR-код  хорошо  читаемы,  знакоместа  на  бланках  не  слишком яркие;",
+        "pages": [1],
+        "score": 0.000574
+      }
+    }
+  ]
+}

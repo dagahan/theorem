@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, TypeVar, Callable, cast
 
-import grpc.aio
+import grpc.aio  # type: ignore[import-untyped]
 from loguru import logger
 
 from src.core.utils import EnvTools

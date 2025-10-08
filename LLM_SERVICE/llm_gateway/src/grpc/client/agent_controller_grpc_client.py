@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 
-import grpc
-import grpc.aio
+import grpc  # type: ignore[import-untyped]
+import grpc.aio  # type: ignore[import-untyped]
 from loguru import logger
 
 from protobuf_stubs import agent_controller_pb2, agent_controller_pb2_grpc
@@ -37,13 +37,13 @@ class AgentControllerGrpcClient:
     @GrpcTools.log_grpc_client_call('agent_controller', 'AnswerQuestion')
     async def answer_question(
         self,
-        raw_text: str,
+        question: str,
         stream: bool,
         agent_name: str,
         run_id: str | None = None,
     ) -> agent_controller_pb2.QuestionResponse:
         request = agent_controller_pb2.QuestionRequest(
-            raw_text=raw_text,
+            question=question,
             stream=stream,
             run_id=run_id or '',
             agent_name=agent_name,

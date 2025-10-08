@@ -66,22 +66,84 @@ class _PersonalityModel(Model):  # type: ignore[misc]
 
         schema_hint = self._schema_hint(model_request_parameters)
 
-        system_prompt = self._merge_non_empty(instructions, schema_hint) or ''
+        extra_hard_rule = (
+            'Return ONLY a valid JSON object with keys "title" and "summary". '
+            'No markdown, no code fences, no comments. Example: '
+            '{"title":"t","summary":"s"}'
+        )
+        system_prompt = self._merge_non_empty(instructions, schema_hint, extra_hard_rule) or ''
 
         user_prompt = self._extract_user_prompt(messages)
 
         response_text = await self._client.generate(
             system_prompt=system_prompt,
-            user_prompt=user_prompt,
+            question=user_prompt,
+            context="",
+            stream=False,
             temperature=self._config.temperature,
             max_tokens=self._config.max_tokens,
+            response_format={"type": "json_object"},
         )
 
+        json_only = self._extract_json_object(str(response_text))
+        if not json_only.startswith("{"):
+            safe = " ".join(str(response_text).strip().split())
+            json_only = f'{{"title":"auto","summary":"{safe[:1800]}"}}'
+        if json_only != str(response_text).strip():
+            logger.debug(f"JSON sanitized: {len(str(response_text))} -> {len(json_only)} chars")
         return ModelResponse(
-            parts=[TextPart(content=response_text)],
+            parts=[TextPart(content=json_only)],
             model_name=self._config.model_name
         )
 
+
+    @staticmethod
+    def _extract_json_object(text: str) -> str:
+        """
+        Возвращает первый валидный JSON-объект из текста:
+        - если есть ```json ... ```, берём содержимое блока;
+        - иначе пытаемся вычленить сбалансированные { ... }.
+        При неудаче — возвращаем исходный текст (пусть агент попробует сам).
+        """
+        import json
+        import re
+
+        logger.debug(f"Extracting JSON from text ({len(text)} chars): {text[:200]}...")
+
+        # 1) ```json ... ```
+        m = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL | re.IGNORECASE)
+        if m:
+            candidate = m.group(1).strip()
+            try:
+                json.loads(candidate)
+                logger.debug(f"Found JSON in code block: {candidate[:100]}...")
+                return candidate
+            except Exception as e:
+                logger.debug(f"Code block JSON invalid: {e}")
+
+        # 2) первый сбалансированный { ... }
+        start = text.find("{")
+        while start != -1:
+            depth = 0
+            for i in range(start, len(text)):
+                ch = text[i]
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        candidate = text[start:i+1].strip()
+                        try:
+                            json.loads(candidate)
+                            logger.debug(f"Found balanced JSON: {candidate[:100]}...")
+                            return candidate
+                        except Exception as e:
+                            logger.debug(f"Balanced JSON invalid: {e}")
+                            break
+            start = text.find("{", start + 1)
+
+        logger.debug("No valid JSON found, returning original text")
+        return text.strip()
 
     @staticmethod
     def _extract_instructions(messages: Iterable[ModelMessage]) -> str | None:
@@ -217,7 +279,7 @@ class LLMSummarizer:
                 model=model,
                 output_type=SummarizerDigestPayload,
                 instructions=persona_prompt,
-                retries=2,
+                retries=1,
             )
 
             chunk_prompt = self._build_single_chunk_prompt(chunk, max_chunk_chars)
@@ -235,13 +297,14 @@ class LLMSummarizer:
             agent_run: AgentRun[Any, SummarizerDigestPayload] | None = None
 
             try:
-                async with agent.iter(user_prompt=chunk_prompt) as run:
-                    agent_run = run
-                    async for _ in run:
-                        pass
+                async with asyncio.timeout(45):  # 45 секунд таймаут на чанк
+                    async with agent.iter(user_prompt=chunk_prompt) as run:
+                        agent_run = run
+                        async for _ in run:
+                            pass
 
-                if agent_run is None or agent_run.result is None:
-                    raise RuntimeError('Summarizer produced no result')
+                    if agent_run is None or agent_run.result is None:
+                        raise RuntimeError('Summarizer produced no result')
 
                 payload = agent_run.result.output
 
@@ -350,8 +413,8 @@ class LLMSummarizer:
 
         try:
             if isinstance(packed, bytes | bytearray):
-                return cast(list[dict[str, object]], json.loads(packed.decode('utf-8')))
-            return cast(list[dict[str, object]], json.loads(packed))
+                return cast("list[dict[str, object]]", json.loads(packed.decode('utf-8')))
+            return cast("list[dict[str, object]]", json.loads(packed))
         except (json.JSONDecodeError, UnicodeDecodeError):
             return None
 

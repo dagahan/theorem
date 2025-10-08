@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
-import colorama
-import grpc.aio
+import colorama  # type: ignore[import-untyped]
+import grpc.aio  # type: ignore[import-not-found]
 from loguru import logger
 
 from protobuf_stubs import context_builder_pb2_grpc

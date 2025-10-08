@@ -5,14 +5,14 @@ import time
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, ParamSpec, TypeVar
 
-import grpc
+import grpc  # type: ignore[import-untyped]
 from loguru import logger
 from protovalidate import ValidationError, Validator
 
 
 
 if TYPE_CHECKING:
-    import google.protobuf.message
+    import google.protobuf.message  # type: ignore[import-untyped]
     from grpc import ServicerContext
 
 

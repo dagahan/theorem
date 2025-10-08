@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "assessment": { "type": "string", "enum": ["good", "needs_improvement", "critical_issues"] },
+    "gaps": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 300 }
+    },
+    "suggestions": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 300 }
+    },
+    "citation_issues": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 200 }
+    },
+    "flow_issues": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 200 }
+    },
+    "overall_feedback": { "type": "string", "maxLength": 1000 }
+  },
+  "required": ["assessment", "gaps", "suggestions"],
+  "additionalProperties": false
+}

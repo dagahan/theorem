@@ -7,7 +7,7 @@ from src.core.utils import EnvTools
 from sentence_transformers import CrossEncoder   # type: ignore
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 from src.pydantic_schemas.retriever import Candidate
-
+    
 
 class NeuralRerankService:
     def __init__(self) -> None:
@@ -75,6 +75,7 @@ class NeuralRerankService:
         for c, s in zip(limited, scores):
             cc = Candidate(**{**c.__dict__})
             cc.score_nn = float(s)
+            cc.score_total = float(s)
             out.append(cc)
 
         out.sort(key=lambda x: x.score_nn, reverse=True)
