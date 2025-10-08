@@ -180,7 +180,7 @@ func (x *HealthResponse) GetDownstreamComponents() []*ComponentStatus {
 
 type QuestionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RawText       string                 `protobuf:"bytes,1,opt,name=raw_text,json=rawText,proto3" json:"raw_text,omitempty"`
+	Question      string                 `protobuf:"bytes,1,opt,name=question,proto3" json:"question,omitempty"`
 	Stream        bool                   `protobuf:"varint,2,opt,name=stream,proto3" json:"stream,omitempty"`
 	AgentName     string                 `protobuf:"bytes,3,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -217,9 +217,9 @@ func (*QuestionRequest) Descriptor() ([]byte, []int) {
 	return file_llm_gateway_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *QuestionRequest) GetRawText() string {
+func (x *QuestionRequest) GetQuestion() string {
 	if x != nil {
-		return x.RawText
+		return x.Question
 	}
 	return ""
 }
@@ -311,9 +311,9 @@ const file_llm_gateway_proto_rawDesc = "" +
 	"\x0eHealthResponse\x12!\n" +
 	"\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 R\x06status\x12J\n" +
 	"\x10agent_controller\x18\x02 \x01(\v2\x1f.llm_gateway.v1.ComponentStatusR\x0fagentController\x12T\n" +
-	"\x15downstream_components\x18\x03 \x03(\v2\x1f.llm_gateway.v1.ComponentStatusR\x14downstreamComponents\"\x8b\x01\n" +
-	"\x0fQuestionRequest\x12-\n" +
-	"\braw_text\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*R\arawText\x12\x16\n" +
+	"\x15downstream_components\x18\x03 \x03(\v2\x1f.llm_gateway.v1.ComponentStatusR\x14downstreamComponents\"\x8c\x01\n" +
+	"\x0fQuestionRequest\x12.\n" +
+	"\bquestion\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*R\bquestion\x12\x16\n" +
 	"\x06stream\x18\x02 \x01(\bR\x06stream\x121\n" +
 	"\n" +
 	"agent_name\x18\x03 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80\x012\x06.*\\S.*R\tagentName\"Z\n" +

@@ -9,7 +9,7 @@ import (
 
 func (s *service) Question(ctx context.Context, text string) (string, error) {
 	req := &pb.QuestionRequest{
-		RawText:   text,
+		Question:  text,
 		Stream:    false,
 		AgentName: s.agentName,
 	}
