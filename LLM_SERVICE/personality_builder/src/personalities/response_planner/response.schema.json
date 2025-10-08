@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "bullets": {
+            "type": "array",
+            "items": { "type": "string", "maxLength": 500 }
+          },
+          "citation_placeholders": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^\\[\\w+\\]$" }
+          }
+        },
+        "required": ["title", "bullets"],
+        "additionalProperties": false
+      }
+    },
+    "citations": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 50 }
+    },
+    "flow_notes": { "type": "string", "maxLength": 500 }
+  },
+  "required": ["sections"],
+  "additionalProperties": false
+}

@@ -20,7 +20,15 @@ class PersonalityBuilderNode(BaseNode):
         self.schema_utils = get_utils()
 
 
-    _PERSONALITIES: tuple[str, ...] = ('Responder', 'Summarizer')
+    _PERSONALITIES: tuple[str, ...] = (
+        'Responder', 
+        'Summarizer',
+        'Planner',
+        'Evidencer', 
+        'Gatekeeper',
+        'ResponsePlanner',
+        'ResponseCritic'
+    )
 
 
     def _get_node_name(self) -> str:
@@ -31,6 +39,11 @@ class PersonalityBuilderNode(BaseNode):
         self,
         graph_state: GraphState
     ) -> GraphState:
+        # here we just pulling every personality from personality builder.
+        # it's returns list of JSON schemas.
+        # we store JSON schemas in graph state and than compile
+        # pydantic schemas from JSON schemas for pydantic_ai working.
+
         response: PersonalityResponse = await self.adapter.build_personalities(
             list(self._PERSONALITIES),
             graph_state.get('agent_name', '')

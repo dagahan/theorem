@@ -1,0 +1,17 @@
+{
+  "coverage": 0.7,
+  "decision": "loop",
+  "missing_subgoals": [],
+  "contradictions": [
+    "Source A claims discriminant formula is D = b² - 4ac, Source B says D = b² + 4ac",
+    "Conflicting advice on when to use quadratic formula vs factoring",
+    "Different step sequences for problem solving approach"
+  ],
+  "next_hints": [
+    "Verify correct discriminant formula from authoritative source",
+    "Find consensus on solution methodology",
+    "Check for updated EGE guidelines"
+  ],
+  "confidence_summary": "Good coverage but critical contradictions in core formulas and methods. Need authoritative resolution.",
+  "budget_warning": "Budget: 45% used, 2 iterations remaining"
+}

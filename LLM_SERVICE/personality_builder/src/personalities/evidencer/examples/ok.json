@@ -1,0 +1,40 @@
+{
+  "claims": [
+    {
+      "claim_id": "strategy_001",
+      "text": "EGE math problems require systematic approach: read carefully, identify given data, determine what to find, choose appropriate method, solve step-by-step, check answer",
+      "citations": [
+        {
+          "url": "https://ege.sdamgia.ru/strategy",
+          "title": "EGE Math Problem Solving Strategy",
+          "time": "2024-01-15"
+        }
+      ],
+      "support": 3,
+      "contradict": 0,
+      "confidence": 0.9,
+      "freshness_days": 30,
+      "source_trust": 0.95,
+      "retrieval_score": 0.87,
+      "clusters": ["strategy", "methodology"]
+    },
+    {
+      "claim_id": "formula_001", 
+      "text": "Quadratic equations can be solved using discriminant formula: D = b² - 4ac, then x = (-b ± √D) / 2a",
+      "citations": [
+        {
+          "url": "https://math.ru/quadratic",
+          "title": "Quadratic Equations in EGE",
+          "time": "2024-02-01"
+        }
+      ],
+      "support": 5,
+      "contradict": 0,
+      "confidence": 0.98,
+      "freshness_days": 15,
+      "source_trust": 0.9,
+      "retrieval_score": 0.92,
+      "clusters": ["formulas", "algebra"]
+    }
+  ]
+}

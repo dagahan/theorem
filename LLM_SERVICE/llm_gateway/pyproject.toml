@@ -9,14 +9,9 @@ dependencies = [
     "grpcio==1.75.0",
     "protobuf==6.32.0",
     "protovalidate==1.0.0",
-    "httpx==0.28.1",
     "bcrypt>=4.0.0",
     "chardet>=5.0.0",
     "pydantic>=2.0.0",
-    "langgraph>=0.6.7",
-    "langgraph-checkpoint-sqlite>=0.0.8",
-    "tenacity>=9.1.2",
-    "aiosqlite>=0.19.0",
 ]
 
 
