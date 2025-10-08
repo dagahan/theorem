@@ -59,9 +59,12 @@ class LLMGatewayAPI(llm_gateway_pb2_grpc.LLMGatewayServiceServicer):  # type: ig
             )
 
             grpc_tools.validate_proto(response, context)
+            
             return response
+
         except grpc.RpcError as ex:
             logger.error(f'Agent controller health check RPC failed: {ex}')
+
         except Exception as ex:  # noqa: BLE001
             logger.error(f'Agent controller health check failed: {ex}')
 
@@ -86,7 +89,7 @@ class LLMGatewayAPI(llm_gateway_pb2_grpc.LLMGatewayServiceServicer):  # type: ig
             grpc_tools.validate_proto(request, context)
 
             agent_response = await self.agent_client.answer_question(
-                raw_text=request.raw_text,
+                question=request.question,
                 stream=request.stream,
                 agent_name=request.agent_name,
             )

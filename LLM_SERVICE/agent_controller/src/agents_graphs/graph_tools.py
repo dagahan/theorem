@@ -10,7 +10,7 @@ from src.core.utils import EnvTools
 from src.core.converters import DataConverter
 
 if TYPE_CHECKING:
-    from src.pydantic_schemas.agent_controller import ContextChunk, ContextDigestItem, GraphState
+    from src.pydantic_schemas.agent_controller import ContextDigestItem, GraphState
 
 DEFAULT_MAX_CONTEXT_CHARS = 2048
 
@@ -53,9 +53,6 @@ class GraphTools:
         return max(0.0, now_ms - started)
 
 
-    @staticmethod
-    def context_chunks_to_payload(chunks: list["ContextChunk"]) -> list[dict[str, object]]:
-        return DataConverter.chunks_to_payload(chunks)
 
 
     @staticmethod
@@ -114,3 +111,74 @@ class GraphTools:
             return fallback
 
         return parsed
+
+
+    @staticmethod
+    def debit_tokens(state: "GraphState", approx_chars: int) -> None:
+        budgets = state.get('budgets', {})
+        tokens_left = int(budgets.get('tokens_left', 0))
+        spent = max(1, int(approx_chars / 4))
+        budgets['tokens_left'] = max(0, tokens_left - spent)
+        state['budgets'] = budgets
+
+
+    @staticmethod
+    def deadline_exceeded(state: "GraphState") -> bool:
+        b = state.get('budgets', {})
+        return (time.time() * 1000.0) >= float(b.get('deadline_at_ms', 0.0))
+
+
+    @staticmethod
+    def merge_claims(existing: list[dict[str, Any]], new: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        by_id: dict[str, dict[str, Any]] = {}
+        for c in existing or []:
+            if isinstance(c, dict) and c.get('claim_id'):
+                by_id[c['claim_id']] = c
+        for c in new or []:
+            cid = c.get('claim_id')
+            if not cid:
+                continue
+            if cid in by_id:
+                base = by_id[cid]
+                base['support'] = int(base.get('support', 0)) + int(c.get('support', 0))
+                base['contradict'] = int(base.get('contradict', 0)) + int(c.get('contradict', 0))
+                try:
+                    base_conf = float(base.get('confidence', 0.0))
+                    new_conf = float(c.get('confidence', 0.0))
+                    base['confidence'] = max(0.0, min(1.0, (base_conf + new_conf) / 2.0))
+                except Exception:
+                    pass
+            else:
+                by_id[cid] = c
+        return list(by_id.values())
+
+
+    @staticmethod
+    def build_cycle_summary(question: str, subgoals: list[dict[str, Any]], claims: list[dict[str, Any]], budgets: dict[str, Any], gatekeeper_feedback: dict[str, Any] | None = None, context_digests: list[Any] | None = None) -> dict[str, Any]:
+        if context_digests:
+            top_digests = context_digests[:8]  # Take first 8 digests
+            top_claims = [{"id": f"digest_{i}", "t": d.summary} for i, d in enumerate(top_digests)]
+        else:
+            top_claims = sorted(claims or [], key=lambda x: float(x.get('confidence', 0.0)), reverse=True)[:8]
+        
+        summary = {
+            "question": question,
+            "open_subgoals": [g.get('id') for g in (subgoals or []) if not g.get('done')],
+            "top_claims": top_claims,
+            "budget": {
+                "tokens_left": int(budgets.get('tokens_left', 0)),
+                "deadline_at_ms": float(budgets.get('deadline_at_ms', 0.0)),
+                "max_iters": int(budgets.get('max_iters', 0)),
+            }
+        }
+        
+        if gatekeeper_feedback:
+            summary["gatekeeper_feedback"] = {
+                "missing_subgoals": gatekeeper_feedback.get('missing_subgoals', []),
+                "next_hints": gatekeeper_feedback.get('next_hints', []),
+                "contradictions": gatekeeper_feedback.get('contradictions', []),
+                "coverage": gatekeeper_feedback.get('coverage', 0.0),
+                "confidence_summary": gatekeeper_feedback.get('confidence_summary', ''),
+            }
+        
+        return summary

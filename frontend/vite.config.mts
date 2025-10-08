@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   return {
     root: ".",
     server: { 
-      port: parseInt(env.FRONTEND_NGINX_DEV_PORT) || 5500, 
+      port: 4173, 
       open: true,
       host: '0.0.0.0'
     },

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from loguru import logger
+
 from src.core.utils import EnvTools
 from src.rest.client.base_rest_client import BaseRestClient
 
@@ -27,8 +29,9 @@ class VLLMRestClient(BaseRestClient):
             {"role": "system", "content": system_prompt}
         ]
         
-        if context:
+        if context != "":
             messages.append({"role": "context", "content": context})
+            logger.debug(f"VLLM: Added context with {len(context)} chars")
             
         messages.append({"role": "user", "content": question})
         
@@ -40,8 +43,13 @@ class VLLMRestClient(BaseRestClient):
             "stream": stream
         }
         
-        if response_format is not None:
-            payload["response_format"] = response_format
+        if response_format is not None and isinstance(response_format, dict):
+            if response_format.get("type") == "json_object":
+                payload["response_format"] = {"type": "json_object"}
+            else:
+                payload["response_format"] = response_format
+        
+        logger.debug(f"VLLM REST CLIENT PAYLOAD: {payload}")
         
         response = await self._make_request(
             method="POST",

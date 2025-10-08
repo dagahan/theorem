@@ -37,13 +37,13 @@ class AgentControllerGrpcClient:
     @GrpcTools.log_grpc_client_call('agent_controller', 'AnswerQuestion')
     async def answer_question(
         self,
-        raw_text: str,
+        question: str,
         stream: bool,
         agent_name: str,
         run_id: str | None = None,
     ) -> agent_controller_pb2.QuestionResponse:
         request = agent_controller_pb2.QuestionRequest(
-            raw_text=raw_text,
+            question=question,
             stream=stream,
             run_id=run_id or '',
             agent_name=agent_name,

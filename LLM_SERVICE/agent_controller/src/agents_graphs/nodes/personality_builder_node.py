@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from src.core.logging import PersonalityBuilderLogger
-from src.core.schema_utils import get_utils
 from src.pydantic_schemas.agent_controller import GraphState, PersonalityResponse, Personality, Personalities
 from src.agents_graphs.graph_tools import GraphTools
 from src.core.handlers import ResponseHandler
@@ -17,17 +16,16 @@ class PersonalityBuilderNode(BaseNode):
     def __init__(self, adapter: PersonalityBuilderAdapter) -> None:
         super().__init__('PERSONALITY_NODE_TIMEOUT_SEC', 15.0, 3)
         self.adapter = adapter
-        self.schema_utils = get_utils()
 
 
     _PERSONALITIES: tuple[str, ...] = (
-        'Responder', 
-        'Summarizer',
-        'Planner',
-        'Evidencer', 
-        'Gatekeeper',
-        'ResponsePlanner',
-        'ResponseCritic'
+        'responder', 
+        'summarizer',
+        'planner',
+        'evidencer', 
+        'gatekeeper',
+        'response_planner',
+        'response_critic'
     )
 
 
@@ -64,13 +62,9 @@ class PersonalityBuilderNode(BaseNode):
             
             data = schema_like.model_dump() if hasattr(schema_like, "model_dump") else schema_like
             if not isinstance(data, dict):
-                raise TypeError(f"response_schema must be dict, got {type(data)}")
+                return None
             
-            props = data.get("properties", {})
-            if not isinstance(props, dict):
-                raise TypeError(f"'properties' must be dict, got {type(props)}")
-            
-            return self.schema_utils.create_schema_entry(data)
+            return data
 
         personalities = Personalities(
             personalities={

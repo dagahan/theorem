@@ -4,23 +4,10 @@ import json
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from src.pydantic_schemas.agent_controller import ContextChunk, ContextDigestItem
+    from src.pydantic_schemas.agent_controller import ContextDigestItem
 
 
 class DataConverter:    
-    @staticmethod
-    def chunks_to_payload(chunks: list[ContextChunk]) -> list[dict[str, Any]]:
-        return [
-            {
-                'doc_id': chunk.doc_id,
-                'paragraph_id': chunk.paragraph_id,
-                'chunk_id': chunk.chunk_id,
-                'text': chunk.text,
-                'pages': chunk.pages,
-                'score': chunk.score,
-            }
-            for chunk in chunks
-        ]
     
     @staticmethod
     def digests_to_payload(digests: list[ContextDigestItem]) -> list[dict[str, Any]]:
@@ -28,11 +15,7 @@ class DataConverter:
             {
                 'title': digest.title,
                 'summary': digest.summary,
-                'doc_id': digest.source_chunk.doc_id,
-                'paragraph_id': digest.source_chunk.paragraph_id,
-                'chunk_id': digest.source_chunk.chunk_id,
-                'score': digest.source_chunk.score,
-                'pages': list(digest.source_chunk.pages),
+                'source_chunk': digest.source_chunk,
             }
             for digest in digests
         ]
@@ -44,12 +27,6 @@ class DataConverter:
         return json.dumps(payload, ensure_ascii=False)
     
 
-    @staticmethod
-    def chunks_to_dict(chunks: list[ContextChunk]) -> dict[str, Any]:
-        return {
-            'chunks': DataConverter.chunks_to_payload(chunks),
-            'count': len(chunks)
-        }
     
 
     @staticmethod
@@ -112,7 +89,6 @@ class DataConverter:
             'success': state.get('success', False),
             'error': state.get('error', ''),
             'timings_ms': state.get('timings_ms', {}),
-            'context_chunks_count': len(state.get('context_chunks', [])),
             'context_digests_count': len(state.get('context_digests', [])),
             'has_personalities': bool(state.get('personalities')),
             'has_response': bool(state.get('response_answer')),

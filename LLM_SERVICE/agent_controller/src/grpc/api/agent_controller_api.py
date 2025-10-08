@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from protobuf_stubs import agent_controller_pb2, agent_controller_pb2_grpc
-from src.pydantic_schemas.agent_controller import ServiceStatus, UserQuery
+from src.pydantic_schemas.agent_controller import ServiceStatus
 from src.grpc.grpc_utils import GrpcTools
 
 
@@ -75,21 +75,17 @@ class AgentControllerAPI(agent_controller_pb2_grpc.AgentControllerServiceService
         try:
             grpc_tools.validate_proto(request, context)
 
-            question_request = UserQuery(
-                raw_text=request.raw_text,
+            orchestrator_response = await self.orchestrator.answer_question(
+                question=request.question,
                 agent_name=request.agent_name,
                 stream=request.stream,
-            )
-
-            question_response = await self.orchestrator.answer_question(
-                query=question_request,
                 run_id=request.run_id or None,
             )
 
             response = agent_controller_pb2.QuestionResponse(
-                answer=question_response.answer,
-                success=question_response.success,
-                error=question_response.error or '',
+                answer=orchestrator_response.answer,
+                success=orchestrator_response.success,
+                error=orchestrator_response.error or '',
             )
 
             grpc_tools.validate_proto(response, context)

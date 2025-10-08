@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from src.core.logging import ResponderGenerationLogger
-from src.core.schema_utils import get_utils
 from src.services.llm_model import LLMModel
 from src.agents_graphs.graph_tools import GraphTools
 from src.core.handlers import ResponseHandler
@@ -17,9 +16,8 @@ if TYPE_CHECKING:
 class ResponseAnswerNode(BaseNode):
     def __init__(self, vllm_adapter: "VLLMAdapter", defaults: "InferenceParams") -> None:
         super().__init__('LLM_GENERATION_NODE_TIMEOUT_SEC', 90.0, 3)
-        self.llm_model = LLMModel(adapter=vllm_adapter)
+        self.llm_model = LLMModel(vllm_adapter=vllm_adapter)
         self.defaults = defaults
-        self.schema_utils = get_utils()
 
 
     def _get_node_name(self) -> str:
@@ -31,83 +29,45 @@ class ResponseAnswerNode(BaseNode):
         graph_state: "GraphState"
     ) -> "GraphState":
         personalities = graph_state.get('personalities')
-        if not personalities or 'Responder' not in personalities.personalities:
+        if not personalities or 'responder' not in personalities.personalities:
             return ResponseHandler.handle_failure(
                 graph_state,
-                "Responder personality is missing",
+                "responder personality is missing",
                 error_key='response_success'
             )
 
-        responder_personality = personalities.personalities['Responder']
+        responder_personality = personalities.personalities['responder']
         system_prompt = responder_personality.system_prompt
 
-        question = graph_state.get('question', graph_state['query'].raw_text)
+        question = graph_state.get('question', '')
         context_json = GraphTools.digests_to_json(graph_state.get('context_digests', []))
-        stream = bool(graph_state['query'].stream)
+        stream = False
 
         params: "InferenceParams" = graph_state.get('inference_params', self.defaults)
 
-        if responder_personality.response_schema is None or stream:
-            text = await self.llm_model.infer(
-                system_prompt=system_prompt,
-                question=question,
-                context=context_json,
-                stream=stream,
-                temperature=params.temperature,
-                max_tokens=params.max_tokens,
-            )
+        # Always use infer() for responder since it doesn't have response_schema
+        text = await self.llm_model.infer(
+            system_prompt=system_prompt,
+            question=question,
+            context=context_json,
+            stream=stream,
+            temperature=params.temperature,
+            max_tokens=params.max_tokens,
+            mcp_server=graph_state.get('mcp_server'),
+        )
 
-            return ResponseHandler.handle_success(
-                graph_state,
-                'response_success',
-                additional_data={
-                    'response_answer': text,
-                    'response_error': ''
-                }
-            )
-
-        else:
-            response_model = self.schema_utils.get_personality_model(
-                responder_personality.model_dump(), 
-                "ResponderResponse"
-            )
-            
-            if response_model is None:
-                answer: str = await self.llm_model.infer(
-                    system_prompt=system_prompt,
-                    question=question,
-                    context=context_json,
-                    stream=False,
-                    temperature=params.temperature,
-                    max_tokens=params.max_tokens,
-                )
-
-            else:
-                result = await self.llm_model.pydantic_ai_request(
-                    system_prompt=system_prompt,
-                    question=question,
-                    context=context_json,
-                    response_schema=response_model,
-                    retries=1,
-                    temperature=params.temperature,
-                    max_tokens=params.max_tokens,
-                )
-
-                answer_value = getattr(result, 'answer', None)
-                if isinstance(answer_value, str):
-                    answer = answer_value
-                else:
-                    answer = str(result.model_dump_json())
-
-            return ResponseHandler.handle_success(
-                graph_state,
-                'response_success',
-                additional_data={
-                    'response_answer': answer,
-                    'response_error': ''
-                }
-            )
-
+        graph_state['response_answer'] = text
+        graph_state['response_success'] = True
+        graph_state['response_error'] = ''
+        
+        return ResponseHandler.handle_success(
+            graph_state,
+            'response_success',
+            additional_data={
+                'response_answer': text,
+                'response_error': ''
+            }
+        )
 
 
     def _log_success(
@@ -117,7 +77,7 @@ class ResponseAnswerNode(BaseNode):
     ) -> None:
         ResponderGenerationLogger.log_responder_generation(
             question_id=graph_state['question_id'],
-            question=graph_state['query'].raw_text,
+            question=graph_state.get('question', ''),
             context=GraphTools.digests_to_json(graph_state.get('context_digests', [])),
             response_answer=graph_state['response_answer'],
             generation_time_ms=elapsed_ms,
@@ -134,7 +94,7 @@ class ResponseAnswerNode(BaseNode):
     ) -> None:
         ResponderGenerationLogger.log_responder_generation(
             question_id=graph_state['question_id'],
-            question=graph_state['query'].raw_text,
+            question=graph_state.get('question', ''),
             context=GraphTools.digests_to_json(graph_state.get('context_digests', [])),
             response_answer='',
             generation_time_ms=elapsed_ms,

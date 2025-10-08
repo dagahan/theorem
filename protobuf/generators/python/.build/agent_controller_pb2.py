@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as third__party_dot_protovalidate_dot_buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16\x61gent_controller.proto\x12\x13\x61gent_controller.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"`\n\x0f\x43omponentStatus\x12\x17\n\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@\x12\x19\n\x06status\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x19\n\x07\x64\x65tails\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02\"e\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x38\n\ncomponents\x18\x02 \x03(\x0b\x32$.agent_controller.v1.ComponentStatus\"\x8a\x01\n\x0fQuestionRequest\x12$\n\x08raw_text\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x0e\n\x06stream\x18\x02 \x01(\x08\x12\x19\n\x06run_id\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18@\x12&\n\nagent_name\x18\x04 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80\x01\x32\x06.*\\S.*\"B\n\x10QuestionResponse\x12\x0e\n\x06\x61nswer\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\r\n\x05\x65rror\x18\x03 \x01(\t2\xca\x01\n\x16\x41gentControllerService\x12Q\n\x06Health\x12\".agent_controller.v1.HealthRequest\x1a#.agent_controller.v1.HealthResponse\x12]\n\x0e\x41nswerQuestion\x12$.agent_controller.v1.QuestionRequest\x1a%.agent_controller.v1.QuestionResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16\x61gent_controller.proto\x12\x13\x61gent_controller.v1\x1a\x35third_party/protovalidate/buf/validate/validate.proto\"\x0f\n\rHealthRequest\"`\n\x0f\x43omponentStatus\x12\x17\n\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@\x12\x19\n\x06status\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x19\n\x07\x64\x65tails\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02\"e\n\x0eHealthResponse\x12\x19\n\x06status\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18 \x12\x38\n\ncomponents\x18\x02 \x03(\x0b\x32$.agent_controller.v1.ComponentStatus\"\x8a\x01\n\x0fQuestionRequest\x12$\n\x08question\x18\x01 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80@2\x06.*\\S.*\x12\x0e\n\x06stream\x18\x02 \x01(\x08\x12\x19\n\x06run_id\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x00\x18@\x12&\n\nagent_name\x18\x04 \x01(\tB\x12\xbaH\x0fr\r\x10\x01\x18\x80\x01\x32\x06.*\\S.*\"B\n\x10QuestionResponse\x12\x0e\n\x06\x61nswer\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\r\n\x05\x65rror\x18\x03 \x01(\t2\xca\x01\n\x16\x41gentControllerService\x12Q\n\x06Health\x12\".agent_controller.v1.HealthRequest\x1a#.agent_controller.v1.HealthResponse\x12]\n\x0e\x41nswerQuestion\x12$.agent_controller.v1.QuestionRequest\x1a%.agent_controller.v1.QuestionResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,8 +40,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_COMPONENTSTATUS'].fields_by_name['details']._serialized_options = b'\272H\005r\003\030\200\002'
   _globals['_HEALTHRESPONSE'].fields_by_name['status']._loaded_options = None
   _globals['_HEALTHRESPONSE'].fields_by_name['status']._serialized_options = b'\272H\006r\004\020\000\030 '
-  _globals['_QUESTIONREQUEST'].fields_by_name['raw_text']._loaded_options = None
-  _globals['_QUESTIONREQUEST'].fields_by_name['raw_text']._serialized_options = b'\272H\017r\r\020\001\030\200@2\006.*\\S.*'
+  _globals['_QUESTIONREQUEST'].fields_by_name['question']._loaded_options = None
+  _globals['_QUESTIONREQUEST'].fields_by_name['question']._serialized_options = b'\272H\017r\r\020\001\030\200@2\006.*\\S.*'
   _globals['_QUESTIONREQUEST'].fields_by_name['run_id']._loaded_options = None
   _globals['_QUESTIONREQUEST'].fields_by_name['run_id']._serialized_options = b'\272H\006r\004\020\000\030@'
   _globals['_QUESTIONREQUEST'].fields_by_name['agent_name']._loaded_options = None

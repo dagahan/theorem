@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Type
+import json
+import re
+from typing import TYPE_CHECKING, Type, Dict, Any
 
 from pydantic_ai import Agent
+from loguru import logger
 
 from .pydantic_ai_model import PydanticAIBridgeModel
+from .mcp_tools_formatter import MCPToolsFormatter
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
@@ -12,9 +16,9 @@ if TYPE_CHECKING:
 
 
 class LLMModel:
-    def __init__(self, *, adapter: "VLLMAdapter") -> None:
-        self.adapter = adapter
-        self.model_name = str(adapter.model_name)
+    def __init__(self, *, vllm_adapter: "VLLMAdapter") -> None:
+        self.vllm_adapter = vllm_adapter
+        self.model_name = str(vllm_adapter.model_name)
 
 
     async def infer(
@@ -25,21 +29,26 @@ class LLMModel:
         context: str,
         stream: bool,
         temperature: float,
-        max_tokens: int
+        max_tokens: int,
+        mcp_server: Dict[str, Any] | None = None,
     ) -> str:
         if stream:
-            RuntimeError("Stream isn't implemented yet.")
+            raise RuntimeError("Stream isn't implemented yet.")
 
-        output = await self.adapter.complete(
-            system_prompt=system_prompt,
-            context=context,
+        mcp_tools_section = MCPToolsFormatter.format_tools_for_system_prompt(mcp_server or {})
+        full_system_prompt = system_prompt + mcp_tools_section
+
+        response = await self.vllm_adapter.generate_answer(
             question=question,
+            system_prompt=full_system_prompt,
+            context=context,
+            stream=False,
             temperature=temperature,
             max_tokens=max_tokens,
-            stream=False,
+            response_format=None,
         )
-
-        return output
+        
+        return response
 
 
     async def pydantic_ai_request(
@@ -48,34 +57,49 @@ class LLMModel:
         system_prompt: str,
         question: str,
         context: str,
-        response_schema: Type[BaseModel],
-        retries: int = 1,
+        response_schema: Dict[str, Any],
+        retries: int,
         temperature: float,
         max_tokens: int,
-    ) -> BaseModel:
-        from loguru import logger
-        
-        logger.debug(f"PydanticAI request: schema={response_schema.__name__}, retries={retries}")
-        logger.debug(f"Expected schema fields: {list(response_schema.model_fields.keys())}")
+        mcp_server: Dict[str, Any] | None = None,
+    ) -> Any:
+        schema_format_contract = self._build_format_contract(response_schema)
+
+        mcp_tools_section = MCPToolsFormatter.format_tools_for_system_prompt(mcp_server or {})
+
+        full_system_prompt = f"{system_prompt}\n\n{mcp_tools_section}\n\n{schema_format_contract}"
 
         pydantic_ai_bridge_model = PydanticAIBridgeModel(
-            adapter=self.adapter,
+            vllm_adapter=self.vllm_adapter,
             model_name=self.model_name,
-            system_prompt=system_prompt,
+            system_prompt=full_system_prompt,
             context=context,
             question=question,
             temperature=temperature,
             max_tokens=max_tokens,
         )
 
+        logger.debug(f"PYDANTIC AI TARGET SCHEMA: {response_schema}")
+        
         agent = Agent(
             model=pydantic_ai_bridge_model,
-            output_type=response_schema,
             retries=retries
         )
 
-        result = await agent.run()  # prompts already inside bridge
+        result = await agent.run(question)
+        return json.loads(result.output)
 
-        return result.output
+
+    def _build_format_contract(
+        self,
+        schema: Dict[str, Any]
+    ) -> str:
+        return (
+            "FORMAT CONTRACT\n"
+            "Return ONLY a single JSON object that VALIDATES this JSON Schema (draft 2020-12).\n"
+            "No prose, no code fences, no extra keys. If a required array has no items, return [].\n"
+            f"SCHEMA:\n{json.dumps(schema, ensure_ascii=False)}\n"
+            "OUTPUT: JSON only."
+        )
 
 

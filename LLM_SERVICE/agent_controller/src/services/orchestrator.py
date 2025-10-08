@@ -8,8 +8,6 @@ from typing import TYPE_CHECKING, Any
 from langgraph.checkpoint.memory import MemorySaver
 from loguru import logger
 
-from src.adapters.context_builder_adapter import ContextBuilderAdapter
-from src.adapters.retriever_adapter import RetrieverAdapter
 from src.adapters.personality_builder_adapter import PersonalityBuilderAdapter
 from src.adapters.vllm_adapter import VLLMAdapter
 from src.adapters.mcp_adapter import MCPAdapter
@@ -23,7 +21,6 @@ from src.pydantic_schemas.agent_controller import (
     Personalities,
     QuestionResponse,
     ServiceStatus,
-    UserQuery,
 )
 
 from src.agents_graphs.graph_builder import GraphBuilder
@@ -35,8 +32,6 @@ if TYPE_CHECKING:
 class LLMGraphOrchestrator:
     def __init__(self) -> None:
         self.vllm_adapter = VLLMAdapter()
-        self.retriever_adapter = RetrieverAdapter()
-        self.context_builder_adapter = ContextBuilderAdapter()
         self.personality_builder_adapter = PersonalityBuilderAdapter()
         self.mcp_adapter = MCPAdapter()
         self.default_collection = EnvTools.required_load_env_var('DEFAULT_RETRIEVER_COLLECTION')
@@ -48,15 +43,13 @@ class LLMGraphOrchestrator:
         
         # Initialize inference defaults
         self.inference_defaults = InferenceParams(
-            model_name=EnvTools.load_env_var("VLLM_MODEL_NAME") or "vllm",
-            temperature=float(EnvTools.load_env_var("LLM_TEMP") or "0.2"),
-            max_tokens=int(EnvTools.load_env_var("LLM_MAX_TOKENS") or "800"),
+            model_name="vllm",
+            temperature=float(0.2),
+            max_tokens=800,
         )
 
         self.graph_builder = GraphBuilder(
             self.vllm_adapter,
-            self.retriever_adapter,
-            self.context_builder_adapter,
             self.personality_builder_adapter,
             self.mcp_adapter,
         )
@@ -66,21 +59,23 @@ class LLMGraphOrchestrator:
 
     async def answer_question(
         self,
-        query: UserQuery,
+        question: str,
+        agent_name: str,
+        stream: bool = False,
         run_id: str | None = None,
     ) -> QuestionResponse:
         try:
             # user provided agent name in it's query.
             # we using graph of specific agent here.
-            graph = self.agents_graphs.get(query.agent_name)
+            graph = self.agents_graphs.get(agent_name)
 
             if graph is None:
                 graph = self.graph_builder.build_graph(
-                    query.agent_name,
+                    agent_name,
                     self.checkpointer
                 )
 
-                self.agents_graphs[query.agent_name] = graph
+                self.agents_graphs[agent_name] = graph
 
         except ValueError as exc:
             return QuestionResponse(
@@ -89,28 +84,38 @@ class LLMGraphOrchestrator:
                 error=str(exc)
             )
 
-        initial: GraphState = {
+        initial_graph_state: GraphState = {
             'question_id': str(uuid.uuid4()),
             'started_at_ms': time.time() * 1000,
             'timings_ms': {},
-            'collection_name': self.default_collection,
-            'max_context_chars': self.max_context_chars,
-            'min_results_required': self.min_results_required,
-            'query': query,
-            'agent_name': query.agent_name,
-            'success': False,
+            'agent_name': agent_name,
+            'question': question,
             'context_digests': [],
             'personalities': Personalities(personalities={}),
-            'inference_params': self.inference_defaults,
-            'mcp': {},
-            'mcp_tools': {},
-            'mcp_schemas': {},
+            'mcp_server': {},
             'mcp_rag_error': '',
+            'cot': {},
+            'budgets': {},
+            'evidence': {},
+            'cycle_summary': {},
+            'previous_plans': [],
+            'plan': {},
+            'gate_report': {},
+            'gate_decision': '',
+            'response_plan': {},
+            'plan_ok': False,
+            'response_plan_review': {},
+            'inference_params': self.inference_defaults,
+            'response_answer': '',
+            'response_success': False,
+            'response_error': '',
+            'success': False,
+            'error': '',
         }
 
         state: GraphState = await graph.ainvoke(
-            initial,
-            config={'configurable': {'thread_id': run_id or initial['question_id']}}
+            initial_graph_state,
+            config={'configurable': {'thread_id': run_id or initial_graph_state['question_id']}}
         )
 
         return QuestionResponse(
@@ -191,8 +196,6 @@ class LLMGraphOrchestrator:
 
         components = await asyncio.gather(
             run_check('vllm_talking', self.vllm_adapter.health_check),
-            run_check('retriever', self.retriever_adapter.health_check),
-            run_check('context_builder', self.context_builder_adapter.health_check),
             run_check('personality_builder', self.personality_builder_adapter.health_check),
             run_check('mcp_server', self.mcp_adapter.health_check),
         )

@@ -7,7 +7,6 @@ from loguru import logger
 
 from src.core.timeouts import TimeoutTools
 from src.core.utils import EnvTools
-from src.core.json_schema_to_pydantic import JsonPydanticSchemaCompiler
 from src.pydantic_schemas.mcp_server.models import (
     RagSearchInput, RagSearchOutput, HealthOutput,
 )
@@ -23,7 +22,6 @@ class MCPAdapter:
         registry = RestClientRegistry()
         timeout = TimeoutTools.get_timeout("MCP_HTTP_TIMEOUT_SEC", 30.0)
         self.client: MCPJsonRpcClient = registry.register_client("mcp_server", MCPJsonRpcClient, timeout=timeout, transport="streamable-http")
-        self._schema_compiler = JsonPydanticSchemaCompiler()
 
         ttl_raw = EnvTools.load_env_var("MCP_CATALOG_TTL_SEC")
         try:
@@ -37,7 +35,7 @@ class MCPAdapter:
         self,
         state: "GraphState"
     ) -> None:
-        mcp_state = state.get("mcp") or {}
+        mcp_state = state.get("mcp_server") or {}
         catalog = mcp_state.get("catalog") or {}
         fetched_at = float(catalog.get("fetched_at") or 0.0)
         now = time.time()
@@ -70,15 +68,15 @@ class MCPAdapter:
 
             try:
                 compiled[name] = {
-                    "input_model": self._schema_compiler.compile(input_schema) if input_schema else None,
-                    "output_model": self._schema_compiler.compile(output_schema) if output_schema else None,
+                    "input_schema": input_schema,
+                    "output_schema": output_schema,
                 }
 
             except Exception as ex:
                 logger.warning(f"MCP: failed to compile schemas for '{name}': {ex}")
                 compiled[name] = {"input_model": None, "output_model": None}
 
-        state["mcp"] = {
+        state["mcp_server"] = {
             "endpoint": self.client.base_url,
             "catalog": {"tools": tools_by_name, "fetched_at": now, "ttl_sec": self._catalog_ttl},
             "compiled": compiled,
@@ -145,7 +143,7 @@ class MCPAdapter:
         tool_name: str,
         args: Mapping[str, Any] | None = None
     ) -> Dict[str, Any]:
-        compiled = (state.get("mcp") or {}).get("compiled") or {}
+        compiled = (state.get("mcp_server") or {}).get("compiled") or {}
         entry = compiled.get(tool_name) or {}
         input_model = entry.get("input_model")
         output_model = entry.get("output_model")

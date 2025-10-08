@@ -1,43 +1,36 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
+  "additionalProperties": false,
+  "required": ["digests"],
   "properties": {
-    "claims": {
+    "digests": {
       "type": "array",
       "items": {
         "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "summary", "source_chunk"],
         "properties": {
-          "claim_id": { "type": "string", "minLength": 1, "maxLength": 50 },
-          "text": { "type": "string", "minLength": 1, "maxLength": 1000 },
-          "citations": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "url": { "type": "string", "minLength": 1 },
-                "title": { "type": "string", "maxLength": 200 },
-                "time": { "type": "string", "maxLength": 50 }
+          "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "summary": { "type": "string", "minLength": 1, "maxLength": 280 },
+          "source_chunk": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["doc_id", "paragraph_id", "chunk_id", "text", "pages", "score"],
+            "properties": {
+              "doc_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "paragraph_id": { "type": "integer" },
+              "chunk_id": { "type": "integer" },
+              "text": { "type": "string" },
+              "pages": {
+                "type": "array",
+                "items": { "type": "integer" }
               },
-              "required": ["url"],
-              "additionalProperties": false
+              "score": { "type": "number" }
             }
-          },
-          "support": { "type": "integer", "minimum": 0 },
-          "contradict": { "type": "integer", "minimum": 0 },
-          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-          "freshness_days": { "type": "integer", "minimum": 0 },
-          "source_trust": { "type": "number", "minimum": 0, "maximum": 1 },
-          "retrieval_score": { "type": "number" },
-          "clusters": {
-            "type": "array",
-            "items": { "type": "string", "maxLength": 50 }
           }
-        },
-        "required": ["claim_id", "text", "citations", "support", "contradict", "confidence"],
-        "additionalProperties": false
+        }
       }
     }
-  },
-  "required": ["claims"],
-  "additionalProperties": false
+  }
 }

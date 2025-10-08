@@ -1,9 +1,9 @@
 {
-  "coverage": 0.85,
+  "coverage": 0.75,
   "decision": "exit",
   "missing_subgoals": [],
   "contradictions": [],
   "next_hints": [],
-  "confidence_summary": "High confidence (0.9+) on core mathematical concepts and solution strategies. All subgoals adequately covered with authoritative sources.",
+  "confidence_summary": "Good coverage of the main question with relevant mathematical information. Sufficient evidence to provide a comprehensive answer.",
   "budget_warning": null
 }

@@ -20,7 +20,7 @@ class FailureNode:
         self,
         state: GraphState
     ) -> GraphState:
-        error_message = (
+        error_message = str(
             state.get('response_error')
             or state.get('retrieval_error')
             or state.get('error')
@@ -34,8 +34,7 @@ class FailureNode:
 
         QuestionLogger.log_question_processing(
             question_id=state['question_id'],
-            question=state['query'].raw_text,
-            context_chunks=[],
+            question=state.get('question', ''),
             response_answer='',
             processing_time_ms=total_ms,
             success=False,

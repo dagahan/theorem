@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Type, Union
+from typing import TYPE_CHECKING, Optional, Type, Union, Dict, Any
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
@@ -19,11 +19,11 @@ class PersonalityClient:
         question: str,
         context: str,
         stream: bool,
-        response_schema: Optional[Type[BaseModel]] = None,
+        response_schema: Optional[Dict[str, Any]] = None,
         retries: int = 1,
         temperature: float,
         max_tokens: int
-    ) -> Union[str, BaseModel]:
+    ) -> Any:
 
         if response_schema is None or stream:
             output_text = await self.llm_model.infer(
